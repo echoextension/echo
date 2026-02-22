@@ -1,0 +1,3082 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+:root {
+  --bookmark-bar-height: 32px; /* 收藏栏高度 */
+  /* 浅色模式背景变量 */
+  --bg-gradient-start: #ffffff;
+  --bg-gradient-mid: rgba(0, 88, 255, 0.06);
+  --bg-gradient-end: rgba(119, 116, 255, 0.075);
+  --bg-accent: rgba(1, 177, 253, 0.03);
+}
+
+/* 深色模式变量 */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg-gradient-start: #1a1a2e;
+    --bg-gradient-mid: rgba(0, 88, 255, 0.08);
+    --bg-gradient-end: rgba(119, 116, 255, 0.1);
+    --bg-accent: rgba(1, 177, 253, 0.05);
+  }
+}
+
+/* 覆盖收藏栏模块添加的 margin-top，NTP 已通过 CSS 变量处理 */
+html {
+  margin-top: 0 !important;
+  /* 禁用滚动锚定，防止高度动态变化时浏览器自动调整滚动位置导致的跳动 */
+  overflow-anchor: none;
+}
+
+/* 渐变背景旋转动画 */
+@property --gradient-angle {
+  syntax: '<angle>';
+  initial-value: 180deg;
+  inherits: false;
+}
+
+@keyframes rotateGradient {
+  0% { --gradient-angle: 0deg; }
+  100% { --gradient-angle: 360deg; }
+}
+
+body {
+  height: 100vh;
+  /* 现代渐变背景 - 慢速旋转 */
+  background: 
+    linear-gradient(var(--gradient-angle), var(--bg-gradient-start) 0%, var(--bg-gradient-mid) 40%, var(--bg-gradient-end) 100%),
+    radial-gradient(ellipse at top right, var(--bg-accent) 0%, transparent 50%),
+    radial-gradient(ellipse at bottom left, rgba(119, 116, 255, 0.03) 0%, transparent 50%);
+  background-color: var(--bg-gradient-start);
+  font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, sans-serif;
+  overflow: hidden; /* 禁止滚动 */
+  animation: rotateGradient 60s linear infinite;
+}
+
+/* 壁纸模式下停止旋转动画 */
+body.wallpaper-mode {
+  animation: none;
+}
+
+/* ============================================
+ * Low Poly Canvas 背景（由 common/lowpoly-bg.js 控制）
+ * Canvas 元素会自动创建，z-index: 0
+ * ============================================ */
+
+/* ============================================
+ * 壁纸背景层
+ * ============================================ */
+.wallpaper-bg {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -1;
+  opacity: 0;
+  /* 移除过渡动画，实现瞬开 */
+  /* transition: opacity 0.5s ease; */
+}
+
+.wallpaper-bg img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover; /* 保持比例裁剪填充 */
+  /* 强制禁用所有动画 */
+  transition: none !important;
+  animation: none !important;
+  opacity: 1 !important;
+}
+
+body.wallpaper-mode .wallpaper-bg {
+  opacity: 1;
+}
+
+body.wallpaper-mode {
+  /* 壁纸加载前使用与 Low Poly 一致的渐变背景，绝对不允许黑屏 */
+  background: 
+    linear-gradient(var(--gradient-angle), var(--bg-gradient-start) 0%, var(--bg-gradient-mid) 40%, var(--bg-gradient-end) 100%),
+    radial-gradient(ellipse at top right, var(--bg-accent) 0%, transparent 50%),
+    radial-gradient(ellipse at bottom left, rgba(119, 116, 255, 0.03) 0%, transparent 50%);
+  background-color: var(--bg-gradient-start);
+}
+
+/* ============================================
+ * 壁纸信息栏（左上角）- 带自动收起功能
+ * ============================================ */
+
+/* 外层包装器 - 固定定位，支持拖动 */
+.wallpaper-info-wrapper {
+  position: fixed;
+  top: calc(var(--bookmark-bar-height) + 16px);
+  left: 0; /* 贴左边 */
+  z-index: 50;
+  opacity: 0;
+  transition: opacity 0.3s;
+  pointer-events: none;
+  /* 支持通过 CSS 变量设置自定义位置 */
+  --info-position-y: calc(var(--bookmark-bar-height) + 16px);
+}
+
+.wallpaper-info-wrapper.custom-position {
+  top: var(--info-position-y);
+}
+
+/* 禁用过渡动画（用于已见壁纸的瞬间隐藏） */
+.wallpaper-info-wrapper.no-transition,
+.wallpaper-info-wrapper.no-transition .wallpaper-info,
+.wallpaper-info-wrapper.no-transition .wallpaper-info-dot {
+  transition: none !important;
+}
+
+body.wallpaper-mode .wallpaper-info-wrapper {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* 壁纸关闭时彻底隐藏信息卡片，防止透明状态下子元素仍可点击 */
+body:not(.wallpaper-mode) .wallpaper-info-wrapper {
+  display: none;
+}
+
+/* 收起时的手柄 - 与卡片内手柄样式一致 */
+.wallpaper-info-dot {
+  position: absolute;
+  /* 与卡片内手柄位置对齐：left: 12px, 垂直居中 */
+  top: 50%;
+  left: 12px;
+  transform: translateY(-50%) scale(0);
+  /* 与卡片内手柄一致的尺寸 */
+  width: 5px;
+  height: 48px;
+  /* 白色半透明背景 */
+  background: rgba(255, 255, 255, 0.5);
+  border-radius: 3px;
+  cursor: pointer;
+  transition: opacity 0.3s ease, transform 0.3s ease, height 0.2s ease, background 0.2s ease;
+  opacity: 0;
+  pointer-events: none;
+  /* 柔和发光 */
+  box-shadow: 0 0 6px rgba(255, 255, 255, 0.3);
+}
+
+/* 手柄可见状态 */
+.wallpaper-info-wrapper.collapsed .wallpaper-info-dot {
+  opacity: 1;
+  transform: translateY(-50%) scale(1);
+  pointer-events: auto;
+}
+
+/* 手柄 hover 时增强 - 与卡片内 hover 一致 */
+.wallpaper-info-dot:hover {
+  height: 60px;
+  background: rgba(255, 255, 255, 0.85);
+  box-shadow: 
+    0 0 12px rgba(255, 255, 255, 0.6),
+    0 0 20px var(--info-accent-glow, rgba(255, 255, 255, 0.3));
+}
+
+/* 拖动时的样式 */
+.wallpaper-info-wrapper.dragging {
+  cursor: grabbing !important;
+}
+
+.wallpaper-info-wrapper.dragging .wallpaper-info-dot {
+  cursor: grabbing !important;
+  --dot-opacity: 0.6;
+}
+
+/* 拖动手柄提示 - 白色高对比度，增大高度 */
+.wallpaper-info::after {
+  content: '';
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 5px;
+  height: 48px;
+  background: rgba(255, 255, 255, 0.5);
+  border-radius: 3px;
+  opacity: 1;
+  transition: all 0.2s ease;
+  pointer-events: none;
+  box-shadow: 0 0 6px rgba(255, 255, 255, 0.3);
+}
+
+/* 鼠标进入拖拽区域时手柄增强 */
+.wallpaper-info.drag-handle-hover::after {
+  background: rgba(255, 255, 255, 0.85);
+  height: 60px;
+  box-shadow: 
+    0 0 12px rgba(255, 255, 255, 0.6),
+    0 0 20px var(--info-accent-glow, rgba(255, 255, 255, 0.3));
+}
+
+.wallpaper-info-wrapper.dragging .wallpaper-info {
+  cursor: grabbing !important;
+}
+
+/* 信息卡片 - 背景融入主题色渐变 */
+.wallpaper-info {
+  position: relative;
+  max-width: 500px;
+  padding: 14px 18px 14px 32px; /* 左侧留出拖拽手柄空间 */
+  /* 背景由 JS 动态设置，左侧带主题色 */
+  background: var(--info-bg-gradient, rgba(0, 0, 0, 0.5));
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: 0 12px 12px 0; /* 左侧无圆角 */
+  /* 左侧无边框 */
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-left: none;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  cursor: pointer;
+  overflow: hidden;
+  transform-origin: 12px center; /* 从手柄位置缩放 */
+  transition: opacity 0.3s ease, transform 0.3s ease, background 0.5s ease;
+  /* 默认隐藏，只有 expanded 类才显示 */
+  opacity: 0;
+  transform: scale(0);
+  pointer-events: none;
+}
+
+/* 收起状态 - 卡片隐藏 */
+.wallpaper-info-wrapper.collapsed .wallpaper-info {
+  opacity: 0;
+  transform: scale(0);
+  pointer-events: none;
+}
+
+/* 展开状态 - 卡片显示 */
+.wallpaper-info-wrapper.expanded .wallpaper-info {
+  opacity: 1;
+  transform: scale(1);
+  pointer-events: auto;
+}
+
+.wallpaper-info-wrapper.expanded .wallpaper-info-dot {
+  opacity: 0;
+  transform: scale(0);
+  pointer-events: none;
+}
+
+body.wallpaper-mode .wallpaper-info::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 60%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.08),
+    rgba(255, 255, 255, 0.25),
+    rgba(255, 255, 255, 0.08),
+    transparent
+  );
+  transform: skewX(-20deg);
+  transition: none;
+}
+
+body.wallpaper-mode .wallpaper-info:hover {
+  background: rgba(0, 0, 0, 0.55);
+  border-color: rgba(255, 255, 255, 0.25);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.1) inset;
+}
+
+body.wallpaper-mode .wallpaper-info:hover::before {
+  animation: shimmer 0.8s ease-out;
+}
+
+@keyframes shimmer {
+  0% {
+    left: -100%;
+  }
+  100% {
+    left: 150%;
+  }
+}
+
+body.wallpaper-mode .wallpaper-info:active {
+  transform: translateY(1px);
+}
+
+.wallpaper-source-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.wallpaper-source {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--info-text, rgba(255, 255, 255, 0.9));
+  letter-spacing: 1px;
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+  transition: color 0.5s ease;
+}
+
+.wallpaper-search-link {
+  font-size: 11px;
+  color: var(--info-text-secondary, rgba(255, 255, 255, 0.35));
+  text-decoration: none;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+  pointer-events: none;
+  cursor: default;
+  transition: color 0.5s ease;
+}
+
+.wallpaper-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--info-text, white);
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+  line-height: 1.4;
+  margin-bottom: 6px;
+  transition: color 0.5s ease;
+}
+
+.wallpaper-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--info-text-secondary, rgba(255, 255, 255, 0.75));
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+  transition: color 0.5s ease;
+}
+
+.wallpaper-copyright {
+  opacity: 0.85;
+}
+
+.wallpaper-date {
+  opacity: 0.7;
+}
+
+.wallpaper-meta::before {
+  display: none;
+}
+
+/* ============================================
+ * 壁纸操作按钮（右上角）
+ * ============================================ */
+.wallpaper-actions {
+  position: fixed;
+  top: calc(var(--bookmark-bar-height) + 16px);
+  right: 20px;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  opacity: 0;
+  transform: translateY(-10px);
+  transition: opacity 0.3s, transform 0.3s;
+  pointer-events: none;
+}
+
+body.wallpaper-mode .wallpaper-actions {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+/* 壁纸关闭时只显示设置按钮 */
+body:not(.wallpaper-mode) .wallpaper-actions {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+body:not(.wallpaper-mode) .wallpaper-actions .wp-action-btn:not(.wp-settings-btn) {
+  display: none;
+}
+
+.wp-action-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 12px;
+  border: none;
+  border-radius: 16px;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(10px);
+  color: white;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.wp-action-btn:hover {
+  background: rgba(0, 0, 0, 0.6);
+  transform: translateY(-1px);
+}
+
+.wp-action-btn:active {
+  transform: translateY(0) scale(0.98);
+}
+
+.wp-action-btn .wp-icon {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+
+.wp-action-btn.wp-settings-btn .wp-icon {
+  width: 14px;
+  height: 14px;
+}
+
+.wp-action-btn.active {
+  /* 激活状态：轻微弱化，表示已完成 */
+  background: rgba(0, 0, 0, 0.3);
+  opacity: 0.75;
+}
+
+.wp-action-btn.active:hover {
+  opacity: 1;
+}
+
+/* 激活状态的对勾图标 - 绿色 */
+.wp-action-btn.active .wp-icon.wp-check {
+  color: #4ade80;
+}
+
+/* 收藏按钮心形图标样式 */
+.wp-action-btn .wp-heart {
+  transition: all 0.2s ease;
+}
+
+.wp-action-btn.active .wp-heart,
+.wp-action-btn .wp-heart.wp-heart-filled {
+  color: #ef4444;
+}
+
+/* 加入壁纸库按钮激活状态 - 由按钮组控制，移除单独的 opacity */
+.wp-action-btn#wpFavorite.active {
+  background: rgba(0, 0, 0, 0.3);
+  opacity: 1; /* 由按钮组统一控制 */
+}
+
+.wp-action-btn#wpFavorite .wp-plus {
+  transition: all 0.2s ease;
+}
+
+/* 设为壁纸按钮 - 固定宽度 */
+.wp-action-btn#wpSetWallpaper {
+  width: 108px; /* 固定宽度，容纳「已设为壁纸」5字 + 图标 */
+  justify-content: center;
+}
+
+/* ============================================
+ * 按钮组（壁纸库 + 管理）
+ * ============================================ */
+.wp-btn-group {
+  display: flex;
+  align-items: center;
+}
+
+/* 激活时整个按钮组半透明 */
+.wp-btn-group.active {
+  opacity: 0.75;
+}
+
+.wp-btn-group.active:hover {
+  opacity: 1;
+}
+
+/* 主按钮（左边）- 固定宽度 */
+.wp-btn-group .wp-btn-main {
+  border-radius: 16px 0 0 16px;
+  width: 76px; /* 固定宽度，容纳「已收藏」3字 + 心形图标 */
+  justify-content: center;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+/* 次要按钮（右边）- 始终显示 */
+.wp-btn-group .wp-btn-secondary {
+  display: flex;
+  padding: 6px 16px 6px 12px;
+  border-radius: 0 16px 16px 0;
+  font-size: 12px;
+  font-weight: 500;
+  margin-left: 1px;
+  background: rgba(0, 0, 0, 0.3);
+  align-items: center;
+}
+
+.wp-btn-group .wp-btn-secondary:hover {
+  background: rgba(0, 0, 0, 0.5);
+}
+
+/* ============================================
+ * 极简模式 - 只显示图标
+ * ============================================ */
+body.minimal-mode .wallpaper-actions {
+  gap: 6px;
+}
+
+body.minimal-mode .wp-action-btn {
+  padding: 8px;
+  border-radius: 50%;
+  min-width: unset;
+}
+
+/* 极简模式下激活状态不降低透明度 */
+body.minimal-mode .wp-action-btn.active {
+  opacity: 1;
+}
+
+body.minimal-mode .wp-action-btn .wp-action-text {
+  display: none;
+}
+
+body.minimal-mode .wp-action-btn .wp-icon {
+  width: 16px;
+  height: 16px;
+}
+
+/* 极简模式下的按钮组 - 拆分为独立按钮 */
+body.minimal-mode .wp-btn-group {
+  gap: 6px;
+}
+
+body.minimal-mode .wp-btn-group .wp-btn-main {
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  min-width: unset;
+  padding: 0;
+  justify-content: center;
+  align-items: center;
+}
+
+body.minimal-mode .wp-btn-group .wp-btn-secondary {
+  border-radius: 50%;
+  padding: 0;
+  margin-left: 0;
+  font-size: 0; /* 隐藏文字 */
+  width: 32px;
+  height: 32px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white'%3E%3Cpath d='M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z'/%3E%3C/svg%3E");
+  background-size: 16px 16px;
+  background-repeat: no-repeat;
+  background-position: center;
+}
+
+/* 极简模式下收藏按钮用红心图标 */
+body.minimal-mode .wp-action-btn#wpFavorite .wp-icon {
+  display: none;
+}
+
+body.minimal-mode .wp-action-btn#wpFavorite::after {
+  content: '';
+  display: block;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white'%3E%3Cpath d='M16.5 3c-1.74 0-3.41.81-4.5 2.09C10.91 3.81 9.24 3 7.5 3 4.42 3 2 5.42 2 8.5c0 3.78 3.4 6.86 8.55 11.54L12 21.35l1.45-1.32C18.6 15.36 22 12.28 22 8.5 22 5.42 19.58 3 16.5 3zm-4.4 15.55l-.1.1-.1-.1C7.14 14.24 4 11.39 4 8.5 4 6.5 5.5 5 7.5 5c1.54 0 3.04.99 3.57 2.36h1.87C13.46 5.99 14.96 5 16.5 5c2 0 3.5 1.5 3.5 3.5 0 2.89-3.14 5.74-7.9 10.05z'/%3E%3C/svg%3E");
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+}
+
+/* 极简模式下已收藏状态 - 红心填充 */
+body.minimal-mode .wp-action-btn#wpFavorite.active::after {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23ef4444'%3E%3Cpath d='M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z'/%3E%3C/svg%3E");
+}
+
+/* 极简模式下设为壁纸按钮 */
+body.minimal-mode .wp-action-btn#wpSetWallpaper {
+  width: 32px;
+  height: 32px;
+  min-width: unset;
+}
+
+/* 极简模式下隐藏 JS 替换的图标，用伪元素显示固定图标 */
+body.minimal-mode .wp-action-btn#wpSetWallpaper .wp-icon {
+  display: none;
+}
+
+body.minimal-mode .wp-action-btn#wpSetWallpaper::after {
+  content: '';
+  display: block;
+  width: 16px;
+  height: 16px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white'%3E%3Cpath d='M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z'/%3E%3C/svg%3E");
+  background-size: contain;
+}
+
+/* 极简模式下已设为壁纸状态 - 图标变蓝色 */
+body.minimal-mode .wp-action-btn#wpSetWallpaper.active::after {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%233b82f6'%3E%3Cpath d='M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z'/%3E%3C/svg%3E");
+}
+
+/* 「管理」链接 - 移除旧样式 */
+.wp-action-link {
+  display: none;
+}
+
+/* 无壁纸模式下的设置按钮 */
+body:not(.wallpaper-mode) .wp-action-btn {
+  background: rgba(0, 0, 0, 0.08);
+  color: rgba(0, 0, 0, 0.7);
+}
+
+body:not(.wallpaper-mode) .wp-action-btn:hover {
+  background: rgba(0, 0, 0, 0.15);
+  color: rgba(0, 0, 0, 0.9);
+}
+
+/* 深色模式下无壁纸时的设置按钮 */
+@media (prefers-color-scheme: dark) {
+  body:not(.wallpaper-mode) .wp-action-btn {
+    background: rgba(255, 255, 255, 0.12);
+    color: rgba(255, 255, 255, 0.85);
+  }
+
+  body:not(.wallpaper-mode) .wp-action-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    color: rgba(255, 255, 255, 1);
+  }
+}
+
+/* ============================================
+ * 设置面板
+ * ============================================ */
+.settings-panel {
+  position: fixed;
+  top: calc(var(--bookmark-bar-height) + 60px);
+  right: 20px;
+  z-index: 200;
+  width: 360px;
+  background: rgba(28, 28, 32, 0.96);
+  backdrop-filter: blur(24px);
+  border-radius: 16px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+  color: white;
+  opacity: 0;
+  transform: translateY(-10px) scale(0.95);
+  transition: opacity 0.2s, transform 0.2s;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.settings-panel.visible {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  pointer-events: auto;
+}
+
+.settings-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.settings-title {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.settings-close {
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: none;
+  color: rgba(255, 255, 255, 0.6);
+  cursor: pointer;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.settings-close:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+}
+
+.settings-close svg {
+  width: 20px;
+  height: 20px;
+}
+
+.settings-body {
+  padding: 20px;
+}
+
+.settings-section {
+  margin-bottom: 20px;
+}
+
+.settings-section:last-child {
+  margin-bottom: 0;
+}
+
+.settings-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  min-height: 32px;
+}
+
+/* 同一 section 内多个 settings-row 之间的间距 */
+.settings-row + .settings-row,
+.settings-row + .settings-row-sub,
+.settings-row-sub + .settings-row {
+  margin-top: 16px;
+}
+
+.settings-label {
+  font-size: 15px;
+  font-weight: 500;
+}
+
+/* 壁纸子设置区域 */
+.wallpaper-sub-settings {
+  margin-top: 16px;
+}
+
+.wallpaper-sub-settings.hidden {
+  display: none;
+}
+
+/* 设置区域小标题 */
+.settings-subtitle {
+  font-size: 13px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.5);
+  margin-bottom: 12px;
+  letter-spacing: 0.5px;
+}
+
+/* ============================================
+ * L2 壁纸来源选择器
+ * ============================================ */
+.source-selector {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.source-card {
+  display: block;
+  cursor: pointer;
+}
+
+.source-card input[type="radio"] {
+  display: none;
+}
+
+.source-card-content {
+  padding: 16px 18px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  transition: all 0.2s ease;
+}
+
+.source-card:hover .source-card-content {
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+.source-card input:checked + .source-card-content {
+  background: rgba(59, 130, 246, 0.12);
+  border-color: rgba(59, 130, 246, 0.35);
+}
+
+.source-card-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.source-icon {
+  width: 20px;
+  height: 20px;
+  color: rgba(255, 255, 255, 0.6);
+  flex-shrink: 0;
+}
+
+.source-card input:checked + .source-card-content .source-icon {
+  color: #60a5fa;
+}
+
+.source-title {
+  font-size: 15px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.95);
+  flex: 1;
+}
+
+.source-count {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.source-check {
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  color: #60a5fa;
+  transition: opacity 0.2s;
+}
+
+.source-check svg {
+  width: 18px;
+  height: 18px;
+}
+
+.source-card input:checked + .source-card-content .source-check {
+  opacity: 1;
+}
+
+.source-desc {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.5);
+  margin-top: 6px;
+  padding-left: 30px;
+}
+
+/* 当前壁纸信息（必应每日选中时显示）- 纯文字样式，与锁定标题一致 */
+.source-current {
+  margin-top: 8px;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.9);
+  line-height: 1.5;
+  /* 允许换行，最多两行 */
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  display: none; /* 默认隐藏，由 JS 控制显示 */
+}
+
+/* 显示时使用 -webkit-box 实现多行截断 */
+.source-current.visible:not(:empty) {
+  display: -webkit-box;
+}
+
+/* 播放模式选择器（我的壁纸库选中时显示） */
+.play-mode-selector {
+  margin-top: 12px;
+  display: none;
+  gap: 8px;
+}
+
+/* 只通过 JS .visible 类控制显示，移除 CSS :checked 控制避免冲突 */
+.play-mode-selector.visible {
+  display: flex;
+}
+
+.play-mode-btn {
+  flex: 1;
+  padding: 10px 16px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.play-mode-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.18);
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.play-mode-btn.active {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.15);
+  color: rgba(255, 255, 255, 0.8);
+}
+
+/* 只有当 collection 被选中时，播放模式按钮才显示蓝色选中状态 */
+.source-card input:checked + .source-card-content .play-mode-btn.active {
+  background: rgba(59, 130, 246, 0.2);
+  border-color: rgba(59, 130, 246, 0.45);
+  color: #93c5fd;
+}
+
+/* ============================================
+ * 锁定状态时上方选项置灰（表示暂时失效）
+ * ============================================ */
+.wallpaper-sub-settings.is-locked .source-selector {
+  opacity: 0.45;
+  pointer-events: none;
+  filter: grayscale(0.3);
+}
+
+.wallpaper-sub-settings.is-locked .source-card-content {
+  border-color: rgba(255, 255, 255, 0.06) !important;
+  background: rgba(255, 255, 255, 0.02) !important;
+}
+
+.wallpaper-sub-settings.is-locked .source-card input:checked + .source-card-content {
+  border-color: rgba(255, 255, 255, 0.08) !important;
+  background: rgba(255, 255, 255, 0.03) !important;
+}
+
+.wallpaper-sub-settings.is-locked .play-mode-selector {
+  opacity: 0.5;
+}
+
+/* ============================================
+ * 锁定状态卡片（手动设为壁纸后显示）
+ * ============================================ */
+.locked-status-card {
+  display: none;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 12px;
+  padding: 16px;
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.12) 0%, rgba(245, 158, 11, 0.06) 100%);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  border-radius: 10px;
+}
+
+.locked-status-card.visible {
+  display: flex;
+}
+
+/* 锁定卡片第一行：图标 + 标签 + 按钮 */
+.locked-status-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.locked-status-icon {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(245, 158, 11, 0.2);
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+
+.locked-status-icon svg {
+  width: 18px;
+  height: 18px;
+  color: #f59e0b;
+}
+
+.locked-status-label {
+  flex: 1;
+  font-size: 14px;
+  color: #fbbf24;
+  font-weight: 500;
+}
+
+.locked-status-unlock {
+  padding: 6px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.locked-status-unlock:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
+/* 锁定卡片第二行：壁纸标题（完整展示） */
+.locked-status-title {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.9);
+  line-height: 1.5;
+  /* 允许换行，最多两行 */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* ============================================
+ * 旧的壁纸状态卡片（已废弃，保留兼容）
+ * ============================================ */
+.wallpaper-status-card {
+  padding: 12px 14px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+  margin-bottom: 12px;
+  display: none; /* 隐藏旧的状态卡片 */
+}
+
+.status-mode {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.5);
+  margin-bottom: 6px;
+}
+
+.status-title {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.9);
+  line-height: 1.5;
+  min-height: 42px;
+}
+
+/* 子设置行 */
+.settings-row-sub {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  min-height: 32px;
+}
+
+.settings-row-sub .settings-label {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+/* 小号开关 */
+.toggle-switch-small {
+  width: 36px;
+  height: 20px;
+}
+
+.toggle-switch-small .toggle-slider:before {
+  height: 14px;
+  width: 14px;
+  left: 3px;
+  bottom: 3px;
+}
+
+.toggle-switch-small input:checked + .toggle-slider:before {
+  transform: translateX(16px);
+}
+
+/* 管理壁纸库按钮 - 与面板风格统一 */
+.wallpaper-settings-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  margin-top: 10px;
+  padding: 14px 16px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.wallpaper-settings-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.wallpaper-settings-btn .arrow-icon {
+  width: 20px;
+  height: 20px;
+  opacity: 0.5;
+  transition: all 0.2s;
+}
+
+.wallpaper-settings-btn:hover .arrow-icon {
+  transform: translateX(3px);
+  opacity: 0.8;
+}
+
+/* ECHO 插件设置入口按钮 - 统一风格 */
+.settings-section-footer {
+  margin-top: 10px;
+}
+
+.echo-settings-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 14px 16px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.echo-settings-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.echo-settings-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.echo-settings-icon {
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+}
+
+.echo-settings-btn .arrow-icon {
+  width: 20px;
+  height: 20px;
+  opacity: 0.5;
+  transition: all 0.2s;
+}
+
+.echo-settings-btn:hover .arrow-icon {
+  transform: translateX(3px);
+  opacity: 0.8;
+}
+
+/* Toggle Switch 开关样式 */
+.toggle-switch {
+  position: relative;
+  width: 44px;
+  height: 24px;
+  flex-shrink: 0;
+}
+
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 24px;
+  transition: all 0.3s;
+}
+
+.toggle-slider:before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
+  background: white;
+  border-radius: 50%;
+  transition: all 0.3s;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.toggle-switch input:checked + .toggle-slider {
+  background: #0078d4;
+}
+
+.toggle-switch input:checked + .toggle-slider:before {
+  transform: translateX(20px);
+}
+
+.toggle-switch input:focus + .toggle-slider {
+  box-shadow: 0 0 0 2px rgba(0, 120, 212, 0.3);
+}
+
+.settings-label {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.settings-sub {
+  padding: 8px 0 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  margin-top: 8px;
+}
+
+.settings-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
+  margin-bottom: 12px;
+}
+
+.status-value {
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 500;
+}
+
+.settings-action-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 12px;
+  margin-bottom: 6px;
+  border: none;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  color: white;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: left;
+}
+
+.settings-action-btn:last-child {
+  margin-bottom: 0;
+}
+
+.settings-action-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.settings-action-btn .btn-icon {
+  width: 16px;
+  height: 16px;
+  opacity: 0.8;
+}
+
+.settings-action-btn .arrow-icon {
+  width: 16px;
+  height: 16px;
+  margin-left: auto;
+  opacity: 0.5;
+}
+
+.settings-action-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* 壁纸关闭时隐藏子设置 */
+#wallpaperSubSettings {
+  display: block;
+}
+
+#wallpaperSubSettings.hidden {
+  display: none;
+}
+
+/* ============================================
+ * 壁纸来源选项（Radio 样式）
+ * ============================================ */
+.wallpaper-source-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.source-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.source-option:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.source-option input[type="radio"] {
+  display: none;
+}
+
+.source-radio {
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  border-radius: 50%;
+  flex-shrink: 0;
+  position: relative;
+  transition: all 0.2s;
+}
+
+.source-radio::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 8px;
+  height: 8px;
+  background: #0078d4;
+  border-radius: 50%;
+  transform: translate(-50%, -50%) scale(0);
+  transition: transform 0.2s;
+}
+
+.source-option input[type="radio"]:checked + .source-radio {
+  border-color: #0078d4;
+}
+
+.source-option input[type="radio"]:checked + .source-radio::after {
+  transform: translate(-50%, -50%) scale(1);
+}
+
+.source-label {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+/* 收藏选项的播放模式标签 */
+.source-mode {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.5);
+  background: rgba(255, 255, 255, 0.1);
+  padding: 2px 8px;
+  border-radius: 10px;
+  margin-left: auto;
+}
+
+/* 管理收藏按钮 */
+.manage-collection-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 12px;
+  margin-top: 8px;
+  border: 1px dashed rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.manage-collection-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.3);
+  color: white;
+}
+
+.manage-collection-btn .btn-icon {
+  width: 16px;
+  height: 16px;
+  color: #ff6b6b;
+}
+
+.manage-collection-btn .collection-count {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.manage-collection-btn .arrow-icon {
+  width: 16px;
+  height: 16px;
+  margin-left: auto;
+  opacity: 0.5;
+  transition: transform 0.2s;
+}
+
+.manage-collection-btn:hover .arrow-icon {
+  transform: translateX(2px);
+  opacity: 0.8;
+}
+
+/* ============================================
+ * 壁纸收藏面板（大面板）
+ * ============================================ */
+.collection-panel {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0.95);
+  z-index: 300;
+  width: 90%;
+  max-width: 1600px;
+  height: 80vh;
+  background: rgba(25, 25, 25, 0.98);
+  backdrop-filter: blur(30px);
+  border-radius: 20px;
+  box-shadow: 0 25px 80px rgba(0, 0, 0, 0.6);
+  color: white;
+  opacity: 0;
+  transition: opacity 0.25s ease, transform 0.25s ease;
+  pointer-events: none;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.collection-panel.visible {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
+  pointer-events: auto;
+}
+
+/* 收藏面板背景遮罩 */
+.collection-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 299;
+  opacity: 0;
+  transition: opacity 0.25s ease;
+  pointer-events: none;
+}
+
+.collection-backdrop.visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* 收藏面板头部 */
+.collection-header {
+  display: flex;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.collection-title {
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.collection-count {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.5);
+  margin-left: 8px;
+}
+
+.collection-close {
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.7);
+  cursor: pointer;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  margin-left: auto;
+}
+
+.collection-close:hover {
+  background: rgba(255, 71, 87, 0.2);
+  color: #ff6b6b;
+}
+
+.collection-close svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* ============================================
+ * 壁纸库 Tab 切换
+ * ============================================ */
+.collection-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 12px 20px;
+  background: rgba(0, 0, 0, 0.2);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.collection-tab {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  border: none;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: all 0.2s;
+}
+
+.collection-tab:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.collection-tab.active {
+  background: rgba(59, 130, 246, 0.15);
+  color: #60a5fa;
+}
+
+.collection-tab .tab-icon {
+  width: 18px;
+  height: 18px;
+}
+
+.collection-tab .tab-count {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.collection-tab.active .tab-count {
+  color: rgba(96, 165, 250, 0.7);
+}
+
+/* 收藏面板工具栏 */
+.collection-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 20px;
+  background: rgba(255, 255, 255, 0.03);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.toolbar-label {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.5);
+  white-space: nowrap;
+}
+
+.play-mode-selector {
+  display: flex;
+  gap: 8px;
+}
+
+.play-mode-btn {
+  padding: 8px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: transparent;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 13px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.play-mode-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.25);
+  color: white;
+}
+
+.play-mode-btn.active {
+  background: rgba(59, 130, 246, 0.2);
+  border-color: rgba(59, 130, 246, 0.5);
+  color: #60a5fa;
+}
+
+.play-mode-btn .mode-icon {
+  width: 16px;
+  height: 16px;
+}
+
+/* 收藏面板提示 */
+.collection-hint {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  background: rgba(59, 130, 246, 0.1);
+  border-bottom: 1px solid rgba(59, 130, 246, 0.15);
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.collection-hint .hint-icon {
+  width: 16px;
+  height: 16px;
+  color: #60a5fa;
+  flex-shrink: 0;
+}
+
+/* 收藏面板主体 */
+.collection-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px 24px;
+}
+
+/* 收藏网格 */
+.collection-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px;
+}
+
+/* 收藏项 */
+.collection-item {
+  position: relative;
+  aspect-ratio: 16/9;
+  border-radius: 12px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.collection-item:hover {
+  transform: scale(1.03);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+}
+
+.collection-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* 当前壁纸指示器（蓝色胶囊） */
+.collection-item .pin-indicator {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  padding: 4px 10px;
+  background: rgba(59, 130, 246, 0.95);
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 500;
+  color: white;
+  white-space: nowrap;
+  /* 增强可见性：添加边框和阴影 */
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* 悬停信息层 */
+.collection-item .item-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(transparent 40%, rgba(0, 0, 0, 0.8));
+  opacity: 0;
+  transition: opacity 0.2s;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 12px;
+}
+
+.collection-item:hover .item-overlay {
+  opacity: 1;
+}
+
+.collection-item .item-title {
+  font-size: 12px;
+  color: white;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 4px;
+}
+
+.collection-item .item-date {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+/* 删除按钮 */
+.collection-item .item-delete {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.6);
+  color: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: all 0.2s;
+}
+
+.collection-item:hover .item-delete {
+  opacity: 1;
+}
+
+.collection-item .item-delete:hover {
+  background: rgba(255, 71, 87, 0.9);
+}
+
+.collection-item .item-delete svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* 历史记录中的收藏按钮（心形） */
+.collection-item .item-favorite {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.5);
+  color: rgba(255, 255, 255, 0.85);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: all 0.2s;
+}
+
+.collection-item:hover .item-favorite {
+  opacity: 1;
+}
+
+.collection-item .item-favorite:hover {
+  background: rgba(0, 0, 0, 0.7);
+  transform: scale(1.1);
+}
+
+.collection-item .item-favorite.active {
+  background: rgba(239, 68, 68, 0.9);
+  color: white;
+}
+
+.collection-item .item-favorite.active:hover {
+  background: rgba(239, 68, 68, 1);
+}
+
+.collection-item .item-favorite svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* 空状态 */
+.collection-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.collection-empty .empty-icon {
+  width: 64px;
+  height: 64px;
+  opacity: 0.25;
+  margin-bottom: 20px;
+}
+
+.collection-empty p {
+  font-size: 15px;
+  margin: 0;
+}
+
+.collection-empty .empty-hint {
+  font-size: 13px;
+  opacity: 0.7;
+  margin-top: 10px;
+}
+
+.collection-grid.hidden,
+.collection-empty.hidden {
+  display: none;
+}
+
+/* 壁纸模式下开关样式 */
+body.wallpaper-mode .toggle-label {
+  color: rgba(255, 255, 255, 0.8);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.container {
+  position: relative;
+  width: 100vw;
+  height: calc(100vh - var(--bookmark-bar-height));
+  margin-top: var(--bookmark-bar-height);
+  overflow: hidden;
+}
+
+/* 搜索框作为定位锚点，在可用区域内垂直居中 */
+.search-form {
+  position: absolute;
+  top: 48%; /* 从 45% 下移到 48%，为 Logo 让出更多顶部空间 */
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: calc(100% - 40px);
+  max-width: 760px;
+  z-index: 20; /* 确保搜索建议下拉在热搜之上 */
+}
+
+/* 品牌区域相对于搜索框向上偏移 */
+.brand {
+  position: absolute;
+  top: 47%; 
+  left: 50%;
+  transform: translate(-50%, calc(-100% - 80px));
+}
+
+/* 热搜区域相对于搜索框向下偏移 */
+.trending-section {
+  position: absolute;
+  top: 45%; /* 跟随搜索框下移 */
+  left: 50%;
+  transform: translate(-50%, 100px);
+}
+
+/* 热搜隐藏时 */
+.trending-section.hidden {
+  display: none;
+}
+
+/* 热搜隐藏时，Logo 居中，搜索框下移 */
+body.trending-hidden .brand {
+  top: 57%;
+  transform: translate(-50%, calc(-100% - 60px));
+}
+
+body.trending-hidden .search-form {
+  top: 60%;
+}
+
+/* 热搜切换动画（仅在用户主动切换时触发） */
+body.trending-transitioning .brand,
+body.trending-transitioning .search-form {
+  transition: top 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Footer 固定在视口底部 */
+.ntp-footer {
+  position: fixed;
+  bottom: 12px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  z-index: 10;
+}
+
+/* ============================================
+ * 品牌区域样式
+ * ============================================ */
+.brand-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.logo-icon {
+  width: 62px;
+  height: 62px;
+  border-radius: 13px;
+  box-shadow: 0 3px 12px rgba(0, 120, 212, 0.25);
+  flex-shrink: 0;
+}
+
+.brand-title {
+  flex: 1;
+  min-width: 0;
+}
+
+.brand h1 {
+  font-size: 26px;
+  font-weight: 700;
+  color: #737373;
+  margin-bottom: 4px;
+  line-height: 1.2;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.brand-cn {
+  font-size: 26px;
+  font-weight: 700;
+}
+
+.brand .subtitle {
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.2px;
+  color: #737373;
+  line-height: 1.4;
+}
+
+.brand .subtitle .acronym {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+/* ============================================
+ * 搜索框样式
+ * ============================================ */
+.search-form {
+  width: 100%;
+  max-width: 836px;
+}
+
+.search-box {
+  display: flex;
+  align-items: center;
+  background: white;
+  border-radius: 24px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  transition: box-shadow 0.2s, border-color 0.2s;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.search-box:focus-within,
+.search-box.search-focused {
+  /* 折中方案：边框清晰度适中，光晕柔和 */
+  border-color: rgba(0, 120, 212, 0.8);
+  box-shadow: 0 6px 20px rgba(0, 120, 212, 0.3);
+}
+
+/* 左侧搜索图标 */
+.search-icon-left {
+  width: 20px;
+  height: 20px;
+  margin-left: 18px;
+  flex-shrink: 0;
+}
+
+.search-input {
+  flex: 1;
+  height: 50px;
+  padding: 0 14px;
+  border: none;
+  outline: none;
+  font-size: 16px;
+  color: #333;
+  background: transparent;
+}
+
+/* placeholder 灰色，与超级 Bing 一致 */
+.search-input::placeholder {
+  color: #999;
+}
+
+.search-button {
+  width: 58px;
+  height: 50px;
+  border: none;
+  background: #0078d4;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+}
+
+/* 清除按钮 */
+.search-clear {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  margin-right: 14px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  border-radius: 50%;
+  flex-shrink: 0;
+  transition: background 0.15s;
+}
+
+.search-clear svg {
+  width: 20px;
+  height: 20px;
+  fill: #999;
+}
+
+.search-clear:hover {
+  background: rgba(0, 0, 0, 0.06);
+}
+
+.search-clear:hover svg {
+  fill: #666;
+}
+
+.search-clear.visible {
+  display: flex;
+}
+
+.search-button:hover {
+  background: #106ebe;
+}
+
+.search-icon {
+  width: 20px;
+  height: 20px;
+  fill: white;
+}
+
+/* ============================================
+ * 搜索建议下拉
+ * ============================================ */
+
+.search-suggest {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: white;
+  border-radius: 0 0 16px 16px;
+  box-shadow: 0 6px 20px rgba(0, 120, 212, 0.3);
+  border: 1px solid rgba(0, 120, 212, 0.8);
+  border-top: none;
+  margin-top: 0;
+  z-index: 100;
+  overflow: hidden;
+}
+
+.search-suggest.visible {
+  display: block;
+  animation: suggestFadeIn 0.15s ease-out;
+}
+
+@keyframes suggestFadeIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.search-suggest-item {
+  display: flex;
+  align-items: center;
+  padding: 10px 18px;
+  cursor: pointer;
+  font-size: 16px;
+  color: #333;
+  transition: background 0.1s;
+  gap: 14px;
+}
+
+.search-suggest-item:hover,
+.search-suggest-item.active {
+  background: rgba(0, 120, 212, 0.1);
+}
+
+.search-suggest-item.active {
+  color: #0078d4;
+}
+
+.search-suggest-item:first-child {
+  border-top: 1px solid rgba(0, 120, 212, 0.15);
+}
+
+.search-suggest-item:last-child {
+  border-radius: 0 0 16px 16px;
+}
+
+.search-suggest-icon {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  opacity: 0.5;
+}
+
+.search-suggest-text {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 搜索框在有建议时调整底部圆角并移除底部边框 */
+.search-box.suggest-open {
+  border-radius: 24px 24px 0 0;
+  border-bottom-color: transparent;
+}
+
+/* ============================================
+ * 热搜榜单样式
+ * ============================================ */
+
+/* 通用头部样式 */
+.trending-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 12px 8px 12px;
+}
+
+.trending-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #444;
+}
+
+.trending-update-time {
+  font-size: 12px;
+  color: #777;
+}
+
+/* 榜单主体：网格 + 底部圆点 */
+.trending-body {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* 左右切换箭头 */
+.trending-arrow {
+  position: absolute;
+  top: 40%; /* 稍微偏上一点，对应 Grid 的中心，避开 Dots */
+  transform: translateY(-50%);
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.8);
+  color: #666;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0; /* 默认隐藏，悬停显示 */
+  transition: all 0.2s ease;
+  z-index: 10;
+}
+
+.trending-section:hover .trending-arrow {
+  opacity: 1;
+}
+
+.trending-arrow:hover {
+  background: #0078d4;
+  color: white;
+  box-shadow: 0 6px 16px rgba(0, 120, 212, 0.25);
+  transform: translateY(-50%) scale(1.1);
+}
+
+.trending-arrow.prev {
+  left: -50px;
+}
+
+.trending-arrow.next {
+  right: -50px;
+}
+
+.trending-arrow svg {
+  width: 24px;
+  height: 24px;
+}
+
+/* 壁纸模式下的箭头样式 */
+body.wallpaper-mode .trending-arrow {
+  background: rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+body.wallpaper-mode .trending-arrow:hover {
+  background: rgba(255, 255, 255, 0.4);
+  color: white;
+}
+
+/* 通用网格布局 */
+.trending-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 310px);
+  padding: 0 8px 8px 8px;
+  flex: 1;
+  transition: opacity 0.12s ease, transform 0.12s ease;
+}
+
+/* 向左飞出（下一个分类：旧内容向左离开） */
+.trending-grid.slide-out-left {
+  opacity: 0;
+  transform: translateX(-40px);
+}
+
+/* 向右飞出（上一个分类：旧内容向右离开） */
+.trending-grid.slide-out-right {
+  opacity: 0;
+  transform: translateX(40px);
+}
+
+/* 从右侧进入（下一个分类：新内容从右侧进来） */
+.trending-grid.slide-in-from-right {
+  opacity: 0;
+  transform: translateX(40px);
+  transition: none; /* 立即定位，不要动画 */
+}
+
+/* 从左侧进入（上一个分类：新内容从左侧进来） */
+.trending-grid.slide-in-from-left {
+  opacity: 0;
+  transform: translateX(-40px);
+  transition: none; /* 立即定位，不要动画 */
+}
+
+/* 滑入到最终位置 */
+.trending-grid.slide-in {
+  opacity: 1;
+  transform: translateX(0);
+  transition: opacity 0.12s ease, transform 0.12s ease;
+}
+
+/* 标题图标样式 */
+.trending-icon {
+  display: inline-flex;
+  align-items: center;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+
+.trending-icon svg {
+  width: 16px;
+  height: 16px;
+  fill: currentColor;
+}
+
+/* 热搜加载时隐藏标题和时间，防止闪烁 */
+.trending-loading-hide {
+  visibility: hidden;
+}
+
+/* 底部圆点导航 */
+.trending-dots {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 16px 0 24px 0;
+}
+
+.trending-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.trending-dot:hover {
+  background: rgba(0, 0, 0, 0.4);
+}
+
+.trending-dot.active {
+  width: 24px;
+  height: 10px;
+  border-radius: 5px;
+  background: #0078d4;
+  border-color: transparent;
+}
+
+/* 壁纸模式下的 dot 样式 - 增强可见性 */
+body.wallpaper-mode.text-dark .trending-dot {
+  background: rgba(0, 0, 0, 0.3);
+  border-color: rgba(0, 0, 0, 0.2);
+}
+body.wallpaper-mode.text-dark .trending-dot:hover {
+  background: rgba(0, 0, 0, 0.5);
+}
+body.wallpaper-mode.text-dark .trending-dot.active {
+  background: #0066b8;
+}
+
+body.wallpaper-mode.text-light .trending-dot {
+  background: rgba(255, 255, 255, 0.4);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+body.wallpaper-mode.text-light .trending-dot:hover {
+  background: rgba(255, 255, 255, 0.6);
+}
+body.wallpaper-mode.text-light .trending-dot.active {
+  background: #60a5fa;
+}
+
+body.wallpaper-mode.text-gray .trending-dot {
+  background: rgba(0, 0, 0, 0.25);
+  border-color: rgba(0, 0, 0, 0.15);
+}
+body.wallpaper-mode.text-gray .trending-dot:hover {
+  background: rgba(0, 0, 0, 0.45);
+}
+body.wallpaper-mode.text-gray .trending-dot.active {
+  background: #0066b8;
+}
+
+.trending-column {
+  display: flex;
+  flex-direction: column;
+}
+
+/* ============================================
+ * 默认样式: 无边框浮动风格（无壁纸时）
+ * ============================================ */
+/* 注意：定位样式在上方已定义，这里只定义视觉样式 */
+
+.trending-section .trending-header {
+  padding-bottom: 8px;
+}
+
+.trending-section .trending-item {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 12px;
+  cursor: pointer;
+  text-decoration: none;
+  border-radius: 8px;
+  transition: all 0.2s;
+}
+
+.trending-section .trending-item:hover {
+  background: rgba(0, 120, 212, 0.1);
+  transform: translateX(4px);
+}
+
+.trending-section .trending-rank {
+  font-size: 10px;
+  font-weight: 600;
+  color: #0078d4;
+  min-width: 16px;
+}
+
+.trending-section .trending-rank.top-1,
+.trending-section .trending-rank.top-2,
+.trending-section .trending-rank.top-3 {
+  color: #f59e0b;
+}
+
+.trending-section .trending-text {
+  flex: 1;
+  font-size: 15px;
+  color: #1a1a1a;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.trending-section .trending-item:hover .trending-text {
+  color: #004080;
+}
+
+/* ============================================
+ * 壁纸模式: 根据壁纸亮度动态调整毛玻璃和文字
+ * ============================================ */
+
+/* 亮壁纸 → 浅色毛玻璃 + 深色文字 */
+body.wallpaper-mode.text-dark .trending-section {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(60px);
+  -webkit-backdrop-filter: blur(60px);
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.12);
+}
+
+/* 暗壁纸 → 深色毛玻璃 + 浅色文字 */
+body.wallpaper-mode.text-light .trending-section {
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(60px);
+  -webkit-backdrop-filter: blur(60px);
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+}
+
+/* 中等亮度壁纸 → 半透明灰色毛玻璃 + 深灰文字 */
+body.wallpaper-mode.text-gray .trending-section {
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(60px);
+  -webkit-backdrop-filter: blur(60px);
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.15);
+}
+
+/* 亮壁纸：深色文字样式 */
+body.wallpaper-mode.text-dark .trending-section .trending-text,
+body.wallpaper-mode.text-dark .trending-section .trending-title,
+body.wallpaper-mode.text-dark .trending-section .trending-update-time {
+  color: #111;
+}
+body.wallpaper-mode.text-dark .trending-section .trending-rank {
+  color: #0055aa;
+}
+body.wallpaper-mode.text-dark .trending-section .trending-rank.top-1,
+body.wallpaper-mode.text-dark .trending-section .trending-rank.top-2,
+body.wallpaper-mode.text-dark .trending-section .trending-rank.top-3 {
+  color: #b45309;
+}
+
+/* 暗壁纸：浅色文字样式 */
+body.wallpaper-mode.text-light .trending-section .trending-text,
+body.wallpaper-mode.text-light .trending-section .trending-title,
+body.wallpaper-mode.text-light .trending-section .trending-update-time {
+  color: #f0f0f0;
+}
+body.wallpaper-mode.text-light .trending-section .trending-rank {
+  color: #60a5fa;
+}
+body.wallpaper-mode.text-light .trending-section .trending-rank.top-1,
+body.wallpaper-mode.text-light .trending-section .trending-rank.top-2,
+body.wallpaper-mode.text-light .trending-section .trending-rank.top-3 {
+  color: #fbbf24;
+}
+
+/* 中等亮度壁纸：深灰文字样式 */
+body.wallpaper-mode.text-gray .trending-section .trending-text,
+body.wallpaper-mode.text-gray .trending-section .trending-title,
+body.wallpaper-mode.text-gray .trending-section .trending-update-time {
+  color: #222;
+}
+body.wallpaper-mode.text-gray .trending-section .trending-rank {
+  color: #1d4ed8;
+}
+body.wallpaper-mode.text-gray .trending-section .trending-rank.top-1,
+body.wallpaper-mode.text-gray .trending-section .trending-rank.top-2,
+body.wallpaper-mode.text-gray .trending-section .trending-rank.top-3 {
+  color: #c2410c;
+}
+
+/* 壁纸模式下的 hover 效果 */
+body.wallpaper-mode.text-dark .trending-section .trending-item:hover {
+  background: rgba(0, 120, 212, 0.12);
+}
+body.wallpaper-mode.text-dark .trending-section .trending-item:hover .trending-text {
+  color: #004080;
+}
+
+body.wallpaper-mode.text-light .trending-section .trending-item:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+body.wallpaper-mode.text-light .trending-section .trending-item:hover .trending-text {
+  color: #fbbf24;
+}
+
+body.wallpaper-mode.text-gray .trending-section .trending-item:hover {
+  background: rgba(0, 120, 212, 0.12);
+}
+body.wallpaper-mode.text-gray .trending-section .trending-item:hover .trending-text {
+  color: #004080;
+}
+
+/* 壁纸模式下的其他元素样式调整 */
+body.wallpaper-mode .brand h1,
+body.wallpaper-mode .brand .subtitle,
+body.wallpaper-mode .brand .acronym {
+  color: white;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5), 0 0 20px rgba(0, 0, 0, 0.3);
+}
+
+body.wallpaper-mode .search-box {
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.15);
+}
+
+/* 壁纸模式：搜索建议保持与搜索框一致的白底 */
+body.wallpaper-mode .search-suggest {
+  background: white;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+}
+
+body.wallpaper-mode .search-suggest-item {
+  color: #333;
+}
+
+body.wallpaper-mode .search-suggest-item:hover,
+body.wallpaper-mode .search-suggest-item.active {
+  background: rgba(0, 120, 212, 0.1);
+}
+
+body.wallpaper-mode .search-suggest-item.active {
+  color: #0078d4;
+}
+
+body.wallpaper-mode .ntp-footer .footer-text {
+  color: rgba(255, 255, 255, 0.7);
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+}
+
+.trending-loading,
+.trending-error {
+  grid-column: 1 / -1;
+  padding: 40px;
+  text-align: center;
+  color: #999;
+  font-size: 14px;
+}
+
+/* ============================================
+ * 缩放指示器
+ * ============================================ */
+#echo-zoom-indicator {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 16px 32px;
+  border-radius: 8px;
+  font-size: 24px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  z-index: 2147483647;
+  pointer-events: none;
+  transition: opacity 0.2s;
+}
+
+/* ============================================
+ * 深色模式
+ * ============================================ */
+@media (prefers-color-scheme: dark) {
+  body {
+    /* 使用 CSS 变量实现深色模式背景 - 与浅色模式风格统一 */
+    background: 
+      linear-gradient(180deg, var(--bg-gradient-start) 0%, var(--bg-gradient-mid) 40%, var(--bg-gradient-end) 100%),
+      radial-gradient(ellipse at top right, var(--bg-accent) 0%, transparent 50%),
+      radial-gradient(ellipse at bottom left, rgba(119, 116, 255, 0.08) 0%, transparent 50%);
+    background-color: var(--bg-gradient-start);
+  }
+  
+  /* 深色模式下品牌文字保持渐变效果 */
+  .brand h1,
+  .brand .subtitle {
+    /* 渐变效果在深色模式下依然可见 */
+  }
+  
+  .search-box {
+    background: rgba(42, 42, 62, 0.8);
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+  
+  .search-input {
+    color: #fff;
+  }
+  
+  .search-input::placeholder {
+    color: #888;
+  }
+  
+  /* 深色模式：搜索建议 */
+  .search-suggest {
+    background: rgba(42, 42, 62, 0.95);
+    border-color: rgba(255, 255, 255, 0.1);
+    border-top-color: rgba(255, 255, 255, 0.06);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+  }
+  
+  .search-suggest-item {
+    color: #e0e0e0;
+  }
+  
+  .search-suggest-item:hover,
+  .search-suggest-item.active {
+    background: rgba(96, 165, 250, 0.18);
+  }
+  
+  .search-suggest-item.active {
+    color: #60a5fa;
+  }
+  
+  .trending-section {
+    background: rgba(42, 42, 62, 0.8);
+  }
+  
+  .trending-title {
+    color: #fff;
+  }
+  
+  .trending-column {
+    border-right-color: rgba(255, 255, 255, 0.05);
+  }
+  
+  .trending-item:hover {
+    background: rgba(255, 255, 255, 0.1);
+  }
+  
+  .trending-rank {
+    color: #60a5fa;
+  }
+  
+  .trending-rank.top-1,
+  .trending-rank.top-2,
+  .trending-rank.top-3 {
+    color: #fbbf24;
+  }
+  
+  .trending-section .trending-text {
+    color: #e0e0e0;
+  }
+  
+  .trending-section .trending-title {
+    color: #ffffff;
+  }
+  
+  .trending-section .trending-update-time {
+    color: #aaa;
+  }
+  
+  .trending-section .trending-item:hover .trending-text {
+    color: #60a5fa;
+  }
+  
+  /* 品牌文字 */
+  .brand h1 {
+    color: #d4d4d4;
+  }
+  .brand .subtitle {
+    color: #a3a3a3;
+  }
+  
+  /* 热搜箭头 */
+  .trending-arrow {
+    background: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.7);
+  }
+  .trending-arrow:hover {
+    background: rgba(255, 255, 255, 0.2);
+    color: #fff;
+  }
+  
+  /* 热搜圆点 */
+  .trending-dot {
+    background: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+  .trending-dot:hover {
+    background: rgba(255, 255, 255, 0.4);
+  }
+  .trending-dot.active {
+    background: #60a5fa;
+  }
+  
+  /* 底部 Footer */
+  .ntp-footer .footer-text {
+    color: rgba(255, 255, 255, 0.5);
+  }
+  
+  /* 深色模式 + 壁纸模式：搜索框保持深色文字 */
+  body.wallpaper-mode .search-box {
+    background: rgba(255, 255, 255, 0.95);
+  }
+  
+  body.wallpaper-mode .search-input {
+    color: #333;
+  }
+  
+  body.wallpaper-mode .search-input::placeholder {
+    color: #999;
+  }
+  
+  /* 深色模式 + 壁纸模式：搜索建议保持浅色 */
+  body.wallpaper-mode .search-suggest {
+    background: white;
+  }
+  
+  body.wallpaper-mode .search-suggest-item {
+    color: #333;
+  }
+  
+  body.wallpaper-mode .search-suggest-item:hover,
+  body.wallpaper-mode .search-suggest-item.active {
+    background: rgba(0, 120, 212, 0.1);
+  }
+  
+  body.wallpaper-mode .search-suggest-item.active {
+    color: #0078d4;
+  }
+  
+  /* 深色模式 + 壁纸模式：热搜区域使用壁纸模式的毛玻璃效果 */
+  body.wallpaper-mode .trending-section {
+    background: rgba(0, 0, 0, 0.4);
+  }
+  
+  body.wallpaper-mode .trending-rank {
+    background: transparent;
+  }
+}
+
+/* ============================================
+ * 底部 Footer - 已在顶部定义定位
+ * ============================================ */
+.ntp-footer .footer-text {
+  font-size: 14px;
+  color: #999;
+  opacity: 1;
+  line-height: 1.4;
+}
+
+/* ============================================
+ * 响应式布局 - 根据屏幕宽度调整搜索框和热榜
+ * ============================================ */
+
+/* 中等屏幕 (1024px - 1400px) */
+@media (max-width: 1400px) {
+  .search-form {
+    max-width: 700px;
+  }
+  
+  .trending-section {
+    max-width: 780px;
+  }
+}
+
+/* ============================================
+ * Toast 提示样式
+ * ============================================ */
+.wp-toast {
+  position: fixed;
+  z-index: 10010;
+  padding: 12px 20px;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: rgba(255, 255, 255, 0.95);
+  font-size: 14px;
+  font-weight: 500;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  opacity: 0;
+  transform: translateY(-8px);
+  transition: all 0.3s ease;
+  pointer-events: none;
+}
+
+.wp-toast.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Snackbar 样式（带操作按钮） */
+.wp-snackbar {
+  position: fixed;
+  z-index: 10010;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 16px;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: rgba(255, 255, 255, 0.95);
+  font-size: 14px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  opacity: 0;
+  transform: translateY(-8px);
+  transition: all 0.3s ease;
+}
+
+.wp-snackbar.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.wp-snackbar-message {
+  flex: 1;
+  font-weight: 500;
+}
+
+/* 按钮容器 */
+.wp-snackbar-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.wp-snackbar-action {
+  padding: 6px 12px;
+  background: rgba(255, 255, 255, 0.15);
+  border: none;
+  border-radius: 4px;
+  color: #7cb8ff;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+  white-space: nowrap;
+}
+
+.wp-snackbar-action:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+/* 第二个按钮高亮样式（设为壁纸） */
+.wp-snackbar-action.wp-snackbar-action-primary {
+  background: rgba(59, 130, 246, 0.8);
+  color: white;
+}
+
+.wp-snackbar-action.wp-snackbar-action-primary:hover {
+  background: rgba(59, 130, 246, 1);
+}
+
+/* 主设置面板 - 壁纸状态展示 */
+.wallpaper-status {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 0;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.wallpaper-status .status-value {
+  color: rgba(255, 255, 255, 0.95);
+  font-weight: 500;
+}
+
+/* 收藏面板 - 壁纸来源选择（一行布局） */
+.collection-source-section {
+  padding: 16px 24px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.source-options-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.source-option-card {
+  cursor: pointer;
+  display: block;
+}
+
+.source-option-card input {
+  display: none;
+}
+
+.option-card-content {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 18px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  transition: all 0.2s ease;
+}
+
+.source-option-card:hover .option-card-content {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.source-option-card input:checked + .option-card-content {
+  background: rgba(59, 130, 246, 0.25);
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.25), inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+}
+
+/* 选中勾选标记 */
+.option-card-check {
+  width: 18px;
+  height: 18px;
+  background: #3b82f6;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transform: scale(0.8);
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+  margin-left: 4px;
+}
+
+.source-option-card input:checked + .option-card-content .option-card-check {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.option-card-check svg {
+  width: 11px;
+  height: 11px;
+  color: white;
+}
+
+.option-card-icon {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+  transition: all 0.2s;
+}
+
+.option-card-icon svg {
+  width: 20px;
+  height: 20px;
+  fill: rgba(255, 255, 255, 0.4);
+  transition: fill 0.2s;
+}
+
+.source-option-card input:checked + .option-card-content .option-card-icon {
+  background: rgba(59, 130, 246, 0.35);
+}
+
+.source-option-card input:checked + .option-card-content .option-card-icon svg {
+  fill: #93c5fd;
+}
+
+.option-card-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.option-card-title {
+  font-size: 15px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.6);
+  white-space: nowrap;
+  transition: color 0.2s;
+}
+
+.option-card-desc {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.35);
+  white-space: nowrap;
+  transition: color 0.2s;
+}
+
+.source-option-card input:checked + .option-card-content .option-card-title {
+  color: rgba(255, 255, 255, 0.95);
+}
+
+.source-option-card input:checked + .option-card-content .option-card-desc {
+  color: rgba(255, 255, 255, 0.55);
+}
+
+/* 分隔占位（靠右用） */
+.source-divider {
+  flex: 1;
+  display: none;
+}
+
+.source-divider.visible {
+  display: block;
+}
+
+/* 播放模式（内联，靠右） */
+.play-mode-inline {
+  display: none;
+  align-items: center;
+  gap: 12px;
+}
+
+.play-mode-inline.visible {
+  display: flex;
+}
+
+.play-mode-label {
+  font-size: 15px;
+  color: rgba(255, 255, 255, 0.5);
+  white-space: nowrap;
+}
+
+.play-mode-selector {
+  display: flex;
+  gap: 6px;
+}
+
+.play-mode-btn {
+  padding: 10px 18px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: transparent;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 15px;
+  font-weight: 500;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.play-mode-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.3);
+  color: white;
+}
+
+.play-mode-btn.active {
+  background: rgba(59, 130, 246, 0.35);
+  border-color: rgba(59, 130, 246, 0.8);
+  color: #93c5fd;
+  box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.3);
+}
+
+/* 收藏设置区域 */
+.collection-settings {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.collection-settings.hidden {
+  display: none;
+}
+
+/* 收藏区域遮罩（选择必应每日时） */
+.collection-body.disabled {
+  position: relative;
+  pointer-events: none;
+}
+
+.collection-body.disabled::before {
+  content: '切换到「我的收藏」后可管理';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 10;
+  padding: 12px 24px;
+  background: rgba(0, 0, 0, 0.75);
+  border-radius: 8px;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.9);
+  white-space: nowrap;
+}
+
+.collection-body.disabled::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  z-index: 5;
+}
+
+.collection-body.disabled .collection-grid,
+.collection-body.disabled .collection-empty {
+  opacity: 0.6;
+}

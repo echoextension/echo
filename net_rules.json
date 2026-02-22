@@ -1,0 +1,31 @@
+[
+  {
+    "id": 1,
+    "priority": 1,
+    "action": {
+      "type": "modifyHeaders",
+      "requestHeaders": [
+        { "header": "Origin", "operation": "remove" },
+        { "header": "Referer", "operation": "remove" }
+      ]
+    },
+    "condition": {
+      "urlFilter": "172.236.213.60:11434",
+      "resourceTypes": ["xmlhttprequest"]
+    }
+  },
+  {
+    "id": 2,
+    "priority": 1,
+    "action": {
+      "type": "modifyHeaders",
+      "responseHeaders": [
+        { "header": "Access-Control-Allow-Origin", "operation": "set", "value": "*" }
+      ]
+    },
+    "condition": {
+      "urlFilter": "172.236.213.60:11434",
+      "resourceTypes": ["xmlhttprequest"]
+    }
+  }
+]

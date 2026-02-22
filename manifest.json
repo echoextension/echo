@@ -1,0 +1,72 @@
+{
+  "manifest_version": 3,
+  "name": "ECHO 易可 - 让 Edge 更懂中国用户",
+  "version": "1.0.0",
+  "homepage_url": "https://github.com/echoextension/echo",
+  "description": "ECHO 易可是一款针对中国 Edge 浏览器用户习惯的体验优化插件（Edge Chinese Helper & Optimizer），提供超级拖拽、精细化页面缩放、鼠标手势强化、快捷键强化、快速保存图片、全新 NTP、超级 Bing 悬浮搜索框等便捷功能，让 Edge 更懂中国用户。",
+  "permissions": ["tabs", "storage", "downloads", "scripting", "declarativeNetRequest"],
+  "declarative_net_request": {
+    "rule_resources": [
+      {
+        "id": "ruleset_1",
+        "enabled": true,
+        "path": "net_rules.json"
+      }
+    ]
+  },
+  "action": {
+    "default_title": "ECHO 设置",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "host_permissions": ["*://*/*"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "chrome_url_overrides": {
+    "newtab": "ntp/ntp.html"
+  },
+  "content_scripts": [
+    {
+      "matches": ["http://*/*", "https://*/*"],
+      "js": [
+        "search-box/search-box.js",
+        "content.js"
+      ],
+      "run_at": "document_start"
+    }
+  ],
+  "options_page": "options/options.html",
+  "commands": {
+    "boss-key": {
+      "suggested_key": {
+        "default": "Ctrl+Q",
+        "windows": "Ctrl+Q",
+        "mac": "Ctrl+Shift+Q"
+      },
+      "description": "老板键 - 最小化/恢复所有窗口"
+    },
+    "toggle-mute": {
+      "suggested_key": {
+        "default": "Alt+M",
+        "windows": "Alt+M",
+        "mac": "Alt+M"
+      },
+      "description": "一键静音/取消静音"
+    }
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["_favicon/*", "wallpaper/*", "icons/*", "docs-viewer.html", "*.md"],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}

@@ -1,0 +1,1460 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>欢迎使用 ECHO 易可</title>
+  <style>
+    :root {
+      --text-dark: #1a1a1a;
+      --text-medium: #4a4a4a;
+      --text-light: #888888;
+      --accent: #0D9488;
+      --accent-light: #14B8A6;
+      /* NTP 背景变量 */
+      --bg-gradient-start: #ffffff;
+      --bg-gradient-mid: rgba(0, 88, 255, 0.06);
+      --bg-gradient-end: rgba(119, 116, 255, 0.075);
+      --bg-accent: rgba(1, 177, 253, 0.03);
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --text-dark: #f0f0f0;
+        --text-medium: #b0b0b0;
+        --text-light: #808080;
+        --bg-gradient-start: #1a1a2e;
+        --bg-gradient-mid: rgba(0, 88, 255, 0.08);
+        --bg-gradient-end: rgba(119, 116, 255, 0.1);
+        --bg-accent: rgba(1, 177, 253, 0.05);
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+
+    /* 优化后的几何漂浮动画 - 移除 */
+    /* .geo-shape 动画移除 */
+
+    /* 渐变背景旋转动画 */
+    @property --gradient-angle {
+      syntax: '<angle>';
+      initial-value: 180deg;
+      inherits: false;
+    }
+
+    @keyframes rotateGradient {
+      0% { --gradient-angle: 0deg; }
+      100% { --gradient-angle: 360deg; }
+    }
+
+    /* 标题光晕动画 */
+    @keyframes titleGlow {
+      0% {
+        filter: drop-shadow(0 0 0 transparent);
+      }
+      30% {
+        filter: drop-shadow(0 0 20px rgba(59, 132, 228, 0.8));
+      }
+      100% {
+        filter: drop-shadow(0 0 0 transparent);
+      }
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      min-height: 100vh;
+      background: transparent;
+      overflow-x: hidden;
+    }
+
+    /* 主容器 */
+    .page {
+      position: relative;
+      z-index: 1;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      padding: 60px 40px 90px;
+    }
+
+    .content {
+      width: 100%;
+      max-width: 880px;
+      text-align: center;
+    }
+
+    .content-top {
+      padding-top: 0;
+    }
+
+    /* 主内容区域 - 整体垂直居中 */
+    .main-content {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 100%;
+      margin: auto;
+    }
+    
+    .page-header {
+      text-align: center;
+      margin-bottom: 88px;
+      flex-shrink: 0;
+    }
+
+    /* 字体层次 */
+    .page-title {
+      font-size: 48px;
+      font-weight: 700;
+      margin-bottom: 24px;
+      letter-spacing: -1px;
+      /* 四色渐变流动 */
+      background: linear-gradient(90deg, #1a5fb4, #3584e4, #00b7c3, #2ec27e, #1a5fb4);
+      background-size: 200% auto;
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .page-subtitle {
+      font-size: 20px;
+      color: var(--text-medium);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 20px;
+    }
+
+    .page-subtitle::before,
+    .page-subtitle::after {
+      content: '';
+      width: 80px;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--text-light), transparent);
+    }
+
+    .description {
+      font-size: 16px;
+      color: var(--text-light);
+      margin-bottom: 36px;
+    }
+
+    /* 底部导航 */
+    .nav-footer {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-top: 0;
+      flex-shrink: 0;
+      position: relative;
+      width: 100%;
+    }
+
+    /* CTA 按钮 */
+    .cta-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px 56px;
+      font-size: 24px;
+      font-weight: 600;
+      color: #fff;
+      background: linear-gradient(145deg, #2a2a2a, #1a1a1a);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 40px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 
+        inset 0 2px 4px rgba(0,0,0,0.3),
+        inset 0 -1px 2px rgba(255,255,255,0.05),
+        0 4px 16px rgba(0,0,0,0.2);
+      text-shadow: 0 -1px 1px rgba(0,0,0,0.4), 0 1px 0 rgba(255,255,255,0.08);
+      position: relative;
+    }
+
+    .cta-btn:hover {
+      transform: translateY(-4px);
+      background: linear-gradient(145deg, #404040, #2a2a2a);
+      box-shadow: 
+        inset 0 2px 4px rgba(0,0,0,0.2),
+        inset 0 -1px 2px rgba(255,255,255,0.08),
+        0 12px 32px rgba(0,0,0,0.3),
+        0 0 24px rgba(63, 169, 245, 0.2);
+      border-color: rgba(63, 169, 245, 0.25);
+    }
+
+    .cta-btn:active {
+      transform: translateY(0);
+      box-shadow: 
+        inset 0 3px 6px rgba(0,0,0,0.4),
+        inset 0 -1px 1px rgba(255,255,255,0.03),
+        0 2px 8px rgba(0,0,0,0.2);
+    }
+
+    .cta-btn:focus {
+      outline: none;
+      box-shadow: 
+        inset 0 2px 4px rgba(0,0,0,0.3),
+        inset 0 -1px 2px rgba(255,255,255,0.05),
+        0 0 0 3px rgba(63, 169, 245, 0.25),
+        0 4px 16px rgba(0,0,0,0.2);
+    }
+
+    /* 品牌区域 - 固定在左上角 */
+    .brand-section {
+      position: absolute;
+      top: 32px;
+      left: 40px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      z-index: 100;
+    }
+
+    .brand-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      box-shadow: 0 4px 16px rgba(0, 120, 212, 0.3);
+      flex-shrink: 0;
+    }
+
+    .brand-text {
+      text-align: left;
+    }
+
+    .brand-name {
+      font-size: 20px;
+      font-weight: 700;
+      background: linear-gradient(90deg, #1a5fb4, #3584e4, #00b7c3, #2ec27e, #1a5fb4);
+      background-size: 200% auto;
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 2px;
+      line-height: 1.2;
+    }
+
+    .brand-slogan {
+      font-size: 12px;
+      font-weight: 500;
+      letter-spacing: 0.2px;
+      background: linear-gradient(90deg, #1a5fb4, #3584e4, #00b7c3, #2ec27e, #1a5fb4);
+      background-size: 200% auto;
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      line-height: 1.4;
+    }
+
+    .brand-slogan .acronym {
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    @keyframes titleGradientFlow {
+      0% { background-position: 0% center; }
+      100% { background-position: 200% center; }
+    }
+
+    /* 内容容器 - 固定高度区域 */
+    .content-area {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 400px;
+      width: 100%;
+    }
+
+    /* 静态功能卡片样式 (Step 1) */
+    .preview-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 56px 64px;
+      width: 100%;
+      max-width: 1100px;
+    }
+
+    .static-feature-card {
+      /* 去除原来的磨砂卡片背景，改为更通透的设计，避免“套娃感” */
+      background: transparent; 
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      cursor: pointer;
+      position: relative;
+    }
+
+    /* hover 效果由 JS 控制弹跳，这里只保留 tooltip */
+    .static-feature-card::after {
+      content: attr(data-tooltip);
+      position: absolute;
+      bottom: calc(100% + 16px);
+      left: 50%;
+      transform: translateX(-50%) translateY(8px);
+      width: max-content;
+      max-width: 240px;
+      padding: 14px 18px;
+      background: rgba(30, 30, 35, 0.95);
+      color: #fff;
+      font-size: 14px;
+      line-height: 1.6;
+      border-radius: 10px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.25s ease;
+      z-index: 100;
+      pointer-events: none;
+      text-align: left;
+    }
+
+    .static-feature-card::before {
+      content: '';
+      position: absolute;
+      bottom: calc(100% + 8px);
+      left: 50%;
+      transform: translateX(-50%) translateY(8px);
+      border: 8px solid transparent;
+      border-top-color: rgba(30, 30, 35, 0.95);
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.25s ease;
+      z-index: 101;
+    }
+
+    .static-feature-card:hover::after,
+    .static-feature-card:hover::before {
+      opacity: 1;
+      visibility: visible;
+      transform: translateX(-50%) translateY(0);
+    }
+    
+    .feature-icon-box {
+      width: 96px;
+      height: 96px;
+      border-radius: 24px;
+      /* 使用微渐变增强质感 */
+      background: linear-gradient(135deg, rgba(255,255,255,0.9), rgba(255,255,255,0.4));
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255,255,255,0.6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 
+        0 10px 40px rgba(0,0,0,0.1),
+        0 4px 8px rgba(0,0,0,0.12),
+        inset 0 2px 4px rgba(255,255,255,1);
+      transition: all 0.3s ease;
+    }
+
+    /* 弹跳动画 - 带重力感的三次跳动 */
+    .feature-icon-box.bouncing {
+      animation: iconBounce 1.2s ease-out;
+    }
+
+    @keyframes iconBounce {
+      /* 第一跳 - 最高 */
+      0% {
+        transform: translateY(0) scaleY(1) scaleX(1);
+      }
+      3% {
+        transform: translateY(2px) scaleY(0.95) scaleX(1.05);
+      }
+      10% {
+        transform: translateY(-18px) scaleY(1.08) scaleX(0.95);
+      }
+      20% {
+        transform: translateY(0) scaleY(0.92) scaleX(1.08);
+      }
+      /* 第二跳 - 中等 */
+      25% {
+        transform: translateY(0) scaleY(1) scaleX(1);
+      }
+      28% {
+        transform: translateY(1px) scaleY(0.97) scaleX(1.03);
+      }
+      38% {
+        transform: translateY(-10px) scaleY(1.05) scaleX(0.97);
+      }
+      50% {
+        transform: translateY(0) scaleY(0.95) scaleX(1.05);
+      }
+      /* 第三跳 - 最小 */
+      55% {
+        transform: translateY(0) scaleY(1) scaleX(1);
+      }
+      60% {
+        transform: translateY(-5px) scaleY(1.02) scaleX(0.98);
+      }
+      70% {
+        transform: translateY(0) scaleY(0.98) scaleX(1.02);
+      }
+      /* 稳定 */
+      80%, 100% {
+        transform: translateY(0) scaleY(1) scaleX(1);
+      }
+    }
+
+    /* 默认深灰色图标 */
+    .feature-icon-box svg {
+      width: 52px;
+      height: 52px;
+      stroke-width: 2;
+      --icon-color: #4a4a4a;
+      transition: all 0.3s ease;
+      filter: drop-shadow(0 1px 2px rgba(0,0,0,0.18));
+    }
+    .feature-icon-box svg path,
+    .feature-icon-box svg rect,
+    .feature-icon-box svg circle,
+    .feature-icon-box svg ellipse,
+    .feature-icon-box svg line,
+    .feature-icon-box svg polyline,
+    .feature-icon-box svg text {
+      stroke: #4a4a4a;
+      fill: none;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    .feature-icon-box svg path[fill]:not([fill="none"]),
+    .feature-icon-box svg rect[fill]:not([fill="none"]),
+    .feature-icon-box svg circle[fill]:not([fill="none"]),
+    .feature-icon-box svg ellipse[fill]:not([fill="none"]),
+    .feature-icon-box svg text {
+      fill: #4a4a4a;
+      stroke: none;
+    }
+
+    /* Hover 时变蓝色渐变 */
+    .static-feature-card:hover .feature-icon-box {
+      background: linear-gradient(135deg, #fff, #f0f8ff);
+      box-shadow: 
+        0 18px 40px rgba(30, 98, 150, 0.3),
+        0 8px 20px rgba(30, 98, 150, 0.15),
+        inset 0 2px 4px rgba(255,255,255,1);
+      border-color: #fff;
+    }
+    .static-feature-card:hover .feature-icon-box svg {
+      filter: none;
+    }
+    .static-feature-card:hover .feature-icon-box svg path,
+    .static-feature-card:hover .feature-icon-box svg rect,
+    .static-feature-card:hover .feature-icon-box svg circle,
+    .static-feature-card:hover .feature-icon-box svg ellipse,
+    .static-feature-card:hover .feature-icon-box svg line,
+    .static-feature-card:hover .feature-icon-box svg polyline,
+    .static-feature-card:hover .feature-icon-box svg text {
+      stroke: #3B82F6;
+      stroke-linecap: round !important;
+      stroke-linejoin: round !important;
+    }
+    .static-feature-card:hover .feature-icon-box svg path[fill]:not([fill="none"]),
+    .static-feature-card:hover .feature-icon-box svg rect[fill]:not([fill="none"]),
+    .static-feature-card:hover .feature-icon-box svg circle[fill]:not([fill="none"]),
+    .static-feature-card:hover .feature-icon-box svg ellipse[fill]:not([fill="none"]),
+    .static-feature-card:hover .feature-icon-box svg text {
+      fill: #3B82F6;
+      stroke: none;
+    }
+
+    .feature-title {
+      font-size: 17px;
+      font-weight: 500;
+      color: var(--text-dark);
+      text-align: center;
+    }
+
+    /* 图标渐变色在各SVG的<defs>中定义 */
+
+    /* 12+ 项优化提示 - 作为网格一部分 */
+    .more-features-hint {
+      grid-column: 1 / -1;
+      margin-top: 8px;
+      font-size: 16px;
+      font-weight: 400;
+      color: var(--text-medium);
+      background: transparent;
+      padding: 0;
+      border-radius: 0;
+      border: none;
+      backdrop-filter: none;
+      box-shadow: none;
+      text-align: center;
+    }
+
+    /* ========== 暗色模式适配 ========== */
+    @media (prefers-color-scheme: dark) {
+      /* Tooltip */
+      .static-feature-card::after {
+        background: rgba(255, 255, 255, 0.95);
+        color: #1a1a1a;
+      }
+      .static-feature-card::before {
+        border-top-color: rgba(255, 255, 255, 0.95);
+      }
+      /* 卡片保持透明，不要背景 */
+      .static-feature-card {
+        background: transparent;
+      }
+      .static-feature-card:hover {
+        background: transparent;
+      }
+      /* 图标盒子 */
+      .feature-icon-box {
+        background: linear-gradient(145deg, rgba(50,50,55,0.95), rgba(35,35,40,0.95));
+        box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+        border: 1px solid rgba(255,255,255,0.1);
+      }
+      /* 深色模式下图标颜色改为浅色 */
+      .feature-icon-box svg path,
+      .feature-icon-box svg rect,
+      .feature-icon-box svg circle,
+      .feature-icon-box svg ellipse,
+      .feature-icon-box svg line,
+      .feature-icon-box svg polyline,
+      .feature-icon-box svg text {
+        stroke: #c0c0c0;
+      }
+      .feature-icon-box svg path[fill]:not([fill="none"]),
+      .feature-icon-box svg rect[fill]:not([fill="none"]),
+      .feature-icon-box svg circle[fill]:not([fill="none"]),
+      .feature-icon-box svg ellipse[fill]:not([fill="none"]),
+      .feature-icon-box svg text {
+        fill: #c0c0c0;
+      }
+      .feature-icon-box svg {
+        filter: drop-shadow(0 1px 2px rgba(0,0,0,0.3));
+      }
+      .static-feature-card:hover .feature-icon-box {
+        background: linear-gradient(145deg, rgba(60,65,75,0.95), rgba(45,50,60,0.95));
+        box-shadow: 0 12px 32px rgba(0,0,0,0.4);
+      }
+      /* Hover 时图标变蓝 */
+      .static-feature-card:hover .feature-icon-box svg path,
+      .static-feature-card:hover .feature-icon-box svg rect,
+      .static-feature-card:hover .feature-icon-box svg circle,
+      .static-feature-card:hover .feature-icon-box svg ellipse,
+      .static-feature-card:hover .feature-icon-box svg line,
+      .static-feature-card:hover .feature-icon-box svg polyline,
+      .static-feature-card:hover .feature-icon-box svg text {
+        stroke: #5bb8f5;
+      }
+      .static-feature-card:hover .feature-icon-box svg path[fill]:not([fill="none"]),
+      .static-feature-card:hover .feature-icon-box svg rect[fill]:not([fill="none"]),
+      .static-feature-card:hover .feature-icon-box svg circle[fill]:not([fill="none"]),
+      .static-feature-card:hover .feature-icon-box svg ellipse[fill]:not([fill="none"]),
+      .static-feature-card:hover .feature-icon-box svg text {
+        fill: #5bb8f5;
+      }
+      /* 更多功能提示 - 去掉背景 */
+      .more-features-hint {
+        background: transparent;
+        border: none;
+      }
+    }
+
+    /* Step 2 演示容器占位符 */
+    .step2-container {
+      display: none; /* 初始隐藏 */
+      width: 100%;
+      height: 100%;
+      /* 这里的样式将在后续任务中完善 */
+    }
+
+    @media (max-width: 1100px) {
+      .preview-grid {
+        flex-wrap: wrap;
+        gap: 16px;
+      }
+      .preview-card {
+        width: 220px;
+      }
+      .browser-body-mini {
+        height: 140px;
+      }
+    }
+
+    /* 特性标签 */
+    .features-row {
+      display: flex;
+      justify-content: center;
+      gap: 32px;
+      margin-top: 24px;
+      margin-bottom: 48px;
+    }
+
+    .feature-tag {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      color: var(--text-light);
+    }
+
+    .feature-tag svg {
+      width: 18px;
+      height: 18px;
+      color: var(--accent);
+    }
+
+    /* 浏览器窗口 mockup */
+    .browser-mockup {
+      width: 100%;
+      max-width: 780px;
+      margin: 0 auto;
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 
+        0 4px 6px rgba(0,0,0,0.05),
+        0 20px 60px rgba(0,0,0,0.1),
+        0 40px 100px rgba(0,0,0,0.05);
+      overflow: hidden;
+    }
+
+    .browser-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 14px 16px;
+      background: #f5f5f5;
+      border-bottom: 1px solid #e5e5e5;
+    }
+
+    .browser-dots {
+      display: flex;
+      gap: 6px;
+    }
+
+    .dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+    }
+
+    .dot-red { background: #ff5f57; }
+    .dot-yellow { background: #ffbd2e; }
+    .dot-green { background: #28c840; }
+
+    .browser-address {
+      flex: 1;
+      margin: 0 12px;
+      padding: 8px 16px;
+      background: #fff;
+      border-radius: 8px;
+      font-size: 13px;
+      color: var(--text-light);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .browser-address svg {
+      width: 14px;
+      height: 14px;
+      opacity: 0.5;
+    }
+
+    .browser-actions {
+      display: flex;
+      gap: 12px;
+    }
+
+    .browser-actions svg {
+      width: 18px;
+      height: 18px;
+      color: var(--text-light);
+    }
+
+    .browser-content {
+      height: 380px;
+      background: linear-gradient(180deg, #fafafa 0%, #fff 100%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* 浏览器 mockup */
+    .browser-mockup {
+      width: 100%;
+      max-width: 800px;
+      margin: 0 auto;
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 
+        0 2px 4px rgba(0,0,0,0.04),
+        0 8px 32px rgba(0,0,0,0.08),
+        0 24px 60px rgba(0,0,0,0.06);
+      overflow: hidden;
+    }
+
+    .browser-bar {
+      display: flex;
+      align-items: center;
+      padding: 10px 16px;
+      background: #f8f8f8;
+      border-bottom: 1px solid #e8e8e8;
+      gap: 12px;
+    }
+
+    .browser-dots {
+      display: flex;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+
+    .dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+    }
+
+    .dot-red { background: #ff5f57; }
+    .dot-yellow { background: #ffbd2e; }
+    .dot-green { background: #28c840; }
+
+    .browser-tabs {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      flex: 1;
+    }
+
+    .browser-tab {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 16px;
+      background: #fff;
+      border-radius: 8px 8px 0 0;
+      font-size: 13px;
+      color: var(--text-dark);
+    }
+
+    .browser-tab .tab-favicon {
+      width: 16px;
+      height: 16px;
+    }
+
+    .browser-tab-add {
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-light);
+      font-size: 18px;
+    }
+
+    .browser-toolbar-right {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+
+    .toolbar-icon-placeholder {
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
+      background: #eee;
+    }
+
+    .toolbar-icon-echo {
+      position: relative;
+      width: 28px;
+      height: 28px;
+    }
+
+    .toolbar-icon-echo img {
+      width: 100%;
+      height: 100%;
+      border-radius: 6px;
+    }
+
+    .echo-highlight-ring {
+      position: absolute;
+      inset: -4px;
+      border: 2px solid var(--accent);
+      border-radius: 10px;
+    }
+
+    .toolbar-icon-puzzle,
+    .toolbar-icon-more {
+      width: 28px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .toolbar-icon-puzzle svg,
+    .toolbar-icon-more svg {
+      width: 18px;
+      height: 18px;
+      color: var(--text-light);
+    }
+
+    .browser-content {
+      height: 340px;
+      background: linear-gradient(180deg, #fafafa 0%, #fff 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .browser-center {
+      text-align: center;
+    }
+
+    .echo-brand-icon {
+      width: 96px;
+      height: 96px;
+      margin-bottom: 20px;
+    }
+
+    .browser-brand-text {
+      font-size: 24px;
+      font-weight: 600;
+      color: var(--text-dark);
+      margin-bottom: 6px;
+    }
+
+    .browser-brand-sub {
+      font-size: 14px;
+      color: var(--text-light);
+    }
+
+    .toolbar-hint-text {
+      margin-top: 20px;
+      font-size: 14px;
+      color: var(--text-light);
+    }
+
+    .toolbar-hint-text strong {
+      color: var(--accent);
+    }
+
+    .browser-text {
+      font-size: 18px;
+      color: var(--text-medium);
+      margin-bottom: 8px;
+    }
+
+    .browser-subtext {
+      font-size: 14px;
+      color: var(--text-light);
+    }
+
+    /* 搜索框示意 */
+    .search-bar-demo {
+      width: 320px;
+      height: 44px;
+      margin-top: 24px;
+      background: #fff;
+      border: 1px solid #e5e5e5;
+      border-radius: 24px;
+      display: flex;
+      align-items: center;
+      padding: 0 20px;
+      gap: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    }
+
+    .search-bar-demo svg {
+      width: 18px;
+      height: 18px;
+      color: var(--text-light);
+    }
+
+    .search-bar-demo span {
+      color: #ccc;
+      font-size: 14px;
+    }
+
+    /* 右上角步骤指示器 */
+    .step-indicator {
+      position: fixed;
+      top: 36px;
+      right: 40px;
+      display: flex;
+      align-items: center;
+      gap: 0;
+      z-index: 100;
+      font-size: 15px;
+      font-weight: 500;
+      letter-spacing: 0.3px;
+    }
+
+    .step-indicator .step-item {
+      display: flex;
+      align-items: center;
+    }
+
+    .step-indicator .step-line {
+      width: 40px;
+      height: 1.5px;
+      background: linear-gradient(90deg, transparent, #c0c0c0, transparent);
+      margin: 0 4px;
+    }
+
+    .step-indicator .step-label {
+      padding: 8px 16px;
+      color: #a0a0a0;
+      border-radius: 20px;
+      transition: all 0.3s ease;
+      background: transparent;
+    }
+
+    .step-indicator .step-label.active {
+      color: #3B82F6;
+      font-weight: 600;
+      background: rgba(30, 98, 150, 0.08);
+    }
+
+    .step-indicator .step-label.completed {
+      color: #666;
+    }
+
+    /* 可点击的步骤标签 */
+    .step-indicator .step-label.clickable {
+      cursor: pointer;
+    }
+
+    .step-indicator .step-label.clickable:hover {
+      background: rgba(30, 98, 150, 0.06);
+      color: #3B82F6;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      .step-indicator .step-label.clickable:hover {
+        background: rgba(91, 184, 245, 0.08);
+        color: #5bb8f5;
+      }
+    }
+
+    /* 激活状态前后的横线颜色加深 */
+    .step-indicator .step-item.active .step-line,
+    .step-indicator .step-item.completed .step-line {
+      background: linear-gradient(90deg, transparent, #3B82F6, transparent);
+      opacity: 0.4;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      .step-indicator .step-line {
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+      }
+      .step-indicator .step-label {
+        color: rgba(255,255,255,0.35);
+      }
+      .step-indicator .step-label.active {
+        color: #5bb8f5;
+        background: rgba(91, 184, 245, 0.1);
+      }
+      .step-indicator .step-label.completed {
+        color: rgba(255,255,255,0.55);
+      }
+      .step-indicator .step-item.active .step-line,
+      .step-indicator .step-item.completed .step-line {
+        background: linear-gradient(90deg, transparent, #5bb8f5, transparent);
+        opacity: 0.3;
+      }
+    }
+
+    /* 底部按钮区域 */
+    .nav-footer {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 24px;
+      margin-top: 0;
+      flex-shrink: 0;
+    }
+
+    /* skip-link 和 back-link 已移除，导航功能由步骤指示器承担 */
+
+    /* Footer */
+    .fre-footer {
+      position: fixed;
+      bottom: 12px;
+      left: 0;
+      right: 0;
+      text-align: center;
+      z-index: 10;
+    }
+    .fre-footer .footer-text {
+      font-size: 14px;
+      color: #999;
+      line-height: 1.4;
+    }
+    @media (prefers-color-scheme: dark) {
+      .fre-footer .footer-text {
+        color: rgba(255, 255, 255, 0.5);
+      }
+    }
+
+    /* 响应式 */
+    @media (max-width: 768px) {
+      .headline {
+        font-size: 48px;
+        letter-spacing: -1px;
+      }
+
+      .features-row {
+        flex-wrap: wrap;
+        gap: 16px;
+      }
+
+      .blob {
+        opacity: 0.3;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .page {
+        padding: 40px 20px;
+      }
+
+      .headline {
+        font-size: 36px;
+      }
+
+      .subheadline {
+        font-size: 16px;
+      }
+
+      .toolbar-mock {
+        padding: 12px 16px;
+      }
+    }
+
+    /* 小屏幕高度优化 - 解决布局拥挤问题 */
+    @media (max-height: 900px) {
+      .page {
+        padding: 32px 40px 100px;  /* 顶部减少，底部增加 */
+      }
+      
+      .brand-section {
+        top: 16px;  /* 更靠上 */
+        left: 32px;
+      }
+      
+      .step-indicator {
+        top: 20px;  /* 更靠上 */
+        right: 32px;
+      }
+      
+      .page-header {
+        margin-bottom: 60px;  /* 减少标题下方间距 */
+      }
+      
+      .page-title {
+        font-size: 40px;
+      }
+      
+      .page-subtitle {
+        font-size: 18px;
+      }
+      
+      .content-area {
+        height: 340px;  /* 缩小内容区高度 */
+      }
+      
+      .preview-grid {
+        gap: 40px 48px;  /* 缩小卡片间距 */
+      }
+      
+      .feature-icon-box {
+        width: 80px;
+        height: 80px;
+        border-radius: 20px;
+      }
+      
+      .feature-icon-box svg {
+        width: 44px;
+        height: 44px;
+      }
+      
+      .feature-title {
+        font-size: 15px;
+      }
+      
+      .cta-btn {
+        padding: 14px 48px;
+        font-size: 20px;
+      }
+      
+      .nav-footer {
+        margin-top: 24px;
+      }
+    }
+
+    /* 极小屏幕高度 */
+    @media (max-height: 700px) {
+      .page {
+        padding: 24px 32px 90px;
+      }
+      
+      .brand-section {
+        top: 12px;
+        left: 24px;
+      }
+      
+      .brand-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+      }
+      
+      .brand-name {
+        font-size: 18px;
+      }
+      
+      .brand-slogan {
+        font-size: 11px;
+      }
+      
+      .step-indicator {
+        top: 16px;
+        right: 24px;
+        font-size: 13px;
+      }
+      
+      .step-indicator .step-label {
+        padding: 6px 12px;
+      }
+      
+      .step-indicator .step-line {
+        width: 24px;
+      }
+      
+      .page-header {
+        margin-bottom: 40px;
+      }
+      
+      .page-title {
+        font-size: 32px;
+        margin-bottom: 16px;
+      }
+      
+      .page-subtitle {
+        font-size: 16px;
+      }
+      
+      .content-area {
+        height: 280px;
+      }
+      
+      .preview-grid {
+        gap: 32px 40px;
+      }
+      
+      .feature-icon-box {
+        width: 68px;
+        height: 68px;
+        border-radius: 16px;
+      }
+      
+      .feature-icon-box svg {
+        width: 36px;
+        height: 36px;
+      }
+      
+      .feature-title {
+        font-size: 14px;
+      }
+      
+      .more-features-hint {
+        font-size: 14px;
+        margin-top: 4px;
+      }
+      
+      .cta-btn {
+        padding: 12px 40px;
+        font-size: 18px;
+      }
+      
+      .fre-footer {
+        bottom: 8px;
+      }
+      
+      .fre-footer .footer-text {
+        font-size: 12px;
+      }
+    }
+  </style>
+  <!-- Low Poly 背景模块（共享） -->
+  <script src="../common/lowpoly-bg.js"></script>
+</head>
+<body>
+  <div class="page">
+    <div class="brand-section">
+      <img src="../icons/icon128.png" alt="ECHO" class="brand-icon">
+      <div class="brand-text">
+        <div class="brand-name">ECHO 易可</div>
+        <div class="brand-slogan"><span class="acronym">E</span>dge <span class="acronym">C</span>hinese <span class="acronym">H</span>elper & <span class="acronym">O</span>ptimizer</div>
+      </div>
+    </div>
+
+    <!-- 主内容区：标题 + 功能卡片 -->
+    <div class="main-content">
+      <header class="page-header">
+        <h1 class="page-title">你好，我是 ECHO 易可</h1>
+        <p class="page-subtitle">我带来一些便捷功能，让 Edge 更懂中国用户</p>
+      </header>
+
+      <!-- 内容区域 -->
+      <div class="content-area">
+        <!-- 中间：8个功能卡片（2行4列）带 hover 气泡提示 -->
+        <div class="preview-grid" id="step1Grid">
+      
+      <!-- 第一行 -->
+      <!-- 超级拖拽 -->
+      <div class="static-feature-card" data-tooltip="拖拽链接直接在新标签打开，拖拽选中的文字直接 Bing 搜索">
+        <div class="feature-icon-box" style="background: linear-gradient(135deg, rgba(63,169,245,0.06), rgba(255,255,255,0.4));">
+          <svg viewBox="0 0 48 48" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <defs>
+              <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#3FA9F5"/>
+                <stop offset="100%" stop-color="#3B82F6"/>
+              </linearGradient>
+            </defs>
+            <!-- 饱满的鼠标指针 -->
+            <path d="M6 12v28l8-8h12L6 12z" fill="url(#grad1)" stroke="url(#grad1)" stroke-width="2"/>
+            <!-- 拖拽弧线（蓝色渐变） -->
+            <polyline points="10,14 18,10 28,10 38,18" stroke="url(#grad1)" stroke-width="3" stroke-dasharray="5 4" fill="none"/>
+            <!-- 目标圆点（蓝色渐变，和图标2、3一致） -->
+            <ellipse cx="40" cy="20" rx="5" ry="5" fill="url(#grad1)"/>
+          </svg>
+        </div>
+        <div class="feature-title">超级拖拽搜索/打开</div>
+      </div>
+      
+      <!-- 鼠标手势 -->
+      <div class="static-feature-card" data-tooltip="按住右键滚动滚轮：向上滚切到左侧标签，向下滚切到右侧标签">
+        <div class="feature-icon-box" style="background: linear-gradient(135deg, rgba(76,224,176,0.05), rgba(255,255,255,0.4));">
+          <svg viewBox="0 0 48 48" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <defs>
+              <linearGradient id="grad2" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#3FA9F5"/>
+                <stop offset="100%" stop-color="#3B82F6"/>
+              </linearGradient>
+            </defs>
+            <!-- 鼠标轮廓 -->
+            <rect x="12" y="10" width="24" height="28" rx="12" stroke="url(#grad2)" stroke-width="3.5" fill="none"/>
+            <!-- 滚轮 -->
+            <rect x="21" y="14" width="6" height="8" rx="3" fill="url(#grad2)"/>
+            <!-- 上箭头（居中，蓝色） -->
+            <polyline points="19,4 24,1 29,4" stroke="url(#grad2)" stroke-width="2.5" fill="none"/>
+            <!-- 下箭头（居中，蓝色） -->
+            <polyline points="19,44 24,47 29,44" stroke="url(#grad2)" stroke-width="2.5" fill="none"/>
+          </svg>
+        </div>
+        <div class="feature-title">鼠标手势滚轮切换标签</div>
+      </div>
+      
+      <!-- 快速存图 -->
+      <div class="static-feature-card" data-tooltip="按住 Alt 点击图片直接保存，自动归类到「ECHO快速保存图片」文件夹">
+        <div class="feature-icon-box" style="background: linear-gradient(135deg, rgba(80,210,244,0.05), rgba(255,255,255,0.4));">
+          <svg viewBox="0 0 48 48" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <defs>
+              <linearGradient id="grad3" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#3FA9F5"/>
+                <stop offset="100%" stop-color="#3B82F6"/>
+              </linearGradient>
+            </defs>
+            <!-- 图片框 -->
+            <rect x="6" y="5" width="36" height="26" rx="3" stroke-width="3"/>
+            <circle cx="16" cy="14" r="3" fill="#5a5a5a"/>
+            <path d="M40 25l-9-8-6 5-5-4-12 9" stroke-width="2.5"/>
+            <!-- 下载图标 -->
+            <path d="M24,35 L24,45 M19,39 L24,45 L29,39 M16,47 L32,47" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div class="feature-title">Alt 一键存图</div>
+      </div>
+      
+      <!-- 精细缩放 -->
+      <div class="static-feature-card" data-tooltip="Ctrl+滚轮缩放步进从 Edge 默认的大跳改为 5% 微调，超过 175% 后自动加速">
+        <div class="feature-icon-box" style="background: linear-gradient(135deg, rgba(30,98,150,0.05), rgba(255,255,255,0.4));">
+          <svg viewBox="0 0 48 48" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <defs>
+              <linearGradient id="grad4" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#3FA9F5"/>
+                <stop offset="100%" stop-color="#3B82F6"/>
+              </linearGradient>
+            </defs>
+            <!-- 放大镜 -->
+            <circle cx="18" cy="14" r="11" stroke-width="3.5"/>
+            <path d="M26 22l12 12" stroke-width="4"/>
+            <!-- 加号 -->
+            <path d="M18 8v12M12 14h12" stroke-width="2.5"/>
+            <!-- 底部刻度尺 -->
+            <path d="M10 46h28M10 46v-5M17 46v-3M24 46v-5M31 46v-3M38 46v-5" stroke-width="2"/>
+          </svg>
+        </div>
+        <div class="feature-title">5% 精细缩放步进</div>
+      </div>
+
+      <!-- 第二行 -->
+      <!-- 快捷键强化 -->
+      <div class="static-feature-card" data-tooltip="F2 切到左侧标签，F3 切到右侧标签（浏览器内置页面除外）">
+        <div class="feature-icon-box" style="background: linear-gradient(135deg, rgba(63,169,245,0.04), rgba(255,255,255,0.4));">
+          <svg viewBox="0 0 48 48" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <defs>
+              <linearGradient id="grad5" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#3FA9F5"/>
+                <stop offset="100%" stop-color="#3B82F6"/>
+              </linearGradient>
+            </defs>
+            <!-- 左按键 F2 -->
+            <rect x="2" y="10" width="19" height="16" rx="3" stroke-width="2.5"/>
+            <text x="11.5" y="22" font-family="Arial" font-size="11" font-weight="bold" text-anchor="middle" fill="#5a5a5a" stroke="none">F2</text>
+            <!-- 右按键 F3 -->
+            <rect x="27" y="10" width="19" height="16" rx="3" stroke-width="2.5"/>
+            <text x="36.5" y="22" font-family="Arial" font-size="11" font-weight="bold" text-anchor="middle" fill="#5a5a5a" stroke="none">F3</text>
+            <!-- 左右箭头 -->
+            <path d="M8 34l-4 4 4 4M40 34l4 4-4 4" stroke-width="2.5"/>
+          </svg>
+        </div>
+        <div class="feature-title">F2/F3 切标签</div>
+      </div>
+      
+      <!-- 老板键 -->
+      <div class="static-feature-card" data-tooltip="老板键：一键最小化所有窗口；一键静音：静音所有发声标签。均可设为全局快捷键">
+        <div class="feature-icon-box" style="background: linear-gradient(135deg, rgba(76,200,220,0.05), rgba(255,255,255,0.4));">
+          <svg viewBox="0 0 48 48" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <defs>
+              <linearGradient id="grad6" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#3FA9F5"/>
+                <stop offset="100%" stop-color="#3B82F6"/>
+              </linearGradient>
+            </defs>
+            <!-- 眼睛+斜杠 -->
+            <path d="M4 24c4-9 11-14 20-14s16 5 20 14c-4 9-11 14-20 14s-16-5-20-14zM8 40L40 8" stroke-width="3"/>
+            <circle cx="24" cy="24" r="6" stroke-width="3"/>
+          </svg>
+        </div>
+        <div class="feature-title">老板键/一键静音</div>
+      </div>
+      
+      <!-- 标签页优化 -->
+      <div class="static-feature-card" data-tooltip="自定义新标签打开位置、关闭标签后激活左侧还是右侧、收藏夹链接打开方式">
+        <div class="feature-icon-box" style="background: linear-gradient(135deg, rgba(76,224,176,0.04), rgba(255,255,255,0.4));">
+          <svg viewBox="0 0 48 48" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <defs>
+              <linearGradient id="grad7" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#3FA9F5"/>
+                <stop offset="100%" stop-color="#3B82F6"/>
+              </linearGradient>
+            </defs>
+            <!-- 三个标签 -->
+            <rect x="2" y="6" width="13" height="11" rx="2" stroke-width="2.5"/>
+            <rect x="17" y="6" width="14" height="11" rx="2" stroke-width="2.5"/>
+            <rect x="33" y="6" width="13" height="11" rx="2" stroke-width="2.5"/>
+            <!-- 浏览器窗体 -->
+            <path d="M2 17v24h44V17" stroke-width="2.5"/>
+            <!-- 双向箭头表示切换 -->
+            <path d="M15 32l-5 0M10 29l-3 3 3 3M33 32l5 0M38 29l3 3-3 3" stroke-width="2.5"/>
+          </svg>
+        </div>
+        <div class="feature-title">标签页行为高级控制</div>
+      </div>
+      
+      <!-- 悬浮搜索框 -->
+      <div class="static-feature-card" data-tooltip="Ctrl+B 在页面底部弹出搜索框，带热搜推荐词轮播，回车直接 Bing 搜索">
+        <div class="feature-icon-box" style="background: linear-gradient(135deg, rgba(30,98,150,0.04), rgba(255,255,255,0.4));">
+          <svg viewBox="0 0 48 48" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <defs>
+              <linearGradient id="grad8" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#3FA9F5"/>
+                <stop offset="100%" stop-color="#3B82F6"/>
+              </linearGradient>
+            </defs>
+            <!-- 搜索框 -->
+            <rect x="2" y="28" width="44" height="18" rx="9" stroke-width="3.5"/>
+            <!-- 放大镜图标 -->
+            <path d="M14 32.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7M17 39l3 3" stroke-width="2"/>
+            <!-- 向上箭头表示弹出 -->
+            <path d="M24 4v14M16 12l8-8 8 8" stroke-width="3"/>
+          </svg>
+        </div>
+        <div class="feature-title">Ctrl+B 悬浮搜索</div>
+      </div>
+    
+        <!-- 更多功能提示 - 作为网格的一部分 -->
+        <div class="more-features-hint">以及更多 … 所有功能都支持独立开关和精细化控制</div>
+        </div>
+      </div>
+      <!-- content-area 结束 -->
+    </div>
+    <!-- main-content 结束 -->
+
+    <!-- Step 2 容器 (初始隐藏) -->
+    <div id="step2Container" class="step2-container">
+       <!-- Step 2 内容将在后续逻辑中注入 -->
+    </div>
+
+    <!-- 底部导航 -->
+    <nav class="nav-footer">
+      <button class="cta-btn" id="startBtn">了解更多</button>
+    </nav>
+  </div>
+
+  <!-- 底部 Footer -->
+  <footer class="fre-footer">
+    <p class="footer-text">Made with ❤️ for Chinese Edge users &nbsp;·&nbsp; <a href="https://github.com/echoextension/echo" target="_blank" style="display: inline-flex; align-items: center; gap: 3px; color: #0078d4; text-decoration: none; vertical-align: middle;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 11px; height: 11px;"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>开源仓库 | GitHub</a></p>
+  </footer>
+
+  <!-- 右上角步骤指示器（可点击导航） -->
+  <div class="step-indicator">
+    <div class="step-item active">
+      <span class="step-label active">开始</span>
+      <span class="step-line"></span>
+    </div>
+    <div class="step-item">
+      <span class="step-label clickable" data-href="fre-step2.html">核心功能</span>
+      <span class="step-line"></span>
+    </div>
+    <div class="step-item">
+      <span class="step-label clickable" data-href="fre-step3.html">悬浮搜索</span>
+      <span class="step-line"></span>
+    </div>
+    <div class="step-item">
+      <span class="step-label clickable" data-href="fre-step4.html">完成</span>
+    </div>
+  </div>
+
+  <!-- FRE 通用脚本 -->
+  <script src="fre.js"></script>
+  
+  <!-- Icon 依次弹跳动画 -->
+  <script src="fre-step1.js"></script>
+  
+  <!-- 鼠标手势模块 - 右键+滚轮切换标签 -->
+  <script src="../common/mouse-gesture.js"></script>
+  <!-- 超级拖拽模块 - 拖拽文字搜索 -->
+  <script src="../common/super-drag.js"></script>
+  <!-- 快捷键增强模块 - 精细缩放 + F2/F3 切换标签 -->
+  <script src="../common/keyboard-enhance.js"></script>
+  <!-- 超级 Bing 悬浮搜索框（Ctrl+B） -->
+  <script src="../search-box/search-box.js"></script>
+</body>
+</html>
