@@ -186,3 +186,18 @@ chrome.storage.sync.set({ echo_ntp_wallpaper_favorites: [] }, () => {
 | 7 | 收藏面板关闭时收到远端更新 | 无报错，下次打开面板显示最新数据 | ☐ |
 | 8 | 双 Profile 真实同步（方案 B） | A 收藏出现在 B | ☐ |
 | 9 | sync 配额溢出回退 | 超出配额时 fallback 到 local，无报错 | ☐ |
+
+---
+
+## 开发环境备忘
+
+每台新机器 clone 后，需要执行以下配置：
+
+```bash
+# 1. 设置仓库级别的用户身份
+git config --local user.name "echoextension"
+git config --local user.email "echoextension@hotmail.com"
+
+# 2. 设置 remote URL（带用户名前缀，确保凭据匹配到个人账号）
+git remote set-url origin https://echoextension@github.com/echoextension/echo.git
+```
