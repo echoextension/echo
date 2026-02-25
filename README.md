@@ -108,7 +108,7 @@
 
 ### 从 Edge 应用商店安装
 
-> 即将上架，敬请期待。
+👉 [Edge 应用商店 - ECHO 易可](https://microsoftedge.microsoft.com/addons/detail/echo-%E6%98%93%E5%8F%AF-%E8%AE%A9-edge-%E6%9B%B4%E6%87%82%E4%B8%AD%E5%9B%BD%E7%94%A8%E6%88%B7/fdjnafbimkhnjfnlgpmbbinmginclgck)
 
 ---
 
@@ -212,7 +212,7 @@ ECHO 严格遵循 **"Local First"（本地优先）** 原则：
 
 ## 📜 许可证
 
-本项目采用 [GPL-3.0](LICENSE) 许可证。你可以自由使用、修改和分发，但衍生作品必须以相同许可证开源。
+本项目采用 [GPL-3.0](https://github.com/echoextension/echo/blob/main/LICENSE) 许可证。你可以自由使用、修改和分发，但衍生作品必须以相同许可证开源。
 
 ---
 

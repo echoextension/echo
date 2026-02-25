@@ -108,7 +108,7 @@ This project was built entirely by a **non-technical PM** through AI-assisted pr
 
 ### From Edge Add-ons Store
 
-> Coming soon.
+👉 [Edge Add-ons - ECHO](https://microsoftedge.microsoft.com/addons/detail/echo-%E6%98%93%E5%8F%AF-%E8%AE%A9-edge-%E6%9B%B4%E6%87%82%E4%B8%AD%E5%9B%BD%E7%94%A8%E6%88%B7/fdjnafbimkhnjfnlgpmbbinmginclgck)
 
 ---
 
@@ -212,7 +212,7 @@ If you find it useful, a ⭐ Star would be greatly appreciated. Found a bug? Fee
 
 ## 📜 License
 
-This project is licensed under [GPL-3.0](LICENSE). You are free to use, modify, and distribute it, but derivative works must be open-sourced under the same license.
+This project is licensed under [GPL-3.0](https://github.com/echoextension/echo/blob/main/LICENSE). You are free to use, modify, and distribute it, but derivative works must be open-sourced under the same license.
 
 ---
 
