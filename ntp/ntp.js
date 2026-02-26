@@ -3570,7 +3570,7 @@ async function initBookmarkBar() {
   }
 }
 
-// 监听设置变化（包括密度变化）
+// 监听设置变化（包括密度变化、壁纸收藏同步）
 chrome.storage.onChanged.addListener(async (changes, areaName) => {
   if (areaName !== 'sync') return;
   
@@ -3578,6 +3578,41 @@ chrome.storage.onChanged.addListener(async (changes, areaName) => {
   if (changes.bookmarkBarDensity) {
     const barHeight = await getBookmarkBarHeight();
     setBookmarkBarHeightVar(barHeight);
+  }
+
+  // 壁纸收藏变化（来自其他设备的同步）
+  if (changes[WALLPAPER_FAVORITES_KEY]) {
+    const newFavorites = changes[WALLPAPER_FAVORITES_KEY].newValue;
+    if (!Array.isArray(newFavorites)) return;  // 防御性校验
+    wallpaperState.favorites = newFavorites;
+    
+    // 刷新相关 UI
+    updateFavoriteCount();
+    updateWallpaperStatus();
+    updateL2SourceSelector();
+    
+    // 如果收藏面板正在展示，刷新网格和 Tab 计数
+    const collectionPanel = document.getElementById('collectionPanel');
+    if (collectionPanel?.classList.contains('visible')) {
+      const activeTab = document.querySelector('.collection-tab.active')?.dataset.tab;
+      if (activeTab === 'favorites') {
+        renderFavoritesGrid();
+      }
+      // 同步更新 Tab 标签上的收藏计数
+      const tabFavoritesCount = document.getElementById('tabFavoritesCount');
+      if (tabFavoritesCount) tabFavoritesCount.textContent = `(${newFavorites.length})`;
+    }
+    
+    // 如果当前是"轮播收藏"模式（未锁定）且收藏变空，自动切回每日模式并切换壁纸
+    if (wallpaperState.settings.mode === 'collection' && 
+        !wallpaperState.settings.pinnedDate &&
+        newFavorites.length === 0) {
+      wallpaperState.settings.mode = 'daily';
+      const todayWp = wallpaperState.history[0];
+      if (todayWp) displayWallpaper(todayWp);
+      await saveWallpaperSettings();
+      updateL2SourceSelector();
+    }
   }
 });
 

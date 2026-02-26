@@ -17,3 +17,6 @@ package-lock.json
 *.zip
 *.crx
 *.pem
+
+# Edge sideload cache
+_metadata/
