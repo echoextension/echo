@@ -803,7 +803,7 @@
         e.stopPropagation();
         const query = word.dataset.query;
         if (query) {
-          const searchUrl = `https://www.bing.com/search?q=${encodeURIComponent(query)}&FORM=ECHOBB`;
+          const searchUrl = `https://www.bing.com/search?q=${encodeURIComponent(query)}`;
           chrome.runtime.sendMessage({ 
             action: 'openInNewTab', 
             url: searchUrl, 
@@ -1207,7 +1207,7 @@
 
   function performSearch(query) {
     // 使用 Bing 搜索，带 ECHOBB 追踪参数
-    const searchUrl = `https://www.bing.com/search?q=${encodeURIComponent(query)}&FORM=ECHOBB`;
+    const searchUrl = `https://www.bing.com/search?q=${encodeURIComponent(query)}`;
     
     // 在新标签页打开搜索结果（紧贴当前标签，设置父标签关系）
     chrome.runtime.sendMessage({ 

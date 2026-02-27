@@ -1063,7 +1063,7 @@ function searchCurrentWallpaper() {
   
   // 使用壁纸描述作为搜索关键词
   const searchQuery = encodeURIComponent(wp.desc);
-  const searchUrl = `https://www.bing.com/search?q=${searchQuery}&form=ECHONTP`;
+  const searchUrl = `https://www.bing.com/search?q=${searchQuery}`;
   
   // 后台打开新标签页
   if (chrome?.tabs?.create) {
@@ -2827,7 +2827,7 @@ function renderTrendingList(data) {
       if (item.rank === 1) rankClass = 'top-1';
       else if (item.rank === 2) rankClass = 'top-2';
       else if (item.rank === 3) rankClass = 'top-3';
-      const url = `https://www.bing.com/search?q=${encodeURIComponent(item.title)}&form=ECHONTP`;
+      const url = `https://www.bing.com/search?q=${encodeURIComponent(item.title)}`;
       return `<a class="trending-item" href="${url}" data-url="${url}">
         <span class="trending-rank ${rankClass}">${item.rank}</span>
         <span class="trending-text">${escapeHtml(item.title)}</span>
@@ -3290,7 +3290,7 @@ function initSearchForm() {
     hideSuggest(true);
     
     // 构建搜索 URL（保留 form 参数用于追踪来源）
-    const searchUrl = `https://www.bing.com/search?form=ECHONTP&q=${encodeURIComponent(query)}`;
+    const searchUrl = `https://www.bing.com/search?q=${encodeURIComponent(query)}`;
     
     // 新标签前台打开
     chrome.tabs.create({ url: searchUrl, active: true });
@@ -3455,7 +3455,7 @@ function initSearchForm() {
         input.value = query;
         hideSuggest(true);
         
-        const searchUrl = `https://www.bing.com/search?form=ECHONTP&q=${encodeURIComponent(query)}`;
+        const searchUrl = `https://www.bing.com/search?q=${encodeURIComponent(query)}`;
         chrome.tabs.create({ url: searchUrl, active: true });
       });
     });

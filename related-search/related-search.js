@@ -1844,7 +1844,7 @@
 
   function handleSearch(keyword) {
     // 在后台新标签页中打开 Bing 搜索，带 ECHORR 追踪参数
-    const searchUrl = `https://www.bing.com/search?q=${encodeURIComponent(keyword)}&FORM=ECHORR`;
+    const searchUrl = `https://www.bing.com/search?q=${encodeURIComponent(keyword)}`;
     
     // 发送消息到 background 打开后台标签
     chrome.runtime.sendMessage({

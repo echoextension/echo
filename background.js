@@ -1578,7 +1578,7 @@ async function handleSearchInNewTab(text, forceAdjacentPosition = false) {
     });
     
     // 固定使用 Bing 搜索，带追踪参数
-    const url = 'https://www.bing.com/search?q=' + encodeURIComponent(text) + '&FORM=ECHODD';
+    const url = 'https://www.bing.com/search?q=' + encodeURIComponent(text);
     
     // 获取当前窗口
     const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
