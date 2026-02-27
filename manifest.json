@@ -1,9 +1,10 @@
 {
   "manifest_version": 3,
-  "name": "ECHO 易可 - 让 Edge 更懂中国用户",
-  "version": "1.0.1",
+  "name": "__MSG_extName__",
+  "version": "1.0.2",
+  "default_locale": "zh_CN",
   "homepage_url": "https://github.com/echoextension/echo",
-  "description": "ECHO 易可是一款针对中国 Edge 浏览器用户习惯的体验优化插件，提供超级拖拽、精细化页面缩放、鼠标手势强化、快捷键强化、快速保存图片、全新 NTP、超级 Bing 悬浮搜索框等便捷功能，让 Edge 更懂中国用户。",
+  "description": "__MSG_extDescription__",
   "permissions": ["tabs", "storage", "downloads", "scripting", "declarativeNetRequest"],
   "declarative_net_request": {
     "rule_resources": [
