@@ -73,9 +73,6 @@
   if (isHomePage()) {
     return;
   }
-  if (isHomePage()) {
-    return;
-  }
 
   /**
    * 判断是否是网站首页/根目录

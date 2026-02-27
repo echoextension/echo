@@ -1232,6 +1232,122 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       .catch(err => sendResponse({ success: false, error: err.message }));
     return true;
   }
+
+  // 缩放功能（NTP 等扩展页面使用）
+  if (message.action === 'getZoom') {
+    if (sender.tab) {
+      chrome.tabs.getZoom(sender.tab.id, (zoomFactor) => {
+        sendResponse({ zoom: zoomFactor });
+      });
+      return true;
+    }
+  }
+
+  // Bing 搜索建议代理（NTP 搜索框用）
+  if (message.action === 'bingSuggest') {
+    const query = message.query;
+    if (!query) {
+      sendResponse({ suggestions: [] });
+      return false;
+    }
+    (async () => {
+      try {
+        const response = await fetch(
+          `https://api.bing.com/osjson.aspx?query=${encodeURIComponent(query)}`,
+          { method: 'GET' }
+        );
+        if (!response.ok) {
+          sendResponse({ suggestions: [] });
+          return;
+        }
+        const data = await response.json();
+        const suggestions = Array.isArray(data) && Array.isArray(data[1]) ? data[1] : [];
+        sendResponse({ suggestions: suggestions.slice(0, 8) });
+      } catch (e) {
+        sendResponse({ suggestions: [] });
+      }
+    })();
+    return true;
+  }
+
+  // 处理关键词提取请求 (解决 CSP 问题)
+  // 双备份方案：优先 Pollinations.ai，失败后 fallback 到 OllamaFreeAPI
+  if (message.action === 'analyzeText') {
+    (async () => {
+      const TIMEOUT_MS = 30000;
+      const prompt = message.prompt;
+      
+      const fetchWithTimeout = (url, options, timeout) => {
+        return Promise.race([
+          fetch(url, options),
+          new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Request timeout')), timeout)
+          )
+        ]);
+      };
+      
+      // 方案1: Pollinations.ai
+      const tryPollinations = async () => {
+        const response = await fetchWithTimeout('https://text.pollinations.ai/', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            messages: [
+              { role: 'system', content: 'You are a helpful assistant that extracts keywords as JSON arrays.' },
+              { role: 'user', content: prompt }
+            ],
+            model: 'openai'
+          })
+        }, TIMEOUT_MS);
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+        return await response.text();
+      };
+      
+      // 方案2: OllamaFreeAPI 公开服务器
+      const tryOllama = async () => {
+        const response = await fetchWithTimeout('http://172.236.213.60:11434/api/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            model: 'llama3.2:latest',
+            prompt: prompt,
+            stream: false,
+            options: {
+              num_predict: 300,
+              temperature: 0.7
+            }
+          })
+        }, TIMEOUT_MS);
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+        const json = await response.json();
+        return json.response || '';
+      };
+      
+      // 执行：先 Pollinations，失败后 Ollama
+      try {
+        const text = await tryPollinations();
+        sendResponse({ success: true, data: text });
+      } catch (pollinationsError) {
+        console.warn('[ECHO Background DEBUG] Pollinations failed:', pollinationsError.message);
+        try {
+          const text = await tryOllama();
+          sendResponse({ success: true, data: text });
+        } catch (ollamaError) {
+          console.error('[ECHO Background DEBUG] Both services failed.');
+          console.error('  Pollinations:', pollinationsError.message);
+          console.error('  Ollama:', ollamaError.message);
+          sendResponse({ error: 'All AI services unavailable' });
+        }
+      }
+    })();
+    return true;
+  }
 });
 
 /**
@@ -1928,126 +2044,5 @@ function handleBookmarkChange(id, info) {
 // 书签事件监听器已移除（自绘书签栏功能已废弃）
 // 如需恢复，参见 BOOKMARK_REMOVAL_GUIDE.md
 
-// ============================================
-// 通用消息监听 (Zoom 等)
-// ============================================
-
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  if (message.action === 'getZoom') {
-    if (sender.tab) {
-      chrome.tabs.getZoom(sender.tab.id, (zoomFactor) => {
-        sendResponse({ zoom: zoomFactor });
-      });
-      return true; // 保持通道开启以进行异步响应
-    }
-  }
-
-  // Bing 搜索建议代理（NTP 搜索框用）
-  if (message.action === 'bingSuggest') {
-    const query = message.query;
-    if (!query) {
-      sendResponse({ suggestions: [] });
-      return false;
-    }
-    (async () => {
-      try {
-        const response = await fetch(
-          `https://api.bing.com/osjson.aspx?query=${encodeURIComponent(query)}`,
-          { method: 'GET' }
-        );
-        if (!response.ok) {
-          sendResponse({ suggestions: [] });
-          return;
-        }
-        const data = await response.json();
-        // OpenSearch JSON 格式: ["query", ["sug1", "sug2", ...]]
-        const suggestions = Array.isArray(data) && Array.isArray(data[1]) ? data[1] : [];
-        sendResponse({ suggestions: suggestions.slice(0, 8) });
-      } catch (e) {
-        sendResponse({ suggestions: [] });
-      }
-    })();
-    return true; // 异步响应
-  }
-
-  // 处理关键词提取请求 (解决 CSP 问题)
-  // 双备份方案：优先 Pollinations.ai，失败后 fallback 到 OllamaFreeAPI
-  if (message.action === 'analyzeText') {
-    (async () => {
-      const TIMEOUT_MS = 30000; // 30秒超时
-      const prompt = message.prompt;
-      
-      // 带超时的 fetch
-      const fetchWithTimeout = (url, options, timeout) => {
-        return Promise.race([
-          fetch(url, options),
-          new Promise((_, reject) => 
-            setTimeout(() => reject(new Error('Request timeout')), timeout)
-          )
-        ]);
-      };
-      
-      // 方案1: Pollinations.ai
-      const tryPollinations = async () => {
-        const response = await fetchWithTimeout('https://text.pollinations.ai/', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            messages: [
-              { role: 'system', content: 'You are a helpful assistant that extracts keywords as JSON arrays.' },
-              { role: 'user', content: prompt }
-            ],
-            model: 'openai'
-          })
-        }, TIMEOUT_MS);
-        
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}`);
-        }
-        return await response.text();
-      };
-      
-      // 方案2: OllamaFreeAPI 公开服务器
-      const tryOllama = async () => {
-        const response = await fetchWithTimeout('http://172.236.213.60:11434/api/generate', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            model: 'llama3.2:latest',
-            prompt: prompt,
-            stream: false,
-            options: {
-              num_predict: 300,
-              temperature: 0.7
-            }
-          })
-        }, TIMEOUT_MS);
-        
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}`);
-        }
-        const json = await response.json();
-        return json.response || '';
-      };
-      
-      // 执行：先 Pollinations，失败后 Ollama
-      try {
-        const text = await tryPollinations();
-        sendResponse({ success: true, data: text });
-      } catch (pollinationsError) {
-        console.warn('[ECHO Background DEBUG] Pollinations failed:', pollinationsError.message);
-        try {
-          const text = await tryOllama();
-          sendResponse({ success: true, data: text });
-        } catch (ollamaError) {
-          console.error('[ECHO Background DEBUG] Both services failed.');
-          console.error('  Pollinations:', pollinationsError.message);
-          console.error('  Ollama:', ollamaError.message);
-          sendResponse({ error: 'All AI services unavailable' });
-        }
-      }
-    })();
-    return true; // 保持通道开启（异步响应）
-  }
-});
+// (消息监听已合并到上方统一的 onMessage 处理器中)
 

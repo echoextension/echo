@@ -903,29 +903,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 });
 
-/**
- * 初始化返回顶部按钮
- */
-function initBackToTop() {
-  const btn = document.getElementById('backToTop');
-  if (!btn) return;
-
-  window.addEventListener('scroll', () => {
-    if (window.scrollY > 300) {
-      btn.classList.add('visible');
-    } else {
-      btn.classList.remove('visible');
-    }
-  }, { passive: true });
-
-  btn.addEventListener('click', () => {
-    window.scrollTo({
-      top: 0,
-      behavior: 'smooth'
-    });
-  });
-}
-
 // ============================================
 // 设置页鼠标手势和精细缩放支持
 // 让用户在设置页就能直接体验这些功能
