@@ -1577,7 +1577,7 @@ async function handleSearchInNewTab(text, forceAdjacentPosition = false) {
       superDragActivate: DEFAULT_SETTINGS.superDragActivate
     });
     
-    // 固定使用 Bing 搜索，带追踪参数
+    // 固定使用 Bing 搜索
     const url = 'https://www.bing.com/search?q=' + encodeURIComponent(text);
     
     // 获取当前窗口

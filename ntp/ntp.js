@@ -3289,7 +3289,7 @@ function initSearchForm() {
     
     hideSuggest(true);
     
-    // 构建搜索 URL（保留 form 参数用于追踪来源）
+    // 构建搜索 URL
     const searchUrl = `https://www.bing.com/search?q=${encodeURIComponent(query)}`;
     
     // 新标签前台打开
