@@ -16,6 +16,8 @@ ECHO adheres to a **"Local First"** development philosophy.
 
 - **Settings Storage**: Your extension preferences are stored locally or synced via your encrypted Microsoft Edge Sync account. The developer has no access to this data.
 
+- **Backup & Restore**: ECHO provides an optional export/import feature for data backup. The exported JSON file contains **only** ECHO version number, export timestamp, feature toggle settings, and NTP wallpaper favorites. It does **NOT** contain any personal information, browsing history, bookmarks, passwords, or any other browser data.
+
 ### 2. Permissions Usage
 
 To provide enhanced functionality, ECHO requires certain browser permissions:
@@ -129,6 +131,8 @@ ECHO 遵循 **"Local First"（本地优先）** 的开发原则。
 - **本地运行**：除了下文第 3 条明确说明的 AI 实验功能外，ECHO 的所有核心功能（包括鼠标手势、超级拖拽、老板键、标签页管理等）均完全运行在您的浏览器本地。
 - **不收集数据**：我们**不会**将您的浏览历史、书签内容、密码或任何表单输入数据上传至任何服务器。
 - **配置保存**：您的插件设置选项仅保存在您浏览器的本地存储 (Local Storage) 或通过您的 Edge 账号进行加密同步 (Sync Storage)，开发者无法访问这些数据。
+
+- **备份与恢复**：ECHO 提供可选的数据导出/导入功能，用于防止卸载扩展时数据丢失。导出的 JSON 文件**仅包含** ECHO 插件版本号、导出时间戳、功能开关设置和新标签页 (NTP) 壁纸收藏。**绝不包含**任何个人信息、浏览记录、收藏夹、密码或任何其他浏览器数据。
 
 ### 2. 权限使用说明
 

@@ -891,6 +891,16 @@ document.addEventListener('DOMContentLoaded', async () => {
   
   // 初始化滚动跟随导航
   initScrollNav();
+  
+  // 初始化备份与恢复
+  initBackupRestore();
+  
+  // 如果 URL hash 指向 backupSection，滚动到对应位置
+  if (window.location.hash === '#backupSection') {
+    setTimeout(() => {
+      document.getElementById('backupSection')?.scrollIntoView({ behavior: 'smooth' });
+    }, 300);
+  }
 });
 
 /**
@@ -1455,3 +1465,183 @@ document.addEventListener('DOMContentLoaded', () => {
   adaptShortcutsForPlatform();
   initBlacklistManager();
 });
+
+// ============================================
+// 备份与恢复
+// ============================================
+
+/**
+ * 初始化备份与恢复功能
+ */
+function initBackupRestore() {
+  const exportBtn = document.getElementById('exportBackup');
+  const importBtn = document.getElementById('importBackup');
+  const fileInput = document.getElementById('importFileInput');
+  
+  exportBtn?.addEventListener('click', handleExportBackup);
+  importBtn?.addEventListener('click', () => fileInput?.click());
+  fileInput?.addEventListener('change', handleImportBackup);
+}
+
+/**
+ * 导出备份
+ */
+async function handleExportBackup() {
+  const resultEl = document.getElementById('backupResult');
+  try {
+    // 收集所有需要备份的数据
+    const syncData = await chrome.storage.sync.get(null);
+    const localData = await chrome.storage.local.get(['echo_ntp_wallpaper_v2']);
+    
+    // 分离收藏和扩展设置
+    const favorites = syncData.echo_ntp_wallpaper_favorites || [];
+    
+    // 扩展功能开关（排除收藏数据，其余都是设置）
+    const extensionSettings = { ...syncData };
+    delete extensionSettings.echo_ntp_wallpaper_favorites;
+    
+    const backup = {
+      version: chrome.runtime.getManifest().version,
+      exportDate: new Date().toISOString().split('T')[0],
+      exportTimestamp: Date.now(),
+      favorites: favorites,
+      wallpaperSettings: localData.echo_ntp_wallpaper_v2 || {},
+      extensionSettings: extensionSettings
+    };
+    
+    // 生成文件并下载
+    const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const dateStr = new Date().toISOString().split('T')[0];
+    
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `ECHO_备份_${dateStr}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    showBackupResult('success', `已导出备份（含 ${favorites.length} 张壁纸收藏）`);
+  } catch (error) {
+    console.error('[ECHO] 导出备份失败:', error);
+    showBackupResult('error', `导出失败：${error.message}`);
+  }
+}
+
+/**
+ * 导入备份
+ */
+async function handleImportBackup(e) {
+  const file = e.target.files?.[0];
+  if (!file) return;
+  
+  // 重置 input 以便可以重复选择同一文件
+  e.target.value = '';
+  
+  try {
+    const text = await file.text();
+    let backup;
+    
+    try {
+      backup = JSON.parse(text);
+    } catch {
+      showBackupResult('error', '文件格式错误：不是有效的 JSON 文件');
+      return;
+    }
+    
+    // 基本校验
+    if (!backup.version || !backup.exportDate) {
+      showBackupResult('error', '文件格式错误：不是 ECHO 备份文件');
+      return;
+    }
+    
+    let restoredFavCount = 0;
+    let settingsRestored = false;
+    
+    // 1. 收藏 → 合并（并集）
+    if (Array.isArray(backup.favorites) && backup.favorites.length > 0) {
+      const currentSync = await chrome.storage.sync.get(['echo_ntp_wallpaper_favorites']);
+      const currentFavorites = currentSync.echo_ntp_wallpaper_favorites || [];
+      
+      // 合并去重
+      const merged = [...new Set([...currentFavorites, ...backup.favorites])];
+      await chrome.storage.sync.set({ echo_ntp_wallpaper_favorites: merged });
+      
+      restoredFavCount = merged.length - currentFavorites.length;
+    }
+    
+    // 2. 壁纸设置 → 覆盖
+    if (backup.wallpaperSettings && Object.keys(backup.wallpaperSettings).length > 0) {
+      await chrome.storage.local.set({ echo_ntp_wallpaper_v2: backup.wallpaperSettings });
+      settingsRestored = true;
+    }
+    
+    // 3. 扩展功能开关 → 覆盖
+    if (backup.extensionSettings && Object.keys(backup.extensionSettings).length > 0) {
+      await chrome.storage.sync.set(backup.extensionSettings);
+      settingsRestored = true;
+      // 刷新当前页面的开关 UI
+      await loadSettings();
+    }
+    
+    // 结果提示
+    const parts = [];
+    if (restoredFavCount > 0) {
+      parts.push(`新增 ${restoredFavCount} 张壁纸收藏`);
+    } else if (Array.isArray(backup.favorites) && backup.favorites.length > 0) {
+      parts.push(`壁纸收藏已是最新（${backup.favorites.length} 张已存在）`);
+    }
+    if (settingsRestored) {
+      parts.push('设置已恢复');
+    }
+    
+    const msg = parts.length > 0 ? parts.join('，') : '备份文件中没有需要恢复的数据';
+    showBackupResult('success', `${msg}。新标签页将在下次打开时生效`);
+    
+  } catch (error) {
+    console.error('[ECHO] 导入备份失败:', error);
+    showBackupResult('error', `导入失败：${error.message}`);
+  }
+}
+
+/**
+ * 显示备份操作结果（复用快速保存图片的 toast 风格）
+ */
+let backupToast = null;
+let backupToastTimeout = null;
+
+function showBackupResult(type, message) {
+  if (!backupToast) {
+    backupToast = document.createElement('div');
+    backupToast.className = 'backup-toast';
+    document.body.appendChild(backupToast);
+  }
+  
+  const icons = {
+    success: `<svg width="20" height="20" viewBox="0 0 16 16" fill="none" style="flex-shrink:0">
+      <circle cx="8" cy="8" r="7" stroke="#34d399" stroke-width="1.5" fill="rgba(52,211,153,0.12)"/>
+      <path d="M5 8.2l2 2 4-4.4" stroke="#34d399" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    </svg>`,
+    error: `<svg width="20" height="20" viewBox="0 0 16 16" fill="none" style="flex-shrink:0">
+      <circle cx="8" cy="8" r="7" stroke="#f87171" stroke-width="1.5" fill="rgba(248,113,113,0.12)"/>
+      <path d="M5.5 5.5l5 5M10.5 5.5l-5 5" stroke="#f87171" stroke-width="1.5" stroke-linecap="round"/>
+    </svg>`
+  };
+  
+  const icon = icons[type] || icons.success;
+  backupToast.innerHTML = icon + `<span>${message}</span>`;
+  
+  // 入场动画
+  requestAnimationFrame(() => {
+    backupToast.classList.add('visible');
+  });
+  
+  if (backupToastTimeout) clearTimeout(backupToastTimeout);
+  
+  backupToastTimeout = setTimeout(() => {
+    if (backupToast) {
+      backupToast.classList.remove('visible');
+    }
+  }, 4000);
+}

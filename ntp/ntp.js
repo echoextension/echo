@@ -1312,6 +1312,14 @@ function initWallpaperControls() {
     hideCollectionPanel();
   });
   
+  // 备份与恢复入口 - 打开设置页并定位
+  document.getElementById('collectionBackupLink')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    // 直接用 tabs.create 打开设置页并带上 hash
+    const optionsUrl = chrome.runtime.getURL('options/options.html#backupSection');
+    chrome.tabs.create({ url: optionsUrl });
+  });
+  
   // 点击外部关闭设置面板
   document.addEventListener('click', (e) => {
     const settingsPanel = document.getElementById('settingsPanel');

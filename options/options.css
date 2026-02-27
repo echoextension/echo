@@ -2283,3 +2283,132 @@ input:disabled + .slider {
   }
 }
 
+/* ============================================
+ * 备份与恢复
+ * ============================================ */
+
+.backup-desc {
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin: 0 0 8px 0;
+}
+
+.backup-hint {
+  font-size: 13px;
+  color: var(--text-secondary);
+  opacity: 0.8;
+  margin: 0 0 24px 0;
+  line-height: 1.5;
+}
+
+.backup-actions {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.backup-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+}
+
+.backup-btn svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+.export-btn {
+  background: var(--primary, #0078d4);
+  color: #fff;
+}
+
+.export-btn:hover {
+  background: #106ebe;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 120, 212, 0.3);
+}
+
+.import-btn {
+  background: rgba(0, 120, 212, 0.08);
+  color: var(--primary, #0078d4);
+  border: 1px solid rgba(0, 120, 212, 0.2);
+}
+
+.import-btn:hover {
+  background: rgba(0, 120, 212, 0.15);
+  border-color: rgba(0, 120, 212, 0.35);
+  transform: translateY(-1px);
+}
+
+@media (prefers-color-scheme: dark) {
+  .export-btn {
+    background: #2b88d8;
+  }
+  .export-btn:hover {
+    background: #3a96e0;
+    box-shadow: 0 4px 12px rgba(43, 136, 216, 0.3);
+  }
+  .import-btn {
+    background: rgba(43, 136, 216, 0.12);
+    color: #5ba8e8;
+    border-color: rgba(43, 136, 216, 0.25);
+  }
+  .import-btn:hover {
+    background: rgba(43, 136, 216, 0.2);
+    border-color: rgba(43, 136, 216, 0.4);
+  }
+}
+
+.backup-privacy {
+  font-size: 13px;
+  color: var(--text-secondary);
+  opacity: 0.75;
+  margin: 0 0 24px 0;
+  line-height: 1.5;
+}
+
+/* Toast 提示（复用快速保存图片的风格） */
+.backup-toast {
+  position: fixed;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%) translateY(12px);
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(24, 24, 28, 0.88);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  color: rgba(255, 255, 255, 0.95);
+  padding: 14px 26px;
+  border-radius: 24px;
+  font-size: 15px;
+  font-weight: 500;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  letter-spacing: 0.2px;
+  z-index: 2147483647;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+              transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.28),
+              0 2px 8px rgba(0,0,0,0.12),
+              inset 0 0.5px 0 rgba(255,255,255,0.12);
+  border: 0.5px solid rgba(255,255,255,0.08);
+}
+
+.backup-toast.visible {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+

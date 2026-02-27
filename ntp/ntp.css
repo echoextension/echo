@@ -1621,6 +1621,34 @@ body:not(.wallpaper-mode) .wp-action-btn:hover {
   padding: 20px 24px;
 }
 
+/* 收藏面板底部备份入口 */
+.collection-footer {
+  padding: 12px 24px;
+  border-top: 1px solid rgba(128, 128, 128, 0.15);
+  flex-shrink: 0;
+}
+
+.collection-backup-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.6);
+  text-decoration: none;
+  transition: color 0.2s;
+  cursor: pointer;
+}
+
+.collection-backup-link:hover {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.collection-backup-link svg {
+  width: 14px;
+  height: 14px;
+  opacity: 0.7;
+}
+
 /* 收藏网格 */
 .collection-grid {
   display: grid;
