@@ -1533,7 +1533,7 @@ input:disabled + .slider {
 
 /* 实验室功能组 */
 .lab-feature-group {
-  border: 1px solid var(--border);
+  border: none;
   border-radius: 8px;
   overflow: hidden;
   margin-bottom: 16px;

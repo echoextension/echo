@@ -9,6 +9,161 @@
   'use strict';
 
   // ============================================
+  // Alt+点击快速保存图片 — 提取为函数，在顶层 frame 和 iframe 中均可调用
+  // ============================================
+  function setupQuickSaveImage(settings) {
+    // 在点击位置查找 IMG 元素（处理某些网站在图片上方覆盖透明 DIV 的情况）
+    function findImageAtPoint(e) {
+      const target = e.target;
+      if (target.tagName === 'IMG') {
+        const src = target.src || target.currentSrc;
+        if (src) return target;
+      }
+      if (document.elementsFromPoint) {
+        const elements = document.elementsFromPoint(e.clientX, e.clientY);
+        for (const el of elements) {
+          if (el.tagName === 'IMG') {
+            const src = el.src || el.currentSrc;
+            if (src) return el;
+          }
+        }
+      }
+      let parent = target;
+      for (let depth = 0; parent && depth < 5; depth++) {
+        const img = parent.querySelector('img[src]');
+        if (img && (img.src || img.currentSrc)) return img;
+        parent = parent.parentElement;
+      }
+      return null;
+    }
+
+    // 在 pointerdown/mousedown 捕获阶段提前拦截，阻止网页抢先处理 Alt+点击
+    function earlyBlockAltClickOnImage(e) {
+      if (!settings.quickSaveImage || !e.altKey) return;
+      const img = findImageAtPoint(e);
+      if (!img) return;
+      e.preventDefault();
+      e.stopImmediatePropagation();
+    }
+    window.addEventListener('pointerdown', earlyBlockAltClickOnImage, true);
+    window.addEventListener('mousedown', earlyBlockAltClickOnImage, true);
+
+    // 快速保存提示 toast
+    let quickSaveToast = null;
+    let quickSaveTimeout = null;
+
+    function showQuickSaveToast(message, type = 'success') {
+      // 在 iframe 中时，尝试在顶层 frame 显示 toast（跨域时回退到当前 frame）
+      const doc = (() => { try { return window.top.document; } catch(e) { return document; } })();
+      const body = doc.body;
+      if (!body) return;
+
+      if (!quickSaveToast || !quickSaveToast.isConnected) {
+        quickSaveToast = doc.createElement('div');
+        quickSaveToast.id = 'echo-quick-save-toast';
+        quickSaveToast.style.cssText = `
+          position: fixed;
+          bottom: 80px;
+          left: 50%;
+          transform: translateX(-50%) translateY(12px);
+          display: inline-flex;
+          align-items: center;
+          gap: 10px;
+          background: rgba(24, 24, 28, 0.88);
+          backdrop-filter: blur(16px);
+          -webkit-backdrop-filter: blur(16px);
+          color: rgba(255, 255, 255, 0.95);
+          padding: 14px 26px;
+          border-radius: 24px;
+          font-size: 15px;
+          font-weight: 500;
+          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+          letter-spacing: 0.2px;
+          z-index: 2147483647;
+          pointer-events: none;
+          opacity: 0;
+          transition: opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1), 
+                      transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+          box-shadow: 0 8px 32px rgba(0,0,0,0.28), 
+                      0 2px 8px rgba(0,0,0,0.12),
+                      inset 0 0.5px 0 rgba(255,255,255,0.12);
+          border: 0.5px solid rgba(255,255,255,0.08);
+        `;
+        body.appendChild(quickSaveToast);
+      }
+
+      const icons = {
+        success: `<svg width="20" height="20" viewBox="0 0 16 16" fill="none" style="flex-shrink:0"><circle cx="8" cy="8" r="7" stroke="#34d399" stroke-width="1.5" fill="rgba(52,211,153,0.12)"/><path d="M5 8.2l2 2 4-4.4" stroke="#34d399" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>`,
+        error: `<svg width="20" height="20" viewBox="0 0 16 16" fill="none" style="flex-shrink:0"><circle cx="8" cy="8" r="7" stroke="#f87171" stroke-width="1.5" fill="rgba(248,113,113,0.12)"/><path d="M5.5 5.5l5 5M10.5 5.5l-5 5" stroke="#f87171" stroke-width="1.5" stroke-linecap="round"/></svg>`,
+        warning: `<svg width="20" height="20" viewBox="0 0 16 16" fill="none" style="flex-shrink:0"><circle cx="8" cy="8" r="7" stroke="#fbbf24" stroke-width="1.5" fill="rgba(251,191,36,0.12)"/><path d="M8 5v3.5" stroke="#fbbf24" stroke-width="1.5" stroke-linecap="round"/><circle cx="8" cy="11" r="0.8" fill="#fbbf24"/></svg>`
+      };
+
+      quickSaveToast.innerHTML = (icons[type] || icons.success) + `<span>${message}</span>`;
+      requestAnimationFrame(() => {
+        quickSaveToast.style.opacity = '1';
+        quickSaveToast.style.transform = 'translateX(-50%) translateY(0)';
+      });
+
+      if (quickSaveTimeout) clearTimeout(quickSaveTimeout);
+      quickSaveTimeout = setTimeout(() => {
+        if (quickSaveToast) {
+          quickSaveToast.style.opacity = '0';
+          quickSaveToast.style.transform = 'translateX(-50%) translateY(12px)';
+        }
+      }, 2000);
+    }
+
+    // click 捕获阶段触发保存
+    window.addEventListener('click', async (e) => {
+      if (!settings.quickSaveImage || !e.altKey) return;
+      const imgEl = findImageAtPoint(e);
+      if (!imgEl) return;
+      let imageUrl = imgEl.src || imgEl.currentSrc;
+      if (!imageUrl) return;
+
+      e.preventDefault();
+      e.stopImmediatePropagation();
+
+      try {
+        let dataUrl = '';
+        if (imageUrl.startsWith('data:')) {
+          dataUrl = imageUrl;
+        } else if (imageUrl.startsWith('blob:')) {
+          showQuickSaveToast('暂不支持保存此类型图片', 'warning');
+          return;
+        } else {
+          const fetchResult = await chrome.runtime.sendMessage({
+            action: 'fetchImageAsDataUrl',
+            imageUrl: imageUrl,
+            pageUrl: window.location.href
+          });
+          if (!fetchResult || fetchResult.error) {
+            showQuickSaveToast(fetchResult?.error || '获取图片失败', 'error');
+            return;
+          }
+          dataUrl = fetchResult.dataUrl;
+        }
+
+        const response = await chrome.runtime.sendMessage({
+          action: 'quickSaveImage',
+          dataUrl: dataUrl,
+          originalUrl: imageUrl,
+          pageUrl: window.location.href,
+          pageTitle: document.title
+        });
+
+        if (response && response.success) {
+          showQuickSaveToast('图片已保存', 'success');
+        } else {
+          showQuickSaveToast('保存失败: ' + (response?.error || '未知错误'), 'error');
+        }
+      } catch (error) {
+        showQuickSaveToast('保存失败: ' + error.message, 'error');
+      }
+    }, true);
+  }
+
+  // ============================================
   // 默认设置
   // ============================================
   
@@ -47,6 +202,17 @@
       }
     }
   });
+
+  // ============================================
+  // iframe 环境检测：在 iframe 中只运行 Alt+click 保存功能
+  // Bing 图片详情页等网站会在大图上方覆盖全屏 iframe，
+  // 顶层 frame 的事件监听器无法收到 iframe 内的点击事件，
+  // 因此 content.js 需要在 iframe 中也运行 Alt+click 保存逻辑
+  // ============================================
+  if (window !== window.top) {
+    setupQuickSaveImage(settings);
+    return; // iframe 中不执行下方的手势/拖拽/快捷键等功能
+  }
 
   // ============================================
   // 鼠标手势：右键 + 滚轮切换标签
@@ -410,144 +576,9 @@
   }, true);  // 捕获阶段
 
   // ============================================
-  // Alt+点击快速保存图片
+  // Alt+点击快速保存图片（顶层 frame 调用）
   // ============================================
-  
-  document.addEventListener('click', async (e) => {
-    // 检查是否启用且按住了 Alt 键
-    if (!settings.quickSaveImage || !e.altKey) return;
-    
-    // 检查点击的是否是图片
-    const target = e.target;
-    if (target.tagName !== 'IMG') return;
-    
-    // 获取图片 URL
-    let imageUrl = target.src || target.currentSrc;
-    if (!imageUrl) return;
-    
-    // 阻止默认行为
-    e.preventDefault();
-    e.stopPropagation();
-    
-    // 在页面上下文 fetch 图片（继承页面 cookie，绕过防盗链）
-    try {
-      let dataUrl = '';
-      
-      if (imageUrl.startsWith('data:')) {
-        // 已经是 data URL，直接使用
-        dataUrl = imageUrl;
-      } else if (imageUrl.startsWith('blob:')) {
-        showQuickSaveToast('暂不支持保存此类型图片', 'warning');
-        return;
-      } else {
-        // 发送到 background service worker 执行 fetch（不受 CORS 限制）
-        const fetchResult = await chrome.runtime.sendMessage({
-          action: 'fetchImageAsDataUrl',
-          imageUrl: imageUrl,
-          pageUrl: window.location.href
-        });
-        if (!fetchResult || fetchResult.error) {
-          showQuickSaveToast(fetchResult?.error || '获取图片失败', 'error');
-          return;
-        }
-        dataUrl = fetchResult.dataUrl;
-      }
-      
-      // 发送 data URL 到 background 执行下载
-      const response = await chrome.runtime.sendMessage({
-        action: 'quickSaveImage',
-        dataUrl: dataUrl,
-        originalUrl: imageUrl,
-        pageUrl: window.location.href,
-        pageTitle: document.title
-      });
-      
-      if (response && response.success) {
-        showQuickSaveToast('图片已保存', 'success');
-      } else {
-        showQuickSaveToast('保存失败: ' + (response?.error || '未知错误'), 'error');
-      }
-    } catch (error) {
-      showQuickSaveToast('保存失败: ' + error.message, 'error');
-    }
-  }, true);
-  
-  // 快速保存提示
-  let quickSaveToast = null;
-  let quickSaveTimeout = null;
-  
-  function showQuickSaveToast(message, type = 'success') {
-    if (!quickSaveToast) {
-      quickSaveToast = document.createElement('div');
-      quickSaveToast.id = 'echo-quick-save-toast';
-      quickSaveToast.style.cssText = `
-        position: fixed;
-        bottom: 80px;
-        left: 50%;
-        transform: translateX(-50%) translateY(12px);
-        display: inline-flex;
-        align-items: center;
-        gap: 10px;
-        background: rgba(24, 24, 28, 0.88);
-        backdrop-filter: blur(16px);
-        -webkit-backdrop-filter: blur(16px);
-        color: rgba(255, 255, 255, 0.95);
-        padding: 14px 26px;
-        border-radius: 24px;
-        font-size: 15px;
-        font-weight: 500;
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-        letter-spacing: 0.2px;
-        z-index: 2147483647;
-        pointer-events: none;
-        opacity: 0;
-        transition: opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1), 
-                    transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-        box-shadow: 0 8px 32px rgba(0,0,0,0.28), 
-                    0 2px 8px rgba(0,0,0,0.12),
-                    inset 0 0.5px 0 rgba(255,255,255,0.12);
-        border: 0.5px solid rgba(255,255,255,0.08);
-      `;
-      document.body.appendChild(quickSaveToast);
-    }
-    
-    // SVG 图标 — 精致线条，圆角笔触
-    const icons = {
-      success: `<svg width="20" height="20" viewBox="0 0 16 16" fill="none" style="flex-shrink:0">
-        <circle cx="8" cy="8" r="7" stroke="#34d399" stroke-width="1.5" fill="rgba(52,211,153,0.12)"/>
-        <path d="M5 8.2l2 2 4-4.4" stroke="#34d399" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-      </svg>`,
-      error: `<svg width="20" height="20" viewBox="0 0 16 16" fill="none" style="flex-shrink:0">
-        <circle cx="8" cy="8" r="7" stroke="#f87171" stroke-width="1.5" fill="rgba(248,113,113,0.12)"/>
-        <path d="M5.5 5.5l5 5M10.5 5.5l-5 5" stroke="#f87171" stroke-width="1.5" stroke-linecap="round"/>
-      </svg>`,
-      warning: `<svg width="20" height="20" viewBox="0 0 16 16" fill="none" style="flex-shrink:0">
-        <circle cx="8" cy="8" r="7" stroke="#fbbf24" stroke-width="1.5" fill="rgba(251,191,36,0.12)"/>
-        <path d="M8 5v3.5" stroke="#fbbf24" stroke-width="1.5" stroke-linecap="round"/>
-        <circle cx="8" cy="11" r="0.8" fill="#fbbf24"/>
-      </svg>`
-    };
-    
-    const icon = icons[type] || icons.success;
-    quickSaveToast.innerHTML = icon + `<span>${message}</span>`;
-    
-    // 入场：淡入 + 上移归位
-    requestAnimationFrame(() => {
-      quickSaveToast.style.opacity = '1';
-      quickSaveToast.style.transform = 'translateX(-50%) translateY(0)';
-    });
-    
-    if (quickSaveTimeout) {
-      clearTimeout(quickSaveTimeout);
-    }
-    
-    quickSaveTimeout = setTimeout(() => {
-      if (quickSaveToast) {
-        quickSaveToast.style.opacity = '0';
-        quickSaveToast.style.transform = 'translateX(-50%) translateY(12px)';
-      }
-    }, 2000);
-  }
+  setupQuickSaveImage(settings);
 
   // ============================================
   // 初始化自绘书签栏（如果启用）
