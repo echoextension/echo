@@ -20,7 +20,6 @@
           <img src="logo.svg" class="logo-icon" alt="ECHO Logo">
           <div class="brand-title">
             <h1>ECHO <span class="brand-cn">易可</span><span class="version-badge">v1.0.3</span></h1>
-            <p class="subtitle"><span class="acronym">E</span>dge <span class="acronym">C</span>hinese <span class="acronym">H</span>elper & <span class="acronym">O</span>ptimizer</p>
           </div>
         </div>
         <p class="description">让 Edge 更懂中国用户</p>
@@ -492,7 +491,50 @@
         </div>
       </section>
 
-      <!-- 实验室 -->
+    </div>
+
+    <!-- ===== 备份与恢复 ===== -->
+    <div class="settings-section" id="backupSection">
+      <h2 class="section-watermark">备份与恢复</h2>
+
+      <section class="card" id="backupCard">
+        <div class="card-header">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="7 10 12 15 17 10"/>
+            <line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+          <h2>备份与恢复</h2>
+        </div>
+        <p class="backup-desc">将新标签页壁纸收藏和 ECHO 全部设置导出为文件，防止卸载扩展时数据丢失。重装后可导入恢复。</p>
+        <p class="backup-hint">⚠️ 由于卸载扩展会清除所有数据（包括云端同步数据），建议定期导出备份。所有备份文件仅包含 ECHO 插件版本号、导出时间戳、功能开关设置和新标签页即 NTP 的壁纸收藏。导出逻辑以及保存的 JSON 文件绝对不包含您的任何个人信息、浏览记录或收藏夹数据等。</p>
+
+        <div class="backup-actions">
+          <button class="backup-btn import-btn" id="importBackup">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="17 8 12 3 7 8"/>
+              <line x1="12" y1="3" x2="12" y2="15"/>
+            </svg>
+            导入备份
+          </button>
+          <button class="backup-btn export-btn" id="exportBackup">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="7 10 12 15 17 10"/>
+              <line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            导出备份
+          </button>
+        </div>
+        <input type="file" id="importFileInput" accept=".json" style="display: none;">
+      </section>
+
+    </div>
+
+    <!-- ===== 实验室 ===== -->
+    <div class="settings-section" id="labSection">
+
       <section class="card lab-card" id="labCard">
         <div class="card-header">
           <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -613,45 +655,6 @@
             </div>
           </div>
         </div>
-      </section>
-
-    </div>
-
-    <!-- ===== 备份与恢复 ===== -->
-    <div class="settings-section" id="backupSection">
-      <h2 class="section-watermark">备份与恢复</h2>
-
-      <section class="card" id="backupCard">
-        <div class="card-header">
-          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-            <polyline points="7 10 12 15 17 10"/>
-            <line x1="12" y1="15" x2="12" y2="3"/>
-          </svg>
-          <h2>备份与恢复</h2>
-        </div>
-        <p class="backup-desc">将新标签页壁纸收藏和 ECHO 全部设置导出为文件，防止卸载扩展时数据丢失。重装后可导入恢复。</p>
-        <p class="backup-hint">⚠️ 由于卸载扩展会清除所有数据（包括云端同步数据），建议定期导出备份。所有备份文件仅包含 ECHO 插件版本号、导出时间戳、功能开关设置和新标签页即 NTP 的壁纸收藏。导出逻辑以及保存的 JSON 文件绝对不包含您的任何个人信息、浏览记录或收藏夹数据等。</p>
-
-        <div class="backup-actions">
-          <button class="backup-btn import-btn" id="importBackup">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-              <polyline points="17 8 12 3 7 8"/>
-              <line x1="12" y1="3" x2="12" y2="15"/>
-            </svg>
-            导入备份
-          </button>
-          <button class="backup-btn export-btn" id="exportBackup">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-              <polyline points="7 10 12 15 17 10"/>
-              <line x1="12" y1="15" x2="12" y2="3"/>
-            </svg>
-            导出备份
-          </button>
-        </div>
-        <input type="file" id="importFileInput" accept=".json" style="display: none;">
       </section>
 
     </div>

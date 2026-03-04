@@ -1,4 +1,4 @@
-# ECHO 易可 — Make Edge Better for Chinese Users
+# ECHO 易可 — Edge Chinese Helper & Optimizer
 
 > 🌐 [中文版](README.md)
 

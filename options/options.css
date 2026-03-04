@@ -138,21 +138,22 @@ body {
 }
 
 .brand {
-  text-align: left;
+  text-align: center;
   margin-bottom: 32px;
 }
 
 .brand-header {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 16px;
   margin-bottom: 16px;
 }
 
 .logo-icon {
-  width: 64px;
-  height: 64px;
-  border-radius: 16px;
+  width: 56px;
+  height: 56px;
+  border-radius: 12px;
   box-shadow: 0 4px 16px rgba(0, 120, 212, 0.3);
   flex-shrink: 0;
   /* FRE 风格：添加微妙的边框 */
@@ -160,26 +161,21 @@ body {
 }
 
 .brand-title {
-  flex: 1;
   min-width: 0;
 }
 
 .brand h1 {
   font-size: 32px;
   font-weight: 700;
-  /* Logo 四色渐变流动动画 */
   background: linear-gradient(90deg, #1a5fb4, #3584e4, #00b7c3, #2ec27e, #1a5fb4);
   background-size: 200% auto;
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
   animation: titleGradientFlow 8s linear infinite;
-  margin-bottom: 2px;
+  margin-bottom: 0;
   line-height: 1.2;
   position: relative;
-  display: inline-flex;
-  align-items: baseline;
-  gap: 4px;
 }
 
 .brand-cn {
@@ -191,15 +187,11 @@ body {
   font-size: 11px;
   font-weight: 600;
   background: linear-gradient(135deg, rgba(0, 120, 212, 0.15) 0%, rgba(0, 183, 195, 0.15) 100%);
-  -webkit-background-clip: padding-box;
-  background-clip: padding-box;
-  -webkit-text-fill-color: var(--primary);
+  color: var(--primary);
   padding: 2px 5px;
   border-radius: 5px;
   vertical-align: super;
-  position: relative;
-  top: -6px;
-  margin-left: 2px;
+  margin-left: 4px;
 }
 
 @keyframes titleGradientFlow {

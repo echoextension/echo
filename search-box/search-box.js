@@ -18,7 +18,7 @@
   const DEFAULT_SETTINGS = {
     floatingSearchBox: true,        // 主开关，默认开启
     floatingSearchBoxAlwaysShow: false,  // 子选项：默认常驻显示，默认关闭
-    floatingSearchBoxTrending: true,     // 子选项：显示热搜榜，默认开启
+    floatingSearchBoxTrending: false,    // 子选项：显示热搜榜，默认关闭
     floatingSearchBoxFollowZoom: false   // 子选项：跟随页面缩放，默认关闭（即默认反向补偿）
   };
 
@@ -265,6 +265,37 @@
       overflow: visible;
     }
 
+    /* 悬浮提示小箭头：容器上方 ▲ 和下方 ▼ */
+    .trending-panel::before,
+    .trending-panel::after {
+      content: '';
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 0;
+      height: 0;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+      pointer-events: none;
+      z-index: 100;
+    }
+    .trending-panel::before {
+      bottom: calc(100% + 4px);
+      border-left: 4px solid transparent;
+      border-right: 4px solid transparent;
+      border-bottom: 4px solid rgba(255, 255, 255, 1);
+    }
+    .trending-panel::after {
+      top: calc(100% + 4px);
+      border-left: 4px solid transparent;
+      border-right: 4px solid transparent;
+      border-top: 4px solid rgba(255, 255, 255, 1);
+    }
+    .trending-panel.hint-arrows::before,
+    .trending-panel.hint-arrows::after {
+      opacity: 1;
+    }
+
     .search-container {
       z-index: 2;
     }
@@ -297,11 +328,6 @@
       top: -1px;
     }
 
-    /* hover时显示全部3行 */
-    .trending-scroll-wrapper.expanded {
-      overflow: visible;
-    }
-
     .trending-scroll-track {
       position: absolute;
       top: 0;
@@ -331,50 +357,9 @@
       cursor: pointer !important;
     }
 
-    /* 相邻行：默认隐藏 */
+    /* 相邻行：始终隐藏（仅用于数据预渲染） */
     .trending-word.adjacent {
       visibility: hidden;
-    }
-
-    /* 展开时：相邻行显示，缩小、置灰 */
-    .trending-scroll-wrapper.expanded .trending-word.adjacent {
-      visibility: visible;
-      font-size: 13px;
-      color: #999 !important;
-      pointer-events: none !important;
-      cursor: default !important;
-      padding-left: 12px;
-      position: relative;
-      z-index: 10;
-      /* 1px白色描边 */
-      text-shadow:
-        -1px -1px 0 #fff,
-         1px -1px 0 #fff,
-        -1px  1px 0 #fff,
-         1px  1px 0 #fff;
-      /* drop-shadow 光晕（不受 mask 影响） */
-      filter: 
-        drop-shadow(0 0 3px rgba(255,255,255,1))
-        drop-shadow(0 0 6px rgba(255,255,255,1))
-        drop-shadow(0 0 10px rgba(255,255,255,0.8));
-    }
-
-    /* 上一行向上偏移，顶部渐隐 */
-    .trending-scroll-wrapper.expanded .trending-word.adjacent[data-offset="-1"] {
-      transform: translateY(-18px);
-      /* 暂时隐藏渐隐效果
-      -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 25%);
-      mask-image: linear-gradient(to bottom, transparent 0%, black 25%);
-      */
-    }
-
-    /* 下一行向下偏移，底部渐隐 */
-    .trending-scroll-wrapper.expanded .trending-word.adjacent[data-offset="1"] {
-      transform: translateY(18px);
-      /* 暂时隐藏渐隐效果
-      -webkit-mask-image: linear-gradient(to top, transparent 0%, black 25%);
-      mask-image: linear-gradient(to top, transparent 0%, black 25%);
-      */
     }
 
     /* 深色模式支持 */
@@ -427,20 +412,12 @@
         color: #60a5fa !important;
       }
 
-      /* 深色模式：相邻行用浅色文字 + 深色描边和光晕 */
-      .trending-scroll-wrapper.expanded .trending-word.adjacent {
-        color: #e0e0e0 !important;
-        /* 深色描边 */
-        text-shadow:
-          -1px -1px 0 #000,
-           1px -1px 0 #000,
-          -1px  1px 0 #000,
-           1px  1px 0 #000;
-        /* drop-shadow 深色光晕 */
-        filter: 
-          drop-shadow(0 0 3px rgba(0,0,0,1))
-          drop-shadow(0 0 6px rgba(0,0,0,1))
-          drop-shadow(0 0 10px rgba(0,0,0,0.8));
+      /* 深色模式：箭头提示颜色跟随容器 */
+      .trending-panel::before {
+        border-bottom-color: rgba(40, 40, 40, 1);
+      }
+      .trending-panel::after {
+        border-top-color: rgba(40, 40, 40, 1);
       }
     }
   `;
@@ -816,16 +793,10 @@
     
     // 轨道位置-18px，让第2条（offset=0）显示在容器中
     scrollTrack.style.transform = 'translateY(-18px)';
-    
-    // 如果当前是展开状态，确保expanded类存在
-    if (trendingExpanded && scrollWrapper) {
-      scrollWrapper.classList.add('expanded');
-    }
   }
 
   // 热搜状态
   let trendingPaused = false;
-  let trendingExpanded = false;
   let scrollWrapper = null;
   let isScrollAnimating = false;
 
@@ -857,7 +828,7 @@
     scrollTrack.style.transform = 'translateY(-18px)';
     
     // 5. 滚动期间给active元素添加hovered类（因为鼠标在上面）
-    if (trendingExpanded) {
+    if (trendingPaused) {
       const activeWord = scrollTrack.querySelector('.trending-word.active');
       if (activeWord) {
         activeWord.classList.add('hovered');
@@ -869,23 +840,7 @@
     }, 300);
   }
 
-  /**
-   * 展开热搜（显示上下溢出行）
-   */
-  function expandTrending() {
-    if (trendingExpanded || !scrollWrapper) return;
-    trendingExpanded = true;
-    scrollWrapper.classList.add('expanded');
-  }
 
-  /**
-   * 收起热搜（隐藏溢出行）
-   */
-  function collapseTrending() {
-    if (!trendingExpanded || !scrollWrapper) return;
-    trendingExpanded = false;
-    scrollWrapper.classList.remove('expanded');
-  }
 
   /**
    * 启动热词滚动
@@ -900,7 +855,6 @@
     
     currentTrendingIndex = 0;
     trendingPaused = false;
-    trendingExpanded = false;
     
     renderVisibleWords();
     
@@ -910,20 +864,26 @@
       scrollByDelta(1);
     }, 7000);
     
-    // 鼠标事件
-    scrollWrapper.addEventListener('mouseenter', handleTrendingMouseEnter);
-    scrollWrapper.addEventListener('mouseleave', handleTrendingMouseLeave);
-    scrollWrapper.addEventListener('wheel', handleTrendingWheel, { passive: false });
+    // 鼠标事件 - 绑定到整个 trendingPanel 容器
+    trendingPanel.addEventListener('mouseenter', handleTrendingMouseEnter);
+    trendingPanel.addEventListener('mouseleave', handleTrendingMouseLeave);
+    trendingPanel.addEventListener('wheel', handleTrendingWheel, { passive: false });
   }
 
   function handleTrendingMouseEnter() {
     trendingPaused = true;
-    expandTrending();
+    if (trendingPanel) trendingPanel.classList.add('hint-arrows');
   }
 
   function handleTrendingMouseLeave() {
     trendingPaused = false;
-    collapseTrending();
+    if (trendingPanel) {
+      trendingPanel.classList.remove('hint-arrows');
+      // 清除残留的 hovered 类，恢复正常文字颜色
+      trendingPanel.querySelectorAll('.trending-word.hovered').forEach(el => {
+        el.classList.remove('hovered');
+      });
+    }
   }
 
   function handleTrendingWheel(e) {
@@ -948,10 +908,10 @@
       trendingScrollInterval = null;
     }
     
-    if (scrollWrapper) {
-      scrollWrapper.removeEventListener('mouseenter', handleTrendingMouseEnter);
-      scrollWrapper.removeEventListener('mouseleave', handleTrendingMouseLeave);
-      scrollWrapper.removeEventListener('wheel', handleTrendingWheel);
+    if (trendingPanel) {
+      trendingPanel.removeEventListener('mouseenter', handleTrendingMouseEnter);
+      trendingPanel.removeEventListener('mouseleave', handleTrendingMouseLeave);
+      trendingPanel.removeEventListener('wheel', handleTrendingWheel);
     }
   }
 

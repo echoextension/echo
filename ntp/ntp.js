@@ -1106,11 +1106,11 @@ function updateWallpaperStatus() {
     }
     // 切换文字
     if (favoriteText) {
-      favoriteText.textContent = isFavorited ? '已收藏' : '收藏';
+      favoriteText.textContent = isFavorited ? '已收藏壁纸' : '收藏壁纸';
     }
   }
   
-  // 更新"设为壁纸"按钮状态
+  // 更新"锁定壁纸"按钮状态
   // 简化判断：只看 pinnedDate 是否匹配当前壁纸
   if (wp && setWallpaperBtn) {
     const isPinned = wallpaperState.settings.pinnedDate === wp.date;
@@ -1122,7 +1122,7 @@ function updateWallpaperStatus() {
     }
     // 切换文字
     if (setWallpaperText) {
-      setWallpaperText.textContent = isPinned ? '已设为壁纸' : '设为壁纸';
+      setWallpaperText.textContent = isPinned ? '已锁定壁纸' : '锁定壁纸';
     }
   }
 }
@@ -1145,7 +1145,7 @@ function initWallpaperControls() {
     randomWallpaper();
   });
   
-  // ====== 设为壁纸按钮 ======
+  // ====== 锁定壁纸按钮 ======
   // 简化逻辑：pinnedDate 是锁定的唯一判断条件
   document.getElementById('wpSetWallpaper')?.addEventListener('click', async () => {
     const wp = wallpaperState.current;
@@ -1169,7 +1169,7 @@ function initWallpaperControls() {
       
       showToast('已恢复自动轮播', setWallpaperBtn);
     } else {
-      // 设为壁纸 - 只需设置 pinnedDate
+      // 锁定壁纸 - 只需设置 pinnedDate
       // 【解耦设计】锁定与收藏完全独立
       wallpaperState.settings.pinnedDate = wp.date;
       // mode 保持不变，这样取消锁定后自动恢复原模式
@@ -1178,7 +1178,7 @@ function initWallpaperControls() {
       updateWallpaperStatus();
       updateL2SourceSelector();
       
-      showToast('已设为壁纸，自动更新已暂停', setWallpaperBtn);
+      showToast('已锁定壁纸，自动更新已暂停', setWallpaperBtn);
     }
   });
   
@@ -1995,7 +1995,7 @@ function renderFavoritesGrid() {
     gridEl.classList.add('hidden');
     // 更新空状态文案
     const emptyHint = emptyEl?.querySelector('.empty-hint');
-    if (emptyHint) emptyHint.textContent = '点击右上角「收藏」按钮添加喜欢的壁纸';
+    if (emptyHint) emptyHint.textContent = '点击右上角「收藏壁纸」按钮添加喜欢的壁纸';
   } else {
     emptyEl?.classList.add('hidden');
     gridEl.classList.remove('hidden');
@@ -2472,6 +2472,7 @@ function calculateAndSetTextColor(img) {
 // ============================================
 
 const CACHE_DURATION = 10 * 60 * 1000; // 10 分钟缓存
+const MIN_TRENDING_ITEMS = 20; // 榜单最少需要 20 条数据才显示
 
 // 热搜类别配置（百度热搜 API）
 const TRENDING_CATEGORIES = [
@@ -2486,6 +2487,9 @@ const TRENDING_CATEGORIES = [
   { tab: 'car',        name: '汽车榜', icon: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z"/></svg>' },
   { tab: 'drama',      name: '短剧榜', icon: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3c-4.97 0-9 4.03-9 9v7c0 1.1.9 2 2 2h4v-8H5v-1c0-3.87 3.13-7 7-7s7 3.13 7 7v1h-4v8h4c1.1 0 2-.9 2-2v-7c0-4.97-4.03-9-9-9z"/></svg>' }
 ];
+
+// 数据不足 20 条的分类索引集合，这些分类不显示、不留翻页 dot
+const disabledCategories = new Set();
 
 let currentCategoryIndex = 0;
 
@@ -2565,17 +2569,18 @@ async function initTrendingToggle() {
 }
 
 /**
- * 初始化类别圆点导航
+ * 初始化/刷新类别圆点导航（排除数据不足的分类）
  */
 function initTrendingDots() {
   const dotsContainer = document.getElementById('trendingDots');
   if (!dotsContainer) return;
   
-  dotsContainer.innerHTML = TRENDING_CATEGORIES.map((cat, index) => 
-    `<div class="trending-dot${index === currentCategoryIndex ? ' active' : ''}" 
+  dotsContainer.innerHTML = TRENDING_CATEGORIES.map((cat, index) => {
+    if (disabledCategories.has(index)) return '';
+    return `<div class="trending-dot${index === currentCategoryIndex ? ' active' : ''}" 
           data-index="${index}" 
-          title="${cat.name}"></div>`
-  ).join('');
+          title="${cat.name}"></div>`;
+  }).join('');
   
   // 点击切换类别（根据目标索引确定滑动方向）
   dotsContainer.addEventListener('click', (e) => {
@@ -2596,9 +2601,25 @@ function initTrendingDots() {
  */
 function updateDotsActiveState() {
   const dots = document.querySelectorAll('.trending-dot');
-  dots.forEach((dot, index) => {
+  dots.forEach(dot => {
+    const index = parseInt(dot.dataset.index, 10);
     dot.classList.toggle('active', index === currentCategoryIndex);
   });
+}
+
+/**
+ * 获取下一个可用的分类索引（跳过 disabled）
+ */
+function getNextValidCategoryIndex(fromIndex, direction) {
+  const total = TRENDING_CATEGORIES.length;
+  let index = fromIndex;
+  for (let i = 0; i < total; i++) {
+    index = direction === 'right'
+      ? (index + 1) % total
+      : (index - 1 + total) % total;
+    if (!disabledCategories.has(index)) return index;
+  }
+  return fromIndex; // 全部 disabled 则不动
 }
 
 /**
@@ -2619,12 +2640,10 @@ function handleTrendingWheel(e) {
   }, 300);
   
   if (delta > 0) {
-    // 向下滚动：下一个类别（内容从右侧进入）
-    const nextIndex = (currentCategoryIndex + 1) % TRENDING_CATEGORIES.length;
+    const nextIndex = getNextValidCategoryIndex(currentCategoryIndex, 'right');
     switchCategory(nextIndex, 'right');
   } else {
-    // 向上滚动：上一个类别（内容从左侧进入）
-    const prevIndex = (currentCategoryIndex - 1 + TRENDING_CATEGORIES.length) % TRENDING_CATEGORIES.length;
+    const prevIndex = getNextValidCategoryIndex(currentCategoryIndex, 'left');
     switchCategory(prevIndex, 'left');
   }
 }
@@ -2687,6 +2706,24 @@ function switchCategory(index, direction = 'right') {
 }
 
 /**
+ * 标记分类为不可用（数据不足 20 条），刷新 dots 并自动跳到下一个有效分类
+ */
+function markCategoryDisabled(categoryIndex) {
+  disabledCategories.add(categoryIndex);
+  initTrendingDots();
+  
+  // 如果当前正在显示的就是这个被禁用的分类，跳到下一个有效分类
+  if (currentCategoryIndex === categoryIndex) {
+    const nextValid = getNextValidCategoryIndex(categoryIndex, 'right');
+    if (nextValid !== categoryIndex) {
+      currentCategoryIndex = nextValid;
+      updateDotsActiveState();
+      loadTrendingData(false, nextValid);
+    }
+  }
+}
+
+/**
  * 加载热搜数据（优先从缓存读取，与悬浮搜索框保持一致）
  * @param {boolean} forceRefresh - 是否强制从网络刷新（忽略缓存）
  * @param {number} targetIndex - 指定加载的分类索引（可选，默认使用 currentCategoryIndex）
@@ -2713,6 +2750,11 @@ async function loadTrendingData(forceRefresh = false, targetIndex = null) {
     
     // 如果缓存有效且非强制刷新，直接使用缓存
     if (!forceRefresh && cacheData && cacheData.data && Date.now() - cacheData.timestamp < CACHE_DURATION) {
+      // 缓存数据也要检查数量是否达标
+      if (cacheData.data.length < MIN_TRENDING_ITEMS) {
+        markCategoryDisabled(categoryIndex);
+        return;
+      }
       // 检查分类是否仍然匹配
       if (currentCategoryIndex === expectedIndex) {
         renderTrendingList(cacheData.data);
@@ -2723,6 +2765,10 @@ async function loadTrendingData(forceRefresh = false, targetIndex = null) {
     
     // 如果有该类别的缓存（即使过期），先显示旧数据，再后台刷新
     if (cacheData && cacheData.data) {
+      if (cacheData.data.length < MIN_TRENDING_ITEMS) {
+        markCategoryDisabled(categoryIndex);
+        return;
+      }
       // 检查分类是否仍然匹配
       if (currentCategoryIndex === expectedIndex) {
         renderTrendingList(cacheData.data);
@@ -2763,11 +2809,17 @@ async function loadTrendingData(forceRefresh = false, targetIndex = null) {
           timestamp: timestamp
         }
       });
+      
+      // 数据不足 20 条，标记该分类为不可用并跳走
+      if (trendingData.length < MIN_TRENDING_ITEMS) {
+        markCategoryDisabled(categoryIndex);
+        return;
+      }
+      
       // 只有当当前分类仍然匹配时才渲染
       if (currentCategoryIndex === expectedIndex) {
         renderTrendingList(trendingData);
         updateTrendingTime(timestamp);
-      } else {
       }
     } else {
       throw new Error('数据格式错误');
@@ -2809,16 +2861,41 @@ function updateTrendingTime(timestamp) {
 }
 
 /**
- * 渲染热搜列表 - 四列布局
+ * 获取当前热搜列数（根据视口宽度与 CSS 媒体查询断点保持一致）
+ */
+function getTrendingColumnCount() {
+  return window.innerWidth <= 1400 ? 3 : 4;
+}
+
+// 缓存上次渲染的热搜数据和列数，用于 resize 时重新渲染
+let _lastTrendingData = null;
+let _lastTrendingColCount = null;
+
+// 窗口宽度变化时，如果跨越断点则重新渲染热搜列表
+window.addEventListener('resize', () => {
+  if (!_lastTrendingData) return;
+  const newColCount = getTrendingColumnCount();
+  if (newColCount !== _lastTrendingColCount) {
+    renderTrendingList(_lastTrendingData);
+  }
+});
+
+/**
+ * 渲染热搜列表 - 根据屏幕宽度动态调整列数
  */
 function renderTrendingList(data) {
   const container = document.getElementById('trendingList');
   if (!container || !data || data.length === 0) return;
   
-  const columns = [[], [], [], []];
-  data.slice(0, 20).forEach((item, index) => {
+  // 缓存数据以便 resize 时重新渲染
+  _lastTrendingData = data;
+  
+  const colCount = getTrendingColumnCount();
+  _lastTrendingColCount = colCount;
+  const columns = Array.from({ length: colCount }, () => []);
+  data.slice(0, colCount * 5).forEach((item, index) => {
     const colIndex = Math.floor(index / 5);
-    if (colIndex < 4) columns[colIndex].push({ ...item, rank: index + 1 });
+    if (colIndex < colCount) columns[colIndex].push({ ...item, rank: index + 1 });
   });
   
   container.innerHTML = columns.map(column => {
@@ -2871,7 +2948,7 @@ function initTrendingArrows() {
     prevBtn.addEventListener('click', (e) => {
       e.preventDefault();
       e.stopPropagation();
-      const prevIndex = (currentCategoryIndex - 1 + TRENDING_CATEGORIES.length) % TRENDING_CATEGORIES.length;
+      const prevIndex = getNextValidCategoryIndex(currentCategoryIndex, 'left');
       switchCategory(prevIndex, 'left');
     });
   }
@@ -2880,7 +2957,7 @@ function initTrendingArrows() {
     nextBtn.addEventListener('click', (e) => {
       e.preventDefault();
       e.stopPropagation();
-      const nextIndex = (currentCategoryIndex + 1) % TRENDING_CATEGORIES.length;
+      const nextIndex = getNextValidCategoryIndex(currentCategoryIndex, 'right');
       switchCategory(nextIndex, 'right');
     });
   }

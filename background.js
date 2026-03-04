@@ -20,7 +20,7 @@ const DEFAULT_SETTINGS = {
   tabSwitchKey: true,          // F2/F3 切换标签，默认开启
   floatingSearchBox: true,     // 悬浮搜索框（实验室），默认开启
   floatingSearchBoxAlwaysShow: false,  // 悬浮搜索框常驻显示，默认关闭
-  floatingSearchBoxTrending: true,     // 悬浮搜索框热搜榜，默认开启
+  floatingSearchBoxTrending: false,    // 悬浮搜索框热搜榜，默认关闭
   customBookmarkBar: false,    // 自绘书签栏（已隐藏），默认关闭
   bookmarkBarPinned: true,     // 书签栏是否固定显示（已隐藏）
   bookmarkOpenInNewTab: false, // 收藏栏点击链接新标签打开（已隐藏，默认关闭）

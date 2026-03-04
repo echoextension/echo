@@ -468,9 +468,9 @@ body:not(.wallpaper-mode) .wallpaper-actions .wp-action-btn:not(.wp-settings-btn
   transition: all 0.2s ease;
 }
 
-/* 设为壁纸按钮 - 固定宽度 */
+/* 锁定壁纸按钮 - 固定宽度 */
 .wp-action-btn#wpSetWallpaper {
-  width: 108px; /* 固定宽度，容纳「已设为壁纸」5字 + 图标 */
+  width: 108px; /* 固定宽度，容纳「已锁定壁纸」5字 + 图标 */
   justify-content: center;
 }
 
@@ -494,7 +494,7 @@ body:not(.wallpaper-mode) .wallpaper-actions .wp-action-btn:not(.wp-settings-btn
 /* 主按钮（左边）- 固定宽度 */
 .wp-btn-group .wp-btn-main {
   border-radius: 16px 0 0 16px;
-  width: 76px; /* 固定宽度，容纳「已收藏」3字 + 心形图标 */
+  width: 108px; /* 固定宽度，容纳「已收藏壁纸」5字 + 心形图标 */
   justify-content: center;
   transition: all 0.2s ease;
   white-space: nowrap;
@@ -593,7 +593,7 @@ body.minimal-mode .wp-action-btn#wpFavorite.active::after {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23ef4444'%3E%3Cpath d='M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z'/%3E%3C/svg%3E");
 }
 
-/* 极简模式下设为壁纸按钮 */
+/* 极简模式下锁定壁纸按钮 */
 body.minimal-mode .wp-action-btn#wpSetWallpaper {
   width: 32px;
   height: 32px;
@@ -614,7 +614,7 @@ body.minimal-mode .wp-action-btn#wpSetWallpaper::after {
   background-size: contain;
 }
 
-/* 极简模式下已设为壁纸状态 - 图标变蓝色 */
+/* 极简模式下已锁定壁纸状态 - 图标变蓝色 */
 body.minimal-mode .wp-action-btn#wpSetWallpaper.active::after {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%233b82f6'%3E%3Cpath d='M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z'/%3E%3C/svg%3E");
 }
@@ -939,7 +939,7 @@ body:not(.wallpaper-mode) .wp-action-btn:hover {
 }
 
 /* ============================================
- * 锁定状态卡片（手动设为壁纸后显示）
+ * 锁定状态卡片（手动锁定壁纸后显示）
  * ============================================ */
 .locked-status-card {
   display: none;
@@ -1915,9 +1915,9 @@ body.trending-transitioning .search-form {
 }
 
 .logo-icon {
-  width: 62px;
-  height: 62px;
-  border-radius: 13px;
+  width: 56px;
+  height: 56px;
+  border-radius: 12px;
   box-shadow: 0 3px 12px rgba(0, 120, 212, 0.25);
   flex-shrink: 0;
 }
@@ -1928,18 +1928,18 @@ body.trending-transitioning .search-form {
 }
 
 .brand h1 {
-  font-size: 26px;
+  font-size: 32px;
   font-weight: 700;
   color: #737373;
-  margin-bottom: 4px;
+  margin-bottom: 0;
   line-height: 1.2;
   display: inline-flex;
   align-items: baseline;
-  gap: 6px;
+  gap: 8px;
 }
 
 .brand-cn {
-  font-size: 26px;
+  font-size: 32px;
   font-weight: 700;
 }
 
@@ -2763,14 +2763,18 @@ body.wallpaper-mode .ntp-footer .footer-text {
  * 响应式布局 - 根据屏幕宽度调整搜索框和热榜
  * ============================================ */
 
-/* 中等屏幕 (1024px - 1400px) */
+/* 中等屏幕 (1024px - 1400px)：热搜缩为3列 */
 @media (max-width: 1400px) {
   .search-form {
     max-width: 700px;
   }
   
   .trending-section {
-    max-width: 780px;
+    max-width: 960px;
+  }
+  
+  .trending-grid {
+    grid-template-columns: repeat(3, 1fr);
   }
 }
 
@@ -2856,7 +2860,7 @@ body.wallpaper-mode .ntp-footer .footer-text {
   background: rgba(255, 255, 255, 0.25);
 }
 
-/* 第二个按钮高亮样式（设为壁纸） */
+/* 第二个按钮高亮样式（锁定壁纸） */
 .wp-snackbar-action.wp-snackbar-action-primary {
   background: rgba(59, 130, 246, 0.8);
   color: white;

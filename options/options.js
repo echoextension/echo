@@ -57,7 +57,7 @@ const DEFAULT_SETTINGS = {
   floatingSearchBox: true,     // 悬浮搜索框（默认开启）
   floatingSearchBoxAlwaysShow: false,  // 悬浮搜索框常驻显示（默认关闭）
   floatingSearchBoxFollowZoom: false,  // 悬浮搜索框跟随页面缩放（默认关闭）
-  floatingSearchBoxTrending: true,     // 悬浮搜索框热搜榜（默认开启）
+  floatingSearchBoxTrending: false,    // 悬浮搜索框热搜榜（默认关闭）
   relatedSearchRecommend: false, // 网页关联搜索推荐（实验室，默认关闭）
   relatedSearchFollowZoom: false,  // 关联搜索推荐跟随页面缩放（默认关闭）
   customBookmarkBar: false,    // 自绘书签栏（已隐藏，默认关闭）
