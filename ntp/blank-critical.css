@@ -1,0 +1,63 @@
+html.blank-mode body {
+  margin: 0;
+  background: #ffffff;
+  background-color: #ffffff;
+  overflow: hidden;
+}
+
+@media (prefers-color-scheme: dark) {
+  html.blank-mode body {
+    background: #202124;
+    background-color: #202124;
+  }
+}
+
+html.blank-mode .wallpaper-bg,
+html.blank-mode .wallpaper-info-wrapper,
+html.blank-mode .container,
+html.blank-mode .ntp-footer,
+html.blank-mode #lowpolyCanvas {
+  display: none !important;
+}
+
+html.blank-mode .wallpaper-actions {
+  position: fixed;
+  top: 12px;
+  right: 12px;
+  display: flex !important;
+  opacity: 1 !important;
+  transform: none !important;
+  pointer-events: auto !important;
+  z-index: 999;
+}
+
+html.blank-mode .wallpaper-actions .wp-action-btn:not(.wp-settings-btn),
+html.blank-mode .wallpaper-actions .wp-btn-group,
+html.blank-mode .wallpaper-actions .wp-action-link {
+  display: none !important;
+}
+
+html.blank-mode .wallpaper-actions .wp-settings-btn {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.08);
+  color: rgba(0, 0, 0, 0.58);
+}
+
+html.blank-mode .wallpaper-actions .wp-settings-btn .wp-action-text {
+  display: none !important;
+}
+
+@media (prefers-color-scheme: dark) {
+  html.blank-mode .wallpaper-actions .wp-settings-btn {
+    background: rgba(255, 255, 255, 0.12);
+    color: rgba(255, 255, 255, 0.72);
+  }
+}

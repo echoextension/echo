@@ -16,6 +16,7 @@ const WALLPAPER_FAVORITES_KEY = 'echo_ntp_wallpaper_favorites';
 const TRENDING_KEY = 'echo_ntp_trending';
 const TRENDING_CACHE_KEY = 'echo_ntp_trending_cache';
 const TRENDING_CATEGORY_KEY = 'echo_ntp_trending_category';
+const BLANK_MODE_CACHE_KEY = 'echo_ntp_blank_mode';
 
 // ============================================
 // 壁纸图片缓存 (IndexedDB)
@@ -124,6 +125,7 @@ let wallpaperState = {
     lastActiveMode: 'daily',  // 关闭前的模式，用于恢复
     autoHideInfo: true,      // 是否自动隐藏壁纸信息（默认开启）
     minimalMode: false,      // 右上角按钮极简模式（默认关闭）
+    blankMode: window.__ECHO_NTP_BLANK_MODE__ === true, // 纯空白新标签页模式（默认关闭）
     infoPositionY: null,     // 信息卡片的Y轴位置（null表示使用默认位置）
     lastShownWallpaperId: null,  // 上次展示 info 时的壁纸 ID（用于判断是否需要重新展示）
     previousMode: null       // 已废弃，保留向后兼容
@@ -135,8 +137,128 @@ let wallpaperState = {
   history: [],          // 合并的壁纸历史（API + 静态数据）
   lastApiUpdate: null,  // API 最后更新时间
   isPreview: false,     // 是否在预览状态（随机浏览中）
-  preloadedImages: new Map()  // 预加载的图片缓存 { url: Image }
+  preloadedImages: new Map(),  // 预加载的图片缓存 { url: Image }
+  isWallpaperLoading: false,
+  wallpaperRenderRequestId: 0
 };
+
+function isBlankModeEnabled() {
+  return wallpaperState.settings.blankMode === true;
+}
+
+function focusSearchInputIfAvailable() {
+  if (isBlankModeEnabled()) return;
+
+  const searchInput = document.getElementById('searchInput');
+  const searchForm = document.querySelector('.search-form');
+  if (!searchInput || !searchForm) return;
+
+  if (window.getComputedStyle(searchForm).display === 'none') return;
+  searchInput.focus();
+}
+
+function updateBlankModeSettingsState() {
+  const settingsPanel = document.getElementById('settingsPanel');
+  const settingsContent = document.getElementById('settingsContent');
+  const blankModeNotice = document.getElementById('blankModeNotice');
+  const settingsBtn = document.getElementById('wpSettingsBtn');
+  const blankModeEnabled = isBlankModeEnabled();
+
+  document.documentElement.classList.toggle('blank-mode', blankModeEnabled);
+  document.body.classList.toggle('blank-mode', blankModeEnabled);
+  settingsPanel?.classList.toggle('blank-mode-active', blankModeEnabled);
+
+  if (blankModeNotice) {
+    blankModeNotice.hidden = !blankModeEnabled;
+  }
+
+  if (settingsContent) {
+    settingsContent.setAttribute('aria-hidden', blankModeEnabled ? 'true' : 'false');
+
+    settingsContent.querySelectorAll('input, button, select, textarea').forEach((element) => {
+      element.disabled = blankModeEnabled;
+    });
+
+    settingsContent.querySelectorAll('a').forEach((element) => {
+      if (blankModeEnabled) {
+        element.setAttribute('tabindex', '-1');
+        element.setAttribute('aria-disabled', 'true');
+      } else {
+        element.removeAttribute('tabindex');
+        element.removeAttribute('aria-disabled');
+      }
+    });
+  }
+
+  if (settingsBtn) {
+    const label = blankModeEnabled ? '新标签页设置' : '设置';
+    settingsBtn.title = label;
+    settingsBtn.setAttribute('aria-label', label);
+  }
+
+  if (blankModeEnabled && document.activeElement instanceof HTMLElement) {
+    const activeElement = document.activeElement;
+    if (activeElement.id === 'searchInput' || activeElement.classList.contains('search-input')) {
+      activeElement.blur();
+    }
+  }
+}
+
+async function syncBlankModeLayout() {
+  if (isBlankModeEnabled()) {
+    setBookmarkBarHeightVar(0);
+    hideLowPolyBackground();
+    return;
+  }
+
+  await initBookmarkBar();
+
+  if (document.body.classList.contains('wallpaper-mode')) {
+    hideLowPolyBackground();
+  } else {
+    showLowPolyBackground();
+  }
+}
+
+async function applyBlankModeState() {
+  updateBlankModeSettingsState();
+  await syncBlankModeLayout();
+}
+
+async function ensureWallpaperRendered() {
+  if (isBlankModeEnabled()) return;
+  if (wallpaperState.settings.mode === 'off') return;
+  if (!document.body.classList.contains('wallpaper-mode')) return;
+  if (wallpaperState.isWallpaperLoading) return;
+
+  const wallpaperBg = document.getElementById('wallpaperBg');
+  const hasWallpaperImage = !!wallpaperBg?.querySelector('img');
+
+  if (hasWallpaperImage) return;
+
+  const wallpaperToRender = wallpaperState.current || selectWallpaper();
+  if (!wallpaperToRender) return;
+
+  await displayWallpaper(wallpaperToRender);
+}
+
+function initBlankModeSwitch() {
+  const toggle = document.getElementById('blankModeSwitch');
+  if (!toggle) return;
+
+  toggle.checked = isBlankModeEnabled();
+
+  toggle.addEventListener('change', async () => {
+    wallpaperState.settings.blankMode = toggle.checked;
+    await applyBlankModeState();
+    await saveWallpaperSettings();
+
+    if (!toggle.checked) {
+      await ensureWallpaperRendered();
+      focusSearchInputIfAvailable();
+    }
+  });
+}
 
 /**
  * 构建 Bing 壁纸 URL
@@ -330,6 +452,8 @@ async function initWallpaper() {
   initWallpaperControls();
   initWallpaperSettings();
   initWallpaperInfoClick();
+  await applyBlankModeState();
+  await ensureWallpaperRendered();
   
   // 5. 监听开关
   toggle.addEventListener('change', async () => {
@@ -377,6 +501,11 @@ async function initWallpaper() {
       // 隐藏子设置
       document.getElementById('wallpaperSubSettings')?.classList.add('hidden');
     }
+
+    if (isBlankModeEnabled()) {
+      hideLowPolyBackground();
+    }
+
     updateWallpaperStatus();
     await saveWallpaperSettings();
   });
@@ -451,6 +580,9 @@ function selectWallpaper() {
  */
 async function displayWallpaper(wp) {
   if (!wp) return;
+
+  const renderRequestId = ++wallpaperState.wallpaperRenderRequestId;
+  wallpaperState.isWallpaperLoading = true;
   
   wallpaperState.current = wp;
   
@@ -468,6 +600,7 @@ async function displayWallpaper(wp) {
     // 使用预加载的图片，秒切（无动画）
     showWallpaperImage(preloadedImg.cloneNode(), wallpaperBg, true);
     wallpaperState.preloadedImages.delete(imgUrl);
+    wallpaperState.isWallpaperLoading = false;
     // 更新 UI
     updateWallpaperInfo(wp);
     updateWallpaperStatus();
@@ -481,13 +614,28 @@ async function displayWallpaper(wp) {
   const cachedBlob = await getCachedWallpaper(imgUrl);
   if (cachedBlob) {
     const img = document.createElement('img');
-    img.src = URL.createObjectURL(cachedBlob);
+    const objectUrl = URL.createObjectURL(cachedBlob);
     img.alt = wp.desc || 'Bing Wallpaper';
     img.onload = () => {
+      if (renderRequestId !== wallpaperState.wallpaperRenderRequestId) {
+        URL.revokeObjectURL(objectUrl);
+        return;
+      }
       showWallpaperImage(img, wallpaperBg, true);
+      wallpaperState.isWallpaperLoading = false;
       // 释放 Blob URL
-      setTimeout(() => URL.revokeObjectURL(img.src), 1000);
+      setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
     };
+    img.onerror = () => {
+      if (renderRequestId !== wallpaperState.wallpaperRenderRequestId) {
+        URL.revokeObjectURL(objectUrl);
+        return;
+      }
+      wallpaperState.isWallpaperLoading = false;
+      URL.revokeObjectURL(objectUrl);
+      console.warn('[ECHO NTP] 缓存壁纸加载失败:', imgUrl);
+    };
+    img.src = objectUrl;
     // 更新 UI
     updateWallpaperInfo(wp);
     updateWallpaperStatus();
@@ -501,22 +649,37 @@ async function displayWallpaper(wp) {
   try {
     const response = await fetch(imgUrl);
     const blob = await response.blob();
+
+    if (renderRequestId !== wallpaperState.wallpaperRenderRequestId) {
+      wallpaperState.isWallpaperLoading = false;
+      return;
+    }
     
     // 缓存到 IndexedDB
     cacheWallpaper(imgUrl, blob);
     
     const img = document.createElement('img');
-    img.src = URL.createObjectURL(blob);
+    const objectUrl = URL.createObjectURL(blob);
     img.alt = wp.desc || 'Bing Wallpaper';
     
     img.onload = () => {
+      if (renderRequestId !== wallpaperState.wallpaperRenderRequestId) {
+        URL.revokeObjectURL(objectUrl);
+        return;
+      }
       showWallpaperImage(img, wallpaperBg, true);
-      setTimeout(() => URL.revokeObjectURL(img.src), 1000);
+      wallpaperState.isWallpaperLoading = false;
+      setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
     };
     
     img.onerror = () => {
+      if (renderRequestId !== wallpaperState.wallpaperRenderRequestId) {
+        URL.revokeObjectURL(objectUrl);
+        return;
+      }
+      wallpaperState.isWallpaperLoading = false;
       console.warn('[ECHO NTP] 壁纸加载失败:', imgUrl);
-      URL.revokeObjectURL(img.src);
+      URL.revokeObjectURL(objectUrl);
       // 尝试下一张
       if (wallpaperState.browseIndex < wallpaperState.history.length - 1) {
         wallpaperState.browseIndex++;
@@ -524,7 +687,14 @@ async function displayWallpaper(wp) {
         displayWallpaper(nextWp);
       }
     };
+
+    img.src = objectUrl;
   } catch (e) {
+    if (renderRequestId !== wallpaperState.wallpaperRenderRequestId) {
+      wallpaperState.isWallpaperLoading = false;
+      return;
+    }
+    wallpaperState.isWallpaperLoading = false;
     console.warn('[ECHO NTP] 壁纸加载失败:', e);
     // 尝试下一张
     if (wallpaperState.browseIndex < wallpaperState.history.length - 1) {
@@ -558,6 +728,7 @@ function showWallpaperImage(img, container, instant = false) {
   img.style.opacity = '1';
   container.innerHTML = '';
   container.appendChild(img);
+
   // 计算壁纸亮度，动态调整文字颜色
   calculateAndSetTextColor(img);
   // 提取壁纸主色调，应用到信息卡片
@@ -1610,6 +1781,8 @@ function initWallpaperSettings() {
   updateFavoriteCount();
   updateWallpaperStatus();
   updateWallpaperStatusText();
+  initBlankModeSwitch();
+  updateBlankModeSettingsState();
   
   // ====== 极简模式开关 ======
   initMinimalModeSwitch();
@@ -2189,6 +2362,14 @@ function loadViewHistory() {
  * 键盘快捷键
  */
 function handleWallpaperKeyboard(e) {
+  if (isBlankModeEnabled()) {
+    if (e.key === 'Escape') {
+      document.getElementById('settingsPanel')?.classList.remove('visible');
+      hideCollectionPanel();
+    }
+    return;
+  }
+
   // 只在壁纸模式下响应
   if (!document.body.classList.contains('wallpaper-mode')) return;
   
@@ -2216,6 +2397,12 @@ function handleWallpaperKeyboard(e) {
  */
 async function loadWallpaperSettings() {
   try {
+    const cachedBlankMode = localStorage.getItem(BLANK_MODE_CACHE_KEY);
+    const hasCachedBlankMode = cachedBlankMode !== null;
+    if (hasCachedBlankMode) {
+      wallpaperState.settings.blankMode = cachedBlankMode === 'true';
+    }
+
     // 本地设置（设备相关）
     const localStored = await chrome.storage.local.get([WALLPAPER_KEY]);
     // 同步收藏（跨设备）
@@ -2223,6 +2410,10 @@ async function loadWallpaperSettings() {
     
     if (localStored[WALLPAPER_KEY]) {
       Object.assign(wallpaperState.settings, localStored[WALLPAPER_KEY]);
+    }
+
+    if (hasCachedBlankMode) {
+      wallpaperState.settings.blankMode = cachedBlankMode === 'true';
     }
     
     if (syncStored[WALLPAPER_FAVORITES_KEY]) {
@@ -2241,6 +2432,7 @@ async function loadWallpaperSettings() {
  */
 async function saveWallpaperSettings() {
   try {
+    localStorage.setItem(BLANK_MODE_CACHE_KEY, wallpaperState.settings.blankMode ? 'true' : 'false');
     await chrome.storage.local.set({
       [WALLPAPER_KEY]: wallpaperState.settings
     });
@@ -2559,7 +2751,7 @@ async function initTrendingToggle() {
         searchBox.classList.remove('search-focused');
       }
       if (searchInput) {
-        searchInput.focus();
+        focusSearchInputIfAvailable();
       }
     }, 400); // 与 CSS transition 时长一致
   });
@@ -3284,10 +3476,14 @@ function showZoomIndicator(zoom) {
 
 document.addEventListener('DOMContentLoaded', async () => {
   // 初始化自绘收藏栏
-  await initBookmarkBar();
+  if (!isBlankModeEnabled()) {
+    await initBookmarkBar();
+  } else {
+    setBookmarkBarHeightVar(0);
+  }
   
   // 初始化壁纸功能
-  initWallpaper();
+  await initWallpaper();
   
   // 初始化热搜开关
   initTrendingToggle();
@@ -3302,10 +3498,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   initSearchForm();
   
   // 聚焦搜索框
-  const searchInput = document.querySelector('.search-input');
-  if (searchInput) {
-    searchInput.focus();
-  }
+  focusSearchInputIfAvailable();
 });
 
 // ============================================
@@ -3614,6 +3807,11 @@ function setBookmarkBarHeightVar(height) {
  * 初始化自绘收藏栏
  */
 async function initBookmarkBar() {
+  if (isBlankModeEnabled()) {
+    setBookmarkBarHeightVar(0);
+    return;
+  }
+
   // 检查 EchoBookmarkBar 模块是否已加载
   if (!window.EchoBookmarkBar || !window.EchoBookmarkBar.init) {
     console.warn('[ECHO NTP] BookmarkBar module not loaded');
@@ -3739,6 +3937,10 @@ function initLowPolyBackground() {
  * 显示 Low Poly 背景（无壁纸模式）
  */
 function showLowPolyBackground() {
+  if (!window.LowPolyBg?.isInitialized) {
+    initLowPolyBackground();
+  }
+
   if (window.LowPolyBg) {
     window.LowPolyBg.show();
   }
@@ -3755,6 +3957,8 @@ function hideLowPolyBackground() {
 
 // 在 DOMContentLoaded 时初始化（几何背景）
 document.addEventListener('DOMContentLoaded', () => {
+  if (isBlankModeEnabled()) return;
+
   // 设置渐变随机起始角度
   initRandomGradientAngle();
   

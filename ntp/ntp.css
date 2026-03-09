@@ -55,9 +55,42 @@ body {
   animation: rotateGradient 60s linear infinite;
 }
 
+html.blank-mode body,
+body.blank-mode {
+  --bookmark-bar-height: 0px;
+  background: #ffffff;
+  background-color: #ffffff;
+  animation: none;
+}
+
+@media (prefers-color-scheme: dark) {
+  html.blank-mode body,
+  body.blank-mode {
+    background: #202124;
+    background-color: #202124;
+  }
+}
+
 /* 壁纸模式下停止旋转动画 */
 body.wallpaper-mode {
   animation: none;
+}
+
+html.blank-mode #lowpolyCanvas,
+html.blank-mode .wallpaper-bg,
+html.blank-mode .wallpaper-info-wrapper,
+html.blank-mode .brand,
+html.blank-mode .search-form,
+html.blank-mode .trending-section,
+html.blank-mode .ntp-footer,
+body.blank-mode #lowpolyCanvas,
+body.blank-mode .wallpaper-bg,
+body.blank-mode .wallpaper-info-wrapper,
+body.blank-mode .brand,
+body.blank-mode .search-form,
+body.blank-mode .trending-section,
+body.blank-mode .ntp-footer {
+  display: none !important;
 }
 
 /* ============================================
@@ -74,7 +107,7 @@ body.wallpaper-mode {
   left: 0;
   width: 100%;
   height: 100%;
-  z-index: -1;
+  z-index: 0;
   opacity: 0;
   /* 移除过渡动画，实现瞬开 */
   /* transition: opacity 0.5s ease; */
@@ -397,6 +430,69 @@ body:not(.wallpaper-mode) .wallpaper-actions .wp-action-btn:not(.wp-settings-btn
   display: none;
 }
 
+html.blank-mode .wallpaper-actions,
+body.blank-mode .wallpaper-actions {
+  top: 12px;
+  right: 12px;
+  opacity: 1;
+  transform: none;
+  pointer-events: auto;
+}
+
+html.blank-mode .wallpaper-actions .wp-action-btn:not(.wp-settings-btn),
+html.blank-mode .wallpaper-actions .wp-btn-group,
+body.blank-mode .wallpaper-actions .wp-action-btn:not(.wp-settings-btn),
+body.blank-mode .wallpaper-actions .wp-btn-group {
+  display: none !important;
+}
+
+html.blank-mode .wp-action-btn.wp-settings-btn,
+body.blank-mode .wp-action-btn.wp-settings-btn {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  gap: 0;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.08);
+  color: rgba(0, 0, 0, 0.58);
+  backdrop-filter: none;
+  box-shadow: none;
+  opacity: 0.72;
+}
+
+html.blank-mode .wp-action-btn.wp-settings-btn .wp-action-text,
+body.blank-mode .wp-action-btn.wp-settings-btn .wp-action-text {
+  display: none;
+}
+
+html.blank-mode .wp-action-btn.wp-settings-btn .wp-icon,
+body.blank-mode .wp-action-btn.wp-settings-btn .wp-icon {
+  width: 16px;
+  height: 16px;
+}
+
+html.blank-mode .wp-action-btn.wp-settings-btn:hover,
+body.blank-mode .wp-action-btn.wp-settings-btn:hover {
+  background: rgba(0, 0, 0, 0.14);
+  color: rgba(0, 0, 0, 0.82);
+  transform: none;
+  opacity: 1;
+}
+
+@media (prefers-color-scheme: dark) {
+  html.blank-mode .wp-action-btn.wp-settings-btn,
+  body.blank-mode .wp-action-btn.wp-settings-btn {
+    background: rgba(255, 255, 255, 0.12);
+    color: rgba(255, 255, 255, 0.72);
+  }
+
+  html.blank-mode .wp-action-btn.wp-settings-btn:hover,
+  body.blank-mode .wp-action-btn.wp-settings-btn:hover {
+    background: rgba(255, 255, 255, 0.18);
+    color: rgba(255, 255, 255, 0.95);
+  }
+}
+
 .wp-action-btn {
   display: flex;
   align-items: center;
@@ -714,6 +810,35 @@ body:not(.wallpaper-mode) .wp-action-btn:hover {
 
 .settings-body {
   padding: 20px;
+}
+
+.settings-blank-notice {
+  margin-bottom: 16px;
+  padding: 10px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.settings-content {
+  position: relative;
+}
+
+.settings-panel.blank-mode-active .settings-content {
+  opacity: 0.38;
+  pointer-events: none;
+  filter: grayscale(0.2);
+}
+
+.settings-panel.blank-mode-active .settings-content::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(18, 18, 24, 0.24);
+  border-radius: 14px;
 }
 
 .settings-section {
@@ -1845,6 +1970,12 @@ body.wallpaper-mode .toggle-label {
   height: calc(100vh - var(--bookmark-bar-height));
   margin-top: var(--bookmark-bar-height);
   overflow: hidden;
+}
+
+html.blank-mode .container,
+body.blank-mode .container {
+  height: 100vh;
+  margin-top: 0;
 }
 
 /* 搜索框作为定位锚点，在可用区域内垂直居中 */

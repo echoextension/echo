@@ -4,13 +4,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ECHO 易可 - 新标签页</title>
+  <script src="blank-init.js"></script>
   <link rel="icon" type="image/png" sizes="16x16" href="/icons/icon16.png?v=3.6.38">
   <link rel="icon" type="image/png" sizes="48x48" href="/icons/icon48.png?v=3.6.38">
+  <link rel="stylesheet" href="blank-critical.css">
   <link rel="stylesheet" href="ntp.css">
-  <!-- Low Poly 背景配置：不自动初始化，由 ntp.js 控制 -->
-  <script>
-    window.LowPolyConfig = { autoInit: false };
-  </script>
   <script defer src="../common/lowpoly-bg.js"></script>
 </head>
 <body>
@@ -61,6 +59,21 @@
   <!-- 设置面板 -->
   <div class="settings-panel" id="settingsPanel">
     <div class="settings-body">
+      <div class="settings-section">
+        <div class="settings-row">
+          <span class="settings-label">使用空白新标签页</span>
+          <label class="toggle-switch">
+            <input type="checkbox" id="blankModeSwitch">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+      </div>
+
+      <div class="settings-blank-notice" id="blankModeNotice" hidden>
+        已启用空白新标签页。关闭此开关后可恢复其它设置。
+      </div>
+
+      <div class="settings-content" id="settingsContent">
       <!-- 热搜榜设置 -->
       <div class="settings-section">
         <div class="settings-row">
@@ -164,6 +177,8 @@
       </div>
       
       <!-- ECHO 插件设置入口 -->
+      </div>
+
       <div class="settings-section settings-section-footer">
         <button class="echo-settings-btn" id="echoSettingsBtn">
           <div class="echo-settings-left">
