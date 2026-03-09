@@ -194,6 +194,16 @@ body {
   margin-left: 4px;
 }
 
+.version-link {
+  text-decoration: none;
+  color: inherit;
+}
+
+.version-link:hover .version-badge {
+  background: linear-gradient(135deg, rgba(0, 120, 212, 0.3) 0%, rgba(0, 183, 195, 0.3) 100%);
+  cursor: pointer;
+}
+
 @keyframes titleGradientFlow {
   0% { background-position: 0% center; }
   100% { background-position: 200% center; }

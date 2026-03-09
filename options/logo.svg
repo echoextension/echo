@@ -12,10 +12,10 @@
   <!-- Low Poly 背景：Edge 品牌色系 (提亮版) -->
   <g clip-path="url(#round-corner)">
     <!-- 上方：更明亮的天蓝 -->
-    <path d="M0 0 L72 0 L36 36 Z" fill="#50D2F4" />
+    <path d="M0 0 L72 0 L36 36 Z" fill="#48C9E8" />
     
     <!-- 右侧：更清透的青绿 -->
-    <path d="M72 0 L72 72 L36 36 Z" fill="#4CE0B0" />
+    <path d="M72 0 L72 72 L36 36 Z" fill="#3AC07D" />
     
     <!-- 下方：提亮的深蓝，避免黑色感 -->
     <path d="M72 72 L0 72 L36 36 Z" fill="#1E6296" />
@@ -44,6 +44,6 @@
       V 20
       A 2 2 0 0 1 20 18
       Z
-    " fill="white" stroke="#003050" stroke-width="0.5" stroke-opacity="0.45" />
+    " fill="white" stroke="#003050" stroke-width="0.55" stroke-opacity="0.95" />
   </g>
 </svg>
