@@ -1470,8 +1470,8 @@ async function handleExportBackup() {
     const syncData = await chrome.storage.sync.get(null);
     const localData = await chrome.storage.local.get(['echo_ntp_wallpaper_v2']);
     
-    // 分离收藏和扩展设置
-    const favorites = syncData.echo_ntp_wallpaper_favorites || [];
+    // 分离收藏和扩展设置（排除自定义壁纸，它们仅存在于本地 IndexedDB）
+    const favorites = (syncData.echo_ntp_wallpaper_favorites || []).filter(d => !d.startsWith('custom:'));
     
     // 扩展功能开关（排除收藏数据，其余都是设置）
     const extensionSettings = { ...syncData };
@@ -1541,8 +1541,10 @@ async function handleImportBackup(e) {
       const currentSync = await chrome.storage.sync.get(['echo_ntp_wallpaper_favorites']);
       const currentFavorites = currentSync.echo_ntp_wallpaper_favorites || [];
       
+      // 过滤掉备份中的自定义壁纸条目（自定义壁纸仅本地有效）
+      const importedFavorites = backup.favorites.filter(d => !d.startsWith('custom:'));
       // 合并去重
-      const merged = [...new Set([...currentFavorites, ...backup.favorites])];
+      const merged = [...new Set([...currentFavorites, ...importedFavorites])];
       await chrome.storage.sync.set({ echo_ntp_wallpaper_favorites: merged });
       
       restoredFavCount = merged.length - currentFavorites.length;

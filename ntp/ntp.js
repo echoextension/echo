@@ -98,6 +98,10 @@ async function cleanOldWallpaperCache() {
       const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
       
       items.forEach(item => {
+        // 跳过自定义壁纸和缩略图，它们不参与自动过期清理
+        if (item.url && (item.url.startsWith('custom:') || item.url.startsWith('custom_thumb:'))) {
+          return;
+        }
         if (item.timestamp < weekAgo) {
           store.delete(item.url);
         }
@@ -106,6 +110,203 @@ async function cleanOldWallpaperCache() {
   } catch (e) {
     // 忽略清理错误
   }
+}
+
+// ============================================
+// 自定义壁纸上传
+// ============================================
+const CUSTOM_WALLPAPER_MAX = 10;
+const CUSTOM_WALLPAPER_MAX_SIZE = 20 * 1024 * 1024; // 20MB
+const CUSTOM_WALLPAPER_ACCEPT = ['image/jpeg', 'image/png', 'image/webp'];
+const CUSTOM_WALLPAPER_THUMB_WIDTH = 480;
+const CUSTOM_WALLPAPER_THUMB_HEIGHT = 270;
+
+/**
+ * 判断是否为自定义壁纸
+ */
+function isCustomWallpaper(wp) {
+  return wp?.type === 'custom';
+}
+
+/**
+ * 判断 date 是否为自定义壁纸标识
+ */
+function isCustomDate(date) {
+  return typeof date === 'string' && date.startsWith('custom:');
+}
+
+/**
+ * 生成缩略图 Blob
+ */
+function generateThumbnail(file) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = CUSTOM_WALLPAPER_THUMB_WIDTH;
+      canvas.height = CUSTOM_WALLPAPER_THUMB_HEIGHT;
+      const ctx = canvas.getContext('2d');
+
+      // 居中裁剪
+      const srcRatio = img.naturalWidth / img.naturalHeight;
+      const dstRatio = canvas.width / canvas.height;
+      let sx = 0, sy = 0, sw = img.naturalWidth, sh = img.naturalHeight;
+      if (srcRatio > dstRatio) {
+        sw = img.naturalHeight * dstRatio;
+        sx = (img.naturalWidth - sw) / 2;
+      } else {
+        sh = img.naturalWidth / dstRatio;
+        sy = (img.naturalHeight - sh) / 2;
+      }
+      ctx.drawImage(img, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
+      URL.revokeObjectURL(url);
+
+      canvas.toBlob(blob => {
+        if (blob) resolve(blob);
+        else reject(new Error('缩略图生成失败'));
+      }, 'image/jpeg', 0.8);
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error('图片读取失败'));
+    };
+    img.src = url;
+  });
+}
+
+/**
+ * 获取当前自定义壁纸数量
+ */
+function getCustomWallpaperCount() {
+  return wallpaperState.favorites.filter(isCustomDate).length;
+}
+
+/**
+ * 上传自定义壁纸
+ * @param {File} file
+ * @returns {Object|null} 壁纸对象，或 null（失败）
+ */
+async function uploadCustomWallpaper(file) {
+  // 格式校验
+  if (!CUSTOM_WALLPAPER_ACCEPT.includes(file.type)) {
+    showToast('仅支持 JPG、PNG、WebP 格式');
+    return null;
+  }
+  // 大小校验
+  if (file.size > CUSTOM_WALLPAPER_MAX_SIZE) {
+    showToast('图片大小不能超过 20MB');
+    return null;
+  }
+  // 数量校验
+  if (getCustomWallpaperCount() >= CUSTOM_WALLPAPER_MAX) {
+    showToast(`已达上限（${CUSTOM_WALLPAPER_MAX}/${CUSTOM_WALLPAPER_MAX}），请先删除一些自定义壁纸`);
+    return null;
+  }
+
+  try {
+    const timestamp = Date.now();
+    const dateKey = `custom:${timestamp}`;
+    const thumbKey = `custom_thumb:${timestamp}`;
+
+    // 读取原图 Blob
+    const originalBlob = file.slice(0, file.size, file.type);
+    // 生成缩略图
+    const thumbBlob = await generateThumbnail(file);
+
+    // 存入 IndexedDB
+    await cacheWallpaper(dateKey, originalBlob);
+    await cacheWallpaper(thumbKey, thumbBlob);
+
+    // 构造壁纸对象
+    const wp = {
+      id: `custom_${timestamp}`,
+      date: dateKey,
+      type: 'custom',
+      desc: ''
+    };
+
+    // 加入 history（头部）
+    wallpaperState.history.unshift(wp);
+
+    // 加入收藏
+    wallpaperState.favorites.push(dateKey);
+    await saveFavorites();
+
+    // 锁定并显示
+    wallpaperState.settings.pinnedDate = dateKey;
+    wallpaperState.isPreview = false;
+    await saveWallpaperSettings();
+    await displayWallpaper(wp);
+    updateWallpaperStatus();
+    updateFavoriteCount();
+    updateL2SourceSelector();
+
+    return wp;
+  } catch (e) {
+    console.error('[ECHO NTP] 自定义壁纸上传失败:', e);
+    showToast('上传失败，请重试');
+    return null;
+  }
+}
+
+/**
+ * 删除自定义壁纸
+ */
+async function deleteCustomWallpaper(dateKey) {
+  if (!isCustomDate(dateKey)) return;
+
+  const timestamp = dateKey.replace('custom:', '');
+  const thumbKey = `custom_thumb:${timestamp}`;
+
+  // 从 IndexedDB 删除原图和缩略图
+  try {
+    const db = await openWallpaperCacheDB();
+    const tx = db.transaction(WALLPAPER_CACHE_STORE, 'readwrite');
+    const store = tx.objectStore(WALLPAPER_CACHE_STORE);
+    store.delete(dateKey);
+    store.delete(thumbKey);
+  } catch (e) {
+    console.warn('[ECHO NTP] 删除自定义壁纸缓存失败:', e);
+  }
+
+  // 从 history 中移除
+  wallpaperState.history = wallpaperState.history.filter(wp => wp.date !== dateKey);
+
+  // 从收藏移除
+  wallpaperState.favorites = wallpaperState.favorites.filter(d => d !== dateKey);
+  await saveFavorites();
+
+  // 如果当前锁定的就是这张，清除锁定
+  if (wallpaperState.settings.pinnedDate === dateKey) {
+    wallpaperState.settings.pinnedDate = null;
+    const wp = selectWallpaper();
+    if (wp) displayWallpaper(wp);
+    await saveWallpaperSettings();
+  }
+
+  updateFavoriteCount();
+  updateWallpaperStatus();
+  updateL2SourceSelector();
+}
+
+/**
+ * 加载所有自定义壁纸到 history
+ * 在初始化时调用，从收藏列表中恢复自定义壁纸对象
+ */
+function loadCustomWallpapersToHistory() {
+  const customDates = wallpaperState.favorites.filter(isCustomDate);
+  customDates.forEach(dateKey => {
+    // 检查是否已在 history 中
+    if (wallpaperState.history.some(wp => wp.date === dateKey)) return;
+    const timestamp = dateKey.replace('custom:', '');
+    wallpaperState.history.unshift({
+      id: `custom_${timestamp}`,
+      date: dateKey,
+      type: 'custom',
+      desc: ''
+    });
+  });
 }
 
 // ============================================
@@ -423,6 +624,9 @@ async function initWallpaper() {
   // 2. 合并壁纸历史
   wallpaperState.history = await mergeWallpaperHistory();
   
+  // 2.5 加载自定义壁纸到历史
+  await loadCustomWallpapersToHistory();
+  
   if (wallpaperState.history.length === 0) {
     console.warn('[ECHO NTP] 没有可用的壁纸数据');
     return;
@@ -586,10 +790,55 @@ async function displayWallpaper(wp) {
   
   wallpaperState.current = wp;
   
-  // 添加到浏览历史
+  // 添加到浏览历史（自定义壁纸也记录）
   addToViewHistory(wp.date);
   
   const wallpaperBg = document.getElementById('wallpaperBg');
+
+  // 自定义壁纸：切换 body 标记，控制信息卡片隐藏
+  document.body.classList.toggle('custom-wallpaper-active', isCustomWallpaper(wp));
+
+  // ===== 自定义壁纸分支：从 IndexedDB 读取原图 Blob =====
+  if (isCustomWallpaper(wp)) {
+    try {
+      const cachedBlob = await getCachedWallpaper(wp.date);
+      if (!cachedBlob) {
+        console.warn('[ECHO NTP] 自定义壁纸数据丢失:', wp.date);
+        wallpaperState.isWallpaperLoading = false;
+        return;
+      }
+      if (renderRequestId !== wallpaperState.wallpaperRenderRequestId) {
+        wallpaperState.isWallpaperLoading = false;
+        return;
+      }
+      const img = document.createElement('img');
+      const objectUrl = URL.createObjectURL(cachedBlob);
+      img.alt = '自定义壁纸';
+      img.onload = () => {
+        if (renderRequestId !== wallpaperState.wallpaperRenderRequestId) {
+          URL.revokeObjectURL(objectUrl);
+          return;
+        }
+        showWallpaperImage(img, wallpaperBg, true);
+        wallpaperState.isWallpaperLoading = false;
+        setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+      };
+      img.onerror = () => {
+        URL.revokeObjectURL(objectUrl);
+        wallpaperState.isWallpaperLoading = false;
+      };
+      img.src = objectUrl;
+    } catch (e) {
+      console.warn('[ECHO NTP] 自定义壁纸加载失败:', e);
+      wallpaperState.isWallpaperLoading = false;
+    }
+    // 自定义壁纸不显示信息卡片，但仍更新状态按钮
+    updateWallpaperStatus();
+    updateWallpaperStatusText();
+    return;
+  }
+
+  // ===== Bing 壁纸分支（原有逻辑）=====
   const quality = wallpaperState.settings.quality;
   const imgUrl = buildBingUrl(wp.id, quality);
   
@@ -1361,6 +1610,14 @@ function initWallpaperControls() {
     const favoriteBtn = document.getElementById('wpFavorite');
     
     if (wallpaperState.favorites.includes(wp.date)) {
+      // 自定义壁纸：取消收藏 = 删除壁纸
+      if (isCustomWallpaper(wp)) {
+        await deleteCustomWallpaper(wp.date);
+        // 删除后回到当日壁纸
+        const nextWp = selectWallpaper();
+        if (nextWp) displayWallpaper(nextWp);
+        return;
+      }
       // 已收藏 → 取消收藏
       // 【解耦设计】移出收藏不影响当前壁纸显示（锁定是独立的）
       wallpaperState.favorites = wallpaperState.favorites.filter(d => d !== wp.date);
@@ -1500,6 +1757,22 @@ function initWallpaperControls() {
       if (!settingsPanel.contains(e.target) && !settingsBtn?.contains(e.target)) {
         settingsPanel.classList.remove('visible');
       }
+    }
+  });
+  
+  // 自定义壁纸上传
+  document.getElementById('customWallpaperInput')?.addEventListener('change', async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    try {
+      const result = await uploadCustomWallpaper(file);
+      if (result) {
+        renderFavoritesGrid();
+        showCollectionPanel();
+      }
+    } catch (err) {
+      console.error('[ECHO NTP] 上传壁纸失败:', err);
     }
   });
 }
@@ -2165,19 +2438,23 @@ function renderFavoritesGrid() {
   
   if (favorites.length === 0) {
     emptyEl?.classList.remove('hidden');
-    gridEl.classList.add('hidden');
-    // 更新空状态文案
-    const emptyHint = emptyEl?.querySelector('.empty-hint');
-    if (emptyHint) emptyHint.textContent = '点击右上角「收藏壁纸」按钮添加喜欢的壁纸';
+    gridEl.classList.remove('hidden');
+    gridEl.appendChild(createUploadCard());
   } else {
     emptyEl?.classList.add('hidden');
     gridEl.classList.remove('hidden');
+    
+    // 首位插入上传卡片
+    gridEl.appendChild(createUploadCard());
     
     // 渲染收藏的壁纸（倒序：新收藏的在前）
     const reversedFavorites = [...favorites].reverse();
     reversedFavorites.forEach(date => {
       const wp = history.find(w => w.date === date);
       if (!wp) return;
+      
+      // 跨设备同步时，自定义壁纸可能没有 IndexedDB 数据，静默跳过
+      // （会在 createWallpaperGridItem 中通过缩略图加载失败来处理）
       
       // 简化：只用 pinnedDate 判断锁定状态
       const isPinned = settings.pinnedDate === date;
@@ -2237,6 +2514,26 @@ function renderHistoryGrid() {
 }
 
 /**
+ * 创建上传壁纸卡片（+）
+ */
+function createUploadCard() {
+  const card = document.createElement('div');
+  card.className = 'collection-upload-card';
+  card.innerHTML = `
+    <svg viewBox="0 0 24 24"><path fill="currentColor" d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+    <span>上传壁纸</span>
+  `;
+  card.addEventListener('click', () => {
+    const input = document.getElementById('customWallpaperInput');
+    if (input) {
+      input.value = '';
+      input.click();
+    }
+  });
+  return card;
+}
+
+/**
  * 创建壁纸网格项
  * @param {Object} wp - 壁纸数据
  * @param {boolean} isPinned - 是否被锁定（显示「当前壁纸」标识）
@@ -2247,27 +2544,53 @@ function createWallpaperGridItem(wp, isPinned, isFavorited, isHistoryTab = false
   const item = document.createElement('div');
   item.className = 'collection-item' + (isPinned ? ' pinned' : '');
   
+  const isCustom = isCustomWallpaper(wp);
+  if (isCustom) item.classList.add('custom');
+  
   // 历史 Tab：纯预览，不显示操作按钮
   // 收藏 Tab：显示删除按钮
   let actionButtons = '';
   if (!isHistoryTab) {
     // 收藏 Tab 中显示删除按钮
     actionButtons = `
-      <button class="item-delete" data-date="${wp.date}" title="移除收藏">
+      <button class="item-delete" data-date="${wp.date}" title="${isCustom ? '删除壁纸' : '移除收藏'}">
         <svg viewBox="0 0 24 24"><path fill="currentColor" d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
       </button>
     `;
   }
   
+  // overlay 信息：自定义壁纸显示"本地上传"并常驻可见
+  const overlayTitle = isCustom ? '本地上传' : (wp.desc || '');
+  const overlayDate = isCustom ? '' : (wp.date || '');
+  
   item.innerHTML = `
-    <img src="${buildBingUrl(wp.id, '1080p')}" alt="${wp.desc}" loading="lazy">
+    <img alt="${overlayTitle}" loading="lazy">
     ${isPinned ? '<div class="pin-indicator">当前壁纸</div>' : ''}
     <div class="item-overlay">
-      <span class="item-title">${wp.desc}</span>
-      <span class="item-date">${wp.date}</span>
+      <span class="item-title">${overlayTitle}</span>
+      ${overlayDate ? `<span class="item-date">${overlayDate}</span>` : ''}
     </div>
     ${actionButtons}
   `;
+  
+  // 设置图片来源
+  const imgEl = item.querySelector('img');
+  if (isCustom) {
+    // 自定义壁纸：从 IndexedDB 读取缩略图
+    const timestamp = wp.date.replace('custom:', '');
+    const thumbKey = `custom_thumb:${timestamp}`;
+    getCachedWallpaper(thumbKey).then(blob => {
+      if (blob && imgEl) {
+        imgEl.src = URL.createObjectURL(blob);
+        imgEl.onload = () => {
+          // 延迟释放，给浏览器渲染时间
+          setTimeout(() => URL.revokeObjectURL(imgEl.src), 2000);
+        };
+      }
+    });
+  } else {
+    imgEl.src = buildBingUrl(wp.id, '1080p');
+  }
   
   // 点击预览壁纸（不改变锁定状态）
   item.addEventListener('click', async (e) => {
@@ -2288,6 +2611,25 @@ function createWallpaperGridItem(wp, isPinned, isFavorited, isHistoryTab = false
   item.querySelector('.item-delete')?.addEventListener('click', async (e) => {
     e.stopPropagation();
     const dateToRemove = e.currentTarget.dataset.date;
+    
+    // 自定义壁纸：同时删除 IndexedDB 中的 Blob 和缩略图
+    if (isCustomDate(dateToRemove)) {
+      await deleteCustomWallpaper(dateToRemove);
+      renderFavoritesGrid();
+      // 如果收藏全部删空且当前是轮播收藏模式（未锁定），切换回每日模式
+      const isLocked = !!wallpaperState.settings.pinnedDate;
+      if (wallpaperState.favorites.length === 0 && 
+          wallpaperState.settings.mode === 'collection' &&
+          !isLocked) {
+        wallpaperState.settings.mode = 'daily';
+        const todayWp = wallpaperState.history[0];
+        if (todayWp) displayWallpaper(todayWp);
+        await saveWallpaperSettings();
+        updateL2SourceSelector();
+      }
+      return;
+    }
+    
     wallpaperState.favorites = wallpaperState.favorites.filter(d => d !== dateToRemove);
     
     await saveFavorites();

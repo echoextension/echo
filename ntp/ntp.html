@@ -220,10 +220,12 @@
       <div class="collection-empty" id="collectionEmpty">
         <svg viewBox="0 0 24 24" class="empty-icon"><path fill="currentColor" d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
         <p>壁纸库是空的</p>
-        <p class="empty-hint">点击右上角「加入壁纸库」按钮添加喜欢的壁纸</p>
+        <p class="empty-hint">收藏 Bing 壁纸，或上传自己的图片</p>
       </div>
       <div class="collection-grid" id="collectionGrid"></div>
     </div>
+    <!-- 自定义壁纸上传 (hidden file input) -->
+    <input type="file" id="customWallpaperInput" accept="image/jpeg,image/png,image/webp" hidden>
     <!-- 备份入口 -->
     <div class="collection-footer">
       <a href="#" class="collection-backup-link" id="collectionBackupLink">
