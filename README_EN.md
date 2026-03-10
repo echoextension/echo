@@ -182,7 +182,7 @@ ECHO strictly follows a **"Local First"** principle:
 
 ## 📋 Third-Party Services Disclosure
 
-This extension uses the following publicly available third-party services. **None** are official Microsoft/Edge services:
+This extension uses the following public services, all accessed via public APIs. No internal Microsoft/Edge interfaces are used:
 
 | Service                                      | Purpose                          | Notes            |
 | -------------------------------------------- | -------------------------------- | ---------------- |
