@@ -2054,13 +2054,22 @@ body.blank-mode .container {
   display: none;
 }
 
+/* 首帧时热搜区域也需要隐藏（blank-init 在 html 上加 class，此时 body 还没有 JS 处理） */
+html.trending-hidden .trending-section {
+  display: none;
+}
+
 /* 热搜隐藏时，Logo 居中，搜索框下移 */
-body.trending-hidden .brand {
+/* 热搜隐藏时，Logo 居中，搜索框下移 */
+/* html.trending-hidden 由 blank-init.js 同步设置（首帧前），body.trending-hidden 由 ntp.js 异步设置 */
+body.trending-hidden .brand,
+html.trending-hidden .brand {
   top: 57%;
   transform: translate(-50%, calc(-100% - 60px));
 }
 
-body.trending-hidden .search-form {
+body.trending-hidden .search-form,
+html.trending-hidden .search-form {
   top: 60%;
 }
 

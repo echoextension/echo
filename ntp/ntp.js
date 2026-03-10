@@ -3044,10 +3044,14 @@ async function initTrendingToggle() {
   const enabled = stored[TRENDING_KEY] !== false; // 默认开启
   
   toggle.checked = enabled;
+  // 同步 localStorage（供 blank-init.js 首帧读取，消除布局跳动）
+  try { localStorage.setItem(TRENDING_KEY, String(enabled)); } catch (e) {}
   if (!enabled) {
     section.classList.add('hidden');
     document.body.classList.add('trending-hidden');
   } else {
+    // 热榜开启时移除可能由 blank-init 预设的 class
+    document.documentElement.classList.remove('trending-hidden');
     // 恢复用户上次选择的分类
     const categoryStored = await chrome.storage.local.get(TRENDING_CATEGORY_KEY);
     if (categoryStored[TRENDING_CATEGORY_KEY] !== undefined) {
@@ -3073,6 +3077,7 @@ async function initTrendingToggle() {
     if (toggle.checked) {
       section.classList.remove('hidden');
       document.body.classList.remove('trending-hidden');
+      document.documentElement.classList.remove('trending-hidden');
       // 恢复用户上次选择的分类
       const categoryStored = await chrome.storage.local.get(TRENDING_CATEGORY_KEY);
       if (categoryStored[TRENDING_CATEGORY_KEY] !== undefined) {
@@ -3085,6 +3090,7 @@ async function initTrendingToggle() {
       document.body.classList.add('trending-hidden');
     }
     await chrome.storage.local.set({ [TRENDING_KEY]: toggle.checked });
+    try { localStorage.setItem(TRENDING_KEY, String(toggle.checked)); } catch (e) {}
     
     // 动画结束后移除过渡类和焦点样式类，并恢复实际焦点
     setTimeout(() => {
