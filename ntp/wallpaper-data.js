@@ -11,7 +11,32 @@
 
 const BING_WALLPAPER_HISTORY = [
 
+  // 2026-03
+  { id: "SpringIceland_ZH-CN9545282898", date: "2026-03-10", desc: "赫韦拉韦利尔的布拉赫维尔地热池, 冰岛", copyright: "© Juan Maria Coy Vergara/Getty Images" },
+  { id: "NappingSeal_ZH-CN9424683964", date: "2026-03-09", desc: "在海滩上睡觉的灰海豹, 奥克尼群岛, 苏格兰", copyright: "© Andrew Mason/Minden Pictures" },
+  { id: "UlmClock_ZH-CN9282560066", date: "2026-03-08", desc: "乌尔姆市政厅的天文钟, 德国", copyright: "© Tomekbudujedomek/Getty Images" },
+  { id: "BrockenSunrise_ZH-CN4930790850", date: "2026-03-07", desc: "布罗肯峰的日出, 哈尔茨国家公园, 德国", copyright: "© imageBROKER/AVTG/Getty Images" },
+  { id: "WaveDenmark_ZH-CN8825888678", date: "2026-03-06", desc: "波浪住宅楼, 瓦埃勒, 丹麦", copyright: "© Frank Bach/Alamy" },
+  { id: "GoremeTwilight_ZH-CN3731931947", date: "2026-03-05", desc: "格雷梅的傍晚, 卡帕多西亚, 土耳其", copyright: "© ONNAJA/Getty Images" },
+  { id: "RilaCrocuses_ZH-CN3650360951", date: "2026-03-04", desc: "紫番红花, 里拉七湖, 保加利亚", copyright: "© Maya Karkalicheva/Getty Images" },
+  { id: "LanternFestivalY26_ZH-CN9186685796", date: "2026-03-03", desc: "元宵节期间悬挂的宫灯，北京自贡灯会现场，北京，中国", copyright: "© Grisha Bruev/Shutterstock" },
+  { id: "SamuiThailand_ZH-CN3323790951", date: "2026-03-02", desc: "苏梅岛的港口和长尾船, 泰国", copyright: "© Foto2rich/Shutterstock" },
+  { id: "BalearesDay_ZH-CN5024902433", date: "2026-03-01", desc: "伊维萨岛, 巴利阿里群岛, 西班牙", copyright: "© tokar/Shutterstock" },
+
   // 2026-02
+  { id: "OloupenaFalls_ZH-CN2980118660", date: "2026-02-28", desc: "奥洛乌佩纳瀑布, 莫洛凯岛, 夏威夷, 美国", copyright: "© Andrew Aylett/Getty Images" },
+  { id: "ArcitcCub_ZH-CN2725049760", date: "2026-02-27", desc: "北极熊幼崽走过浮冰, 北极国家野生动物保护区, 阿拉斯加州, 美国", copyright: "© Steven Kazlowski/naturepl.com" },
+  { id: "GrandSunset_ZH-CN1905986519", date: "2026-02-26", desc: "大峡谷和科罗拉多河，亚利桑那州，美国", copyright: "© Matt Anderson Photography/Getty Images" },
+  { id: "MendenhallCave_ZH-CN1850649760", date: "2026-02-25", desc: "门登霍尔冰川的冰洞，阿拉斯加州，美国", copyright: "© Designpics/Adobe Stock" },
+  { id: "TulumLilies_ZH-CN0959403613", date: "2026-02-24", desc: "大天坑里的睡莲，图卢姆，墨西哥", copyright: "© Christian Vizl/Tandem Stills + Motion" },
+  { id: "BavariaEgret_ZH-CN0521643213", date: "2026-02-23", desc: "大白鹭，上巴伐利亚州，德国", copyright: "© Konrad Wothe/naturepl.com" },
+  { id: "MamTorSunrise_ZH-CN9698497298", date: "2026-02-22", desc: "马姆托尔山，德比郡，英格兰", copyright: "© john finney photography/Getty Images" },
+  { id: "TetonFox_ZH-CN9461948674", date: "2026-02-21", desc: "一只红狐狸站在雪地里，大提顿国家公园，怀俄明州，美国", copyright: "© Radomir Jakubowski/naturepl.com" },
+  { id: "AdamsFirefall_ZH-CN9409143565", date: "2026-02-20", desc: "约塞米蒂国家公园里的火瀑布，加利福尼亚州，美国", copyright: "© Jorge Villalba/Getty Images" },
+  { id: "DragonsEyeRock_ZH-CN6164478776", date: "2026-02-19", desc: "乌塔克莱夫海滩的“龙之眼”岩层，挪威", copyright: "© reisegraf/Getty Images" },
+  { id: "PrzewalskisHorse_ZH-CN5785609662", date: "2026-02-18", desc: "普氏野马", copyright: "© Nemyrivskyi Viacheslav/Getty Images" },
+  { id: "SpringFestivalY26_ZH-CN0228318064", date: "2026-02-17", desc: "中国春节传统汉字“福”", copyright: "© DuKai摄影师/Getty Images" },
+  { id: "ChineseNewYearEveY26_ZH-CN7770318975", date: "2026-02-16", desc: "庆祝春节的龙形灯笼，中国西安", copyright: "© Pan Hong/Getty Images" },
   { id: "MontereyHumpbacks_ZH-CN5426789466", date: "2026-02-15", desc: "蒙特雷湾的大翅鲸(座头鲸)，加利福尼亚州，美国", copyright: "© Kiliii Fish/Cavan Images" },
   { id: "ValentineHearts_ZH-CN5332774664", date: "2026-02-14", desc: "荷包牡丹", copyright: "© Dorene Hookey/Cavan Images" },
   { id: "FriendshipBridge_ZH-CN5199165736", date: "2026-02-13", desc: "连接老挝和泰国的第三座泰老友谊大桥", copyright: "© chaiyut samsuk/Getty Images" },

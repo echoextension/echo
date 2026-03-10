@@ -4,7 +4,7 @@
 
 > ⚠️ **Unofficial & Fan-made**: This is a personal side project, not affiliated with Microsoft or the Edge team. Independently developed and maintained.
 
-**ECHO 易可** is a browser enhancement extension built specifically for Chinese Edge users. From tab management to mouse gestures, from a beautiful New Tab Page to AI-powered search recommendations — it's designed to elevate every aspect of your browsing experience.
+**ECHO 易可** is a browser enhancement extension built specifically for Chinese Edge users. From tab management to mouse gestures, from a beautiful New Tab Page to AI-powered search recommendations — it's designed to elevate every aspect of your browsing experience. Fully open-source, completely free, no ads, no pop-ups, no interruptions, and no privacy intrusion.
 
 This project was built entirely by a **non-technical PM** through AI-assisted programming (Vibe Coding). It's not perfect, but every line of code represents real product thinking and countless rounds of testing.
 

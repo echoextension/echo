@@ -4,7 +4,7 @@
 
 Thank you for using **ECHO 易可 - 让 Edge 更懂中国用户 (Edge Chinese Helper & Optimizer)**. We value your privacy and are committed to protecting your personal data. This policy explains how we handle your information.
 
-**ECHO is a fully open-source project.** The complete source code is publicly available on [GitHub](https://github.com/echoextension/echo) under the [GPL-3.0](LICENSE) license. Every claim in this privacy policy can be verified by inspecting the code.
+**ECHO is a fully open-source project.** The complete source code is publicly available on [GitHub](https://github.com/echoextension/echo) under the [GPL-3.0](https://github.com/echoextension/echo/blob/main/LICENSE) license. Every claim in this privacy policy can be verified by inspecting the code.
 
 ### 1. Local-First Principle
 
@@ -122,7 +122,7 @@ If you have any questions regarding this privacy policy, please contact the deve
 
 感谢您使用 ECHO 易可 - 让 Edge 更懂中国用户 (Edge Chinese Helper & Optimizer)。我们深知个人隐私的重要性，并承诺严格保护您的数据安全。本指引将详细说明我们如何处理您的数据。
 
-**ECHO 是一个完全开源的项目。**全部源代码以 [GPL-3.0](LICENSE) 许可证公开托管于 [GitHub](https://github.com/echoextension/echo)。本隐私指引中的每一项承诺，均可通过审查源码加以验证。
+**ECHO 是一个完全开源的项目。**全部源代码以 [GPL-3.0](https://github.com/echoextension/echo/blob/main/LICENSE) 许可证公开托管于 [GitHub](https://github.com/echoextension/echo)。本隐私指引中的每一项承诺，均可通过审查源码加以验证。
 
 ### 1. 核心原则：数据不上传
 
