@@ -85,27 +85,28 @@ async function cacheWallpaper(url, blob) {
 
 /**
  * 清理过期缓存（保留最近7天的）
+ * 使用 cursor 逐条遍历，避免 getAll() 将所有 Blob 一次性加载到内存
  */
 async function cleanOldWallpaperCache() {
   try {
     const db = await openWallpaperCacheDB();
     const tx = db.transaction(WALLPAPER_CACHE_STORE, 'readwrite');
     const store = tx.objectStore(WALLPAPER_CACHE_STORE);
-    const request = store.getAll();
-    
+    const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+    const request = store.openCursor();
+
     request.onsuccess = () => {
-      const items = request.result;
-      const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
-      
-      items.forEach(item => {
-        // 跳过自定义壁纸和缩略图，它们不参与自动过期清理
-        if (item.url && (item.url.startsWith('custom:') || item.url.startsWith('custom_thumb:'))) {
-          return;
-        }
+      const cursor = request.result;
+      if (!cursor) return;
+
+      const item = cursor.value;
+      // 跳过自定义壁纸和缩略图，它们不参与自动过期清理
+      if (item.url && !item.url.startsWith('custom:') && !item.url.startsWith('custom_thumb:')) {
         if (item.timestamp < weekAgo) {
-          store.delete(item.url);
+          cursor.delete();
         }
-      });
+      }
+      cursor.continue();
     };
   } catch (e) {
     // 忽略清理错误
@@ -120,6 +121,9 @@ const CUSTOM_WALLPAPER_MAX_SIZE = 20 * 1024 * 1024; // 20MB
 const CUSTOM_WALLPAPER_ACCEPT = ['image/jpeg', 'image/png', 'image/webp'];
 const CUSTOM_WALLPAPER_THUMB_WIDTH = 480;
 const CUSTOM_WALLPAPER_THUMB_HEIGHT = 270;
+const CUSTOM_WALLPAPER_DISPLAY_MAX_W = 3840;
+const CUSTOM_WALLPAPER_DISPLAY_MAX_H = 2160;
+const CUSTOM_WALLPAPER_DISPLAY_QUALITY = 0.92;
 
 /**
  * 判断是否为自定义壁纸
@@ -176,6 +180,70 @@ function generateThumbnail(file) {
 }
 
 /**
+ * 生成显示用壁纸 Blob（压缩并限制分辨率，使 IndexedDB 存储体积与 Bing 壁纸一致）
+ */
+function generateDisplayImage(file) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      let w = img.naturalWidth;
+      let h = img.naturalHeight;
+
+      // 等比缩放到最大分辨率范围内
+      if (w > CUSTOM_WALLPAPER_DISPLAY_MAX_W || h > CUSTOM_WALLPAPER_DISPLAY_MAX_H) {
+        const scale = Math.min(CUSTOM_WALLPAPER_DISPLAY_MAX_W / w, CUSTOM_WALLPAPER_DISPLAY_MAX_H / h);
+        w = Math.round(w * scale);
+        h = Math.round(h * scale);
+      }
+
+      const canvas = document.createElement('canvas');
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, w, h);
+      URL.revokeObjectURL(url);
+
+      canvas.toBlob(blob => {
+        if (blob) resolve(blob);
+        else reject(new Error('壁纸压缩失败'));
+      }, 'image/jpeg', CUSTOM_WALLPAPER_DISPLAY_QUALITY);
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error('图片读取失败'));
+    };
+    img.src = url;
+  });
+}
+
+/**
+ * 后台重压缩过大的自定义壁纸（懒迁移：首次显示旧数据后，优化存储以加速后续加载）
+ */
+function recompressCustomWallpaper(dateKey, imgElement) {
+  let w = imgElement.naturalWidth;
+  let h = imgElement.naturalHeight;
+
+  if (w > CUSTOM_WALLPAPER_DISPLAY_MAX_W || h > CUSTOM_WALLPAPER_DISPLAY_MAX_H) {
+    const scale = Math.min(CUSTOM_WALLPAPER_DISPLAY_MAX_W / w, CUSTOM_WALLPAPER_DISPLAY_MAX_H / h);
+    w = Math.round(w * scale);
+    h = Math.round(h * scale);
+  }
+
+  const canvas = document.createElement('canvas');
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(imgElement, 0, 0, w, h);
+
+  canvas.toBlob(async (blob) => {
+    if (blob) {
+      await cacheWallpaper(dateKey, blob);
+    }
+  }, 'image/jpeg', CUSTOM_WALLPAPER_DISPLAY_QUALITY);
+}
+
+/**
  * 获取当前自定义壁纸数量
  */
 function getCustomWallpaperCount() {
@@ -209,8 +277,8 @@ async function uploadCustomWallpaper(file) {
     const dateKey = `custom:${timestamp}`;
     const thumbKey = `custom_thumb:${timestamp}`;
 
-    // 读取原图 Blob
-    const originalBlob = file.slice(0, file.size, file.type);
+    // 生成显示用壁纸（压缩并限制分辨率，使加载速度与 Bing 壁纸一致）
+    const originalBlob = await generateDisplayImage(file);
     // 生成缩略图
     const thumbBlob = await generateThumbnail(file);
 
@@ -615,8 +683,8 @@ async function initWallpaper() {
   
   if (!toggle || !wallpaperBg) return;
   
-  // 0. 清理过期缓存（异步，不阻塞）
-  cleanOldWallpaperCache();
+  // 0. 清理过期缓存（延迟执行，避免 readwrite 事务阻塞壁纸显示的 IndexedDB 读取）
+  setTimeout(cleanOldWallpaperCache, 5000);
   
   // 1. 加载存储的设置和收藏
   await loadWallpaperSettings();
@@ -821,6 +889,10 @@ async function displayWallpaper(wp) {
         }
         showWallpaperImage(img, wallpaperBg, true);
         wallpaperState.isWallpaperLoading = false;
+        // 如果原始 Blob 过大（未经优化的旧数据），后台重压缩以加速后续加载
+        if (cachedBlob.size > 2 * 1024 * 1024) {
+          recompressCustomWallpaper(wp.date, img);
+        }
         setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
       };
       img.onerror = () => {
