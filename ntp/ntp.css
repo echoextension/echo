@@ -1953,6 +1953,32 @@ body:not(.wallpaper-mode) .wp-action-btn:hover {
   margin-top: 10px;
 }
 
+.collection-empty .empty-upload-btn {
+  margin-top: 24px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 20px;
+  border: 1px dashed rgba(255, 255, 255, 0.3);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.collection-empty .empty-upload-btn:hover {
+  border-color: rgba(255, 255, 255, 0.5);
+  color: rgba(255, 255, 255, 0.85);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.collection-empty .empty-upload-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
 .collection-grid.hidden,
 .collection-empty.hidden {
   display: none;

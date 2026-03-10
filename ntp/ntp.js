@@ -2438,8 +2438,19 @@ function renderFavoritesGrid() {
   
   if (favorites.length === 0) {
     emptyEl?.classList.remove('hidden');
-    gridEl.classList.remove('hidden');
-    gridEl.appendChild(createUploadCard());
+    gridEl.classList.add('hidden');
+    // 上传按钮放在空提示区域内
+    const existingUploadBtn = emptyEl?.querySelector('.empty-upload-btn');
+    if (!existingUploadBtn && emptyEl) {
+      const btn = document.createElement('button');
+      btn.className = 'empty-upload-btn';
+      btn.innerHTML = '<svg viewBox="0 0 24 24"><path fill="currentColor" d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>上传壁纸';
+      btn.addEventListener('click', () => {
+        const input = document.getElementById('customWallpaperInput');
+        if (input) { input.value = ''; input.click(); }
+      });
+      emptyEl.appendChild(btn);
+    }
   } else {
     emptyEl?.classList.add('hidden');
     gridEl.classList.remove('hidden');
