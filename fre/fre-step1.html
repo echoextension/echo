@@ -227,9 +227,17 @@
     .brand-icon {
       width: 44px;
       height: 44px;
-      border-radius: 10px;
-      box-shadow: 0 4px 16px rgba(0, 120, 212, 0.3);
+      border-radius: 11px;
+      box-shadow: 0 8px 32px rgba(0, 120, 212, 0.2);
+      border: 1px solid rgba(0, 120, 212, 0.1);
       flex-shrink: 0;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      .brand-icon {
+        box-shadow: 0 8px 32px rgba(0, 120, 212, 0.4);
+        border: 2px solid rgba(255, 255, 255, 0.15);
+      }
     }
 
     .brand-text {

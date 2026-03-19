@@ -153,11 +153,17 @@ body {
 .logo-icon {
   width: 56px;
   height: 56px;
-  border-radius: 12px;
-  box-shadow: 0 4px 16px rgba(0, 120, 212, 0.3);
+  border-radius: 14px;
+  box-shadow: 0 8px 32px rgba(0, 120, 212, 0.2);
   flex-shrink: 0;
-  /* FRE 风格：添加微妙的边框 */
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  border: 1px solid rgba(0, 120, 212, 0.1);
+}
+
+@media (prefers-color-scheme: dark) {
+  .logo-icon {
+    box-shadow: 0 8px 32px rgba(0, 120, 212, 0.4);
+    border: 2px solid rgba(255, 255, 255, 0.15);
+  }
 }
 
 .brand-title {
