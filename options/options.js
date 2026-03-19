@@ -882,6 +882,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     e.preventDefault();
     chrome.tabs.create({ url: 'edge://settings/appearance/browserBehavior/mouseGestures' });
   });
+
+  // 反馈邮箱（JS 拼接防爬虫）
+  document.getElementById('contactEmail').addEventListener('click', (e) => {
+    e.preventDefault();
+    const u = 'echoextension';
+    const d = 'hotmail' + '.com';
+    window.location.href = 'mai' + 'lto:' + u + '@' + d;
+  });
   
   // 初始化设置页鼠标手势和精细缩放支持
   initOptionsPageGestures();
