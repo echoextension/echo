@@ -1305,6 +1305,17 @@
   }
 
   /**
+   * 管理 .bpx-player-video-wrap 的 overflow 属性
+   * 有任何效果激活时设为 hidden，全部清除时恢复
+   */
+  function updateWrapOverflow() {
+    const wrap = document.querySelector('.bpx-player-video-wrap');
+    if (!wrap) return;
+    const hasAnyEffect = invertActive || activeChannels.size > 0 || rotateAngle !== 0 || mirrorActive;
+    wrap.style.overflow = hasAnyEffect ? 'hidden' : '';
+  }
+
+  /**
    * 确保 SVG 滤镜定义已注入 document
    */
   function ensureInvertSvgFilters() {
@@ -1337,6 +1348,7 @@
 
     // 无任何颜色效果
     if (!invertActive && activeChannels.size === 0) {
+      updateWrapOverflow();
       updateToolbarState();
       updateBiliIndicator();
       return;
@@ -1364,6 +1376,7 @@
       }
     `;
     document.head.appendChild(invertStyleElement);
+    updateWrapOverflow();
     updateToolbarState();
     updateBiliIndicator();
   }
@@ -1497,6 +1510,7 @@
       }
     `;
     document.head.appendChild(rotateStyleElement);
+    updateWrapOverflow();
 
     updateToolbarState();
     updateBiliIndicator();
@@ -1506,13 +1520,16 @@
    * 重置旋转
    */
   function clearRotate() {
+    console.log('[ECHO] clearRotate called, rotateAngle:', rotateAngle, ', rotateStyleElement:', rotateStyleElement, ', inDOM:', rotateStyleElement?.parentNode?.tagName);
     rotateAngle = 0;
     rotateFillMode = false;
     mirrorActive = false;
     if (rotateStyleElement) {
       rotateStyleElement.remove();
+      console.log('[ECHO] rotateStyleElement removed, still in DOM?', !!document.getElementById('echo-video-rotate-style'));
       rotateStyleElement = null;
     }
+    updateWrapOverflow();
   }
 
   /**
@@ -1714,6 +1731,18 @@
     searchContainer.addEventListener('click', (e) => {
       e.stopPropagation();
     });
+
+    // [DEBUG] 全局点击监听：诊断旋转后点击区域问题
+    document.addEventListener('click', (e) => {
+      const hasEffects = invertActive || activeChannels.size > 0 || rotateAngle !== 0 || mirrorActive;
+      if (!hasEffects) return;
+      const rect = e.target.getBoundingClientRect();
+      console.log('[ECHO-CLICK] target:', e.target.tagName, e.target.className?.toString?.()?.substring(0, 80));
+      console.log('[ECHO-CLICK] click pos:', e.clientX, e.clientY, '| target rect:', JSON.stringify({l:rect.left.toFixed(0), t:rect.top.toFixed(0), r:rect.right.toFixed(0), b:rect.bottom.toFixed(0)}));
+      console.log('[ECHO-CLICK] defaultPrevented:', e.defaultPrevented, '| closest <a>:', e.target.closest('a')?.href?.substring(0, 80) || 'none');
+      const topEl = document.elementFromPoint(e.clientX, e.clientY);
+      console.log('[ECHO-CLICK] elementFromPoint:', topEl?.tagName, topEl?.className?.toString?.()?.substring(0, 80));
+    }, true);
   }
 
   // ============================================
@@ -1974,4 +2003,26 @@
   } else {
     init();
   }
+
+  // ============================================
+  // SPA 导航监听：视频切换时自动清除工具状态
+  // ============================================
+
+  let lastUrl = location.href;
+  const titleEl = document.querySelector('title') || document.head;
+  console.log('[ECHO] title observer setup, titleEl:', titleEl?.tagName, ', lastUrl:', lastUrl);
+  new MutationObserver((mutations) => {
+    console.log('[ECHO] title mutation fired, mutations:', mutations.length, ', title:', document.title, ', lastUrl:', lastUrl, ', currentUrl:', location.href);
+    if (location.href !== lastUrl) {
+      lastUrl = location.href;
+      const hadEffects = invertActive || activeChannels.size > 0 || rotateAngle !== 0 || mirrorActive;
+      console.log('[ECHO] URL changed! hadEffects:', hadEffects, ', invertActive:', invertActive, ', rotateAngle:', rotateAngle, ', mirrorActive:', mirrorActive);
+      if (hadEffects) {
+        clearAllBiliTools();
+        console.log('[ECHO] clearAllBiliTools called');
+      }
+    } else {
+      console.log('[ECHO] title changed but URL same, skipping');
+    }
+  }).observe(titleEl, { childList: true, subtree: true, characterData: true });
 })();
