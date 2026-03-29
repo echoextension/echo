@@ -9,6 +9,11 @@
 (async function() {
   'use strict';
 
+  // 搜索框只应运行在顶层页面；在 iframe 中运行会导致快捷键、焦点和路由监听重复绑定。
+  if (window !== window.top) {
+    return;
+  }
+
   // 固定定位常量（以 100% 缩放时的 CSS 像素计）
   // 注意：当开启“反向缩放补偿”(即不跟随页面缩放)时，需要同时对 bottom 偏移做反向补偿，
   // 否则 bottom: 32px 会在页面放大时变成更大的物理像素距离，导致视觉位置上移。
@@ -687,6 +692,7 @@
   let searchWrapper = null;
   let searchContainer = null;
   let searchInput = null;
+  let pendingOutsideHideTimer = null;
   let trendingPanel = null;
   let invertToolbar = null;
   let trendingData = null;
@@ -707,6 +713,339 @@
   let rotateFillMode = false;           // false=适应(保留黑边), true=填充(裁切)
   let mirrorActive = false;             // 水平镜像
   let rotateStyleElement = null;
+
+  // Ctrl+B 时序问题定向调试状态
+  const SEARCH_DEBUG_WINDOW_MS = 10000;
+  const PAGE_DEBUG_EVENT = 'echo-search-page-debug';
+  let searchDebugSessionId = 0;
+  let searchDebugUntil = 0;
+  let searchDebugSeq = 0;
+
+  function getSearchWrapperVisible() {
+    return !!(searchWrapper && searchWrapper.classList.contains('show'));
+  }
+
+  function describeNode(node) {
+    if (!node) return 'null';
+    if (node === window) return 'window';
+    if (node === document) return 'document';
+    if (node === document.body) return 'body';
+    if (node === document.documentElement) return 'html';
+    if (node.nodeType !== Node.ELEMENT_NODE) return String(node.nodeName || node);
+
+    const element = node;
+    const tag = element.tagName?.toLowerCase?.() || 'unknown';
+    const id = element.id ? `#${element.id}` : '';
+    const className = typeof element.className === 'string'
+      ? element.className.trim().split(/\s+/).filter(Boolean).slice(0, 3).join('.')
+      : '';
+    const classes = className ? `.${className}` : '';
+    const role = element.getAttribute?.('role');
+    const name = element.getAttribute?.('name');
+    const type = element.getAttribute?.('type');
+    const href = element.getAttribute?.('href');
+    let text = '';
+    if (typeof element.textContent === 'string') {
+      text = element.textContent.trim().replace(/\s+/g, ' ').slice(0, 30);
+    }
+
+    const attrs = [role ? `role=${role}` : '', name ? `name=${name}` : '', type ? `type=${type}` : '', href ? `href=${href.slice(0, 60)}` : '', text ? `text=${text}` : '']
+      .filter(Boolean)
+      .join(' ');
+
+    return `${tag}${id}${classes}${attrs ? ` [${attrs}]` : ''}`;
+  }
+
+  function getActiveElementSummary() {
+    return {
+      documentActive: describeNode(document.activeElement),
+      shadowActive: describeNode(shadowRoot?.activeElement),
+      searchVisible: getSearchWrapperVisible(),
+      hostConnected: !!host?.isConnected,
+      hostRect: host
+        ? {
+            left: Math.round(host.getBoundingClientRect().left),
+            top: Math.round(host.getBoundingClientRect().top),
+            width: Math.round(host.getBoundingClientRect().width),
+            height: Math.round(host.getBoundingClientRect().height)
+          }
+        : null
+    };
+  }
+
+  function isSearchDebugActive(force = false) {
+    return force || getSearchWrapperVisible() || Date.now() <= searchDebugUntil;
+  }
+
+  function beginSearchDebugSession(reason, extra = {}) {
+    searchDebugSessionId += 1;
+    searchDebugUntil = Date.now() + SEARCH_DEBUG_WINDOW_MS;
+    searchDebugSeq = 0;
+    logSearchDebug('session-start', { reason, ...extra }, true);
+  }
+
+  function extendSearchDebugWindow(reason, ms = SEARCH_DEBUG_WINDOW_MS / 2) {
+    const nextUntil = Date.now() + ms;
+    if (nextUntil > searchDebugUntil) {
+      searchDebugUntil = nextUntil;
+    }
+  }
+
+  function logSearchDebug(type, details = {}, force = false) {
+    if (!isSearchDebugActive(force)) return;
+
+    searchDebugSeq += 1;
+    console.log(`[ECHO-SEARCH][S${searchDebugSessionId}][${String(searchDebugSeq).padStart(3, '0')}] ${type}`, {
+      t: Math.round(performance.now()),
+      url: location.href,
+      ...getActiveElementSummary(),
+      ...details
+    });
+  }
+
+  function getEventDebugInfo(e) {
+    const path = typeof e.composedPath === 'function'
+      ? e.composedPath().slice(0, 5).map(describeNode)
+      : [];
+    const target = e.target;
+    const targetRect = target?.getBoundingClientRect ? target.getBoundingClientRect() : null;
+    const topEl = typeof e.clientX === 'number' && typeof e.clientY === 'number'
+      ? document.elementFromPoint(e.clientX, e.clientY)
+      : null;
+
+    return {
+      eventType: e.type,
+      eventPhase: e.eventPhase,
+      isTrusted: e.isTrusted,
+      defaultPrevented: e.defaultPrevented,
+      cancelBubble: e.cancelBubble,
+      button: typeof e.button === 'number' ? e.button : undefined,
+      buttons: typeof e.buttons === 'number' ? e.buttons : undefined,
+      key: typeof e.key === 'string' ? e.key : undefined,
+      ctrlKey: !!e.ctrlKey,
+      metaKey: !!e.metaKey,
+      shiftKey: !!e.shiftKey,
+      altKey: !!e.altKey,
+      clientX: typeof e.clientX === 'number' ? e.clientX : undefined,
+      clientY: typeof e.clientY === 'number' ? e.clientY : undefined,
+      target: describeNode(target),
+      currentTarget: describeNode(e.currentTarget),
+      closestLink: target?.closest?.('a')?.href?.slice(0, 120) || null,
+      inHost: !!(target && host?.contains(target)),
+      elementFromPoint: describeNode(topEl),
+      targetRect: targetRect
+        ? {
+            left: Math.round(targetRect.left),
+            top: Math.round(targetRect.top),
+            width: Math.round(targetRect.width),
+            height: Math.round(targetRect.height)
+          }
+        : null,
+      path
+    };
+  }
+
+  function safePreview(value) {
+    if (value == null) return value;
+    if (typeof value === 'string') return value.slice(0, 160);
+    if (typeof value === 'number' || typeof value === 'boolean') return value;
+    try {
+      return JSON.stringify(value).slice(0, 160);
+    } catch {
+      return Object.prototype.toString.call(value);
+    }
+  }
+
+  function isBiliRelatedUrl(urlString) {
+    try {
+      const url = new URL(urlString, location.href);
+      return /(^|\.)bilibili\.com$|(^|\.)bilivideo\.com$/.test(url.hostname);
+    } catch {
+      return false;
+    }
+  }
+
+  function shouldLogBiliRequest(urlString) {
+    try {
+      const url = new URL(urlString, location.href);
+      if (!isBiliRelatedUrl(url.href)) return false;
+      const target = `${url.hostname}${url.pathname}${url.search}`.toLowerCase();
+      return /(player|playurl|pbp|comment|reply|loader|view|pagelist|season|video|subtitle|playerview|x\/web-interface)/.test(target);
+    } catch {
+      return false;
+    }
+  }
+
+  function getUrlVideoId(urlString = location.href) {
+    try {
+      const url = new URL(urlString, location.href);
+      const match = url.pathname.match(/\/video\/([^\/]+)/);
+      return match ? match[1] : null;
+    } catch {
+      return null;
+    }
+  }
+
+  function getPageDebugSnapshot() {
+    const h1 = document.querySelector('h1');
+    const activeRouterLink = document.querySelector('a.router-link-exact-active, a.router-link-active');
+    const video = document.querySelector('video');
+    const bpxWrap = document.querySelector('.bpx-player-video-wrap');
+
+    return {
+      title: document.title,
+      readyState: document.readyState,
+      visibilityState: document.visibilityState,
+      urlVideoId: getUrlVideoId(location.href),
+      h1Text: h1?.textContent?.trim?.().replace(/\s+/g, ' ').slice(0, 80) || null,
+      activeRouterLink: activeRouterLink?.href?.slice(0, 160) || null,
+      activeRouterLinkText: activeRouterLink?.textContent?.trim?.().replace(/\s+/g, ' ').slice(0, 60) || null,
+      hasVideoElement: !!video,
+      videoPaused: video ? video.paused : null,
+      videoCurrentTime: video ? Math.round(video.currentTime * 10) / 10 : null,
+      videoSrc: video?.currentSrc?.slice(0, 160) || null,
+      hasBpxWrap: !!bpxWrap,
+      bpxWrapClasses: bpxWrap?.className?.toString?.().slice(0, 120) || null
+    };
+  }
+
+  function logNavDebug(type, details = {}, force = false) {
+    const payload = {
+      ...getPageDebugSnapshot(),
+      ...details
+    };
+    logSearchDebug(`nav-${type}`, payload, force);
+    console.log(
+      `[ECHO-NAV] ${type}`,
+      `urlVideoId=${payload.urlVideoId}`,
+      `h1=${payload.h1Text || 'null'}`,
+      `activeLink=${payload.activeRouterLink || payload.linkHref || 'null'}`,
+      `activeLinkText=${payload.activeRouterLinkText || 'null'}`,
+      `videoSrc=${payload.videoSrc || 'null'}`,
+      `ready=${payload.readyState}`,
+      `visibility=${payload.visibilityState}`,
+      payload
+    );
+  }
+
+  function scheduleNavDebugSnapshots(reason) {
+    [0, 100, 300, 1000, 2000].forEach(delay => {
+      setTimeout(() => {
+        logNavDebug('snapshot', { reason, delay });
+      }, delay);
+    });
+  }
+
+  function clearPendingOutsideHide() {
+    if (pendingOutsideHideTimer) {
+      clearTimeout(pendingOutsideHideTimer);
+      pendingOutsideHideTimer = null;
+    }
+  }
+
+  function scheduleOutsideHide(triggerEvent, reason = 'outside-interaction') {
+    clearPendingOutsideHide();
+
+    pendingOutsideHideTimer = setTimeout(() => {
+      pendingOutsideHideTimer = null;
+      if (!searchWrapper?.classList.contains('show')) {
+        return;
+      }
+      hideSearchBox(reason, triggerEvent);
+    }, 0);
+  }
+
+  function summarizeHistoryArgs(args) {
+    return args.map((arg, index) => ({ index, value: safePreview(arg) }));
+  }
+
+  function installNavigationDebugHooks() {
+    if (window.__echoSearchNavDebugInstalled) return;
+    window.__echoSearchNavDebugInstalled = true;
+
+    const originalPushState = history.pushState;
+    history.pushState = function(...args) {
+      const beforeUrl = location.href;
+      logNavDebug('pushState-before', {
+        beforeUrl,
+        args: summarizeHistoryArgs(args)
+      });
+      const result = originalPushState.apply(this, args);
+      logNavDebug('pushState-after', {
+        beforeUrl,
+        afterUrl: location.href,
+        args: summarizeHistoryArgs(args)
+      });
+      scheduleNavDebugSnapshots('pushState');
+      return result;
+    };
+
+    const originalReplaceState = history.replaceState;
+    history.replaceState = function(...args) {
+      const beforeUrl = location.href;
+      logNavDebug('replaceState-before', {
+        beforeUrl,
+        args: summarizeHistoryArgs(args)
+      });
+      const result = originalReplaceState.apply(this, args);
+      logNavDebug('replaceState-after', {
+        beforeUrl,
+        afterUrl: location.href,
+        args: summarizeHistoryArgs(args)
+      });
+      scheduleNavDebugSnapshots('replaceState');
+      return result;
+    };
+
+    window.addEventListener('popstate', (e) => {
+      logNavDebug('popstate', {
+        state: safePreview(e.state)
+      });
+      scheduleNavDebugSnapshots('popstate');
+    });
+
+    window.addEventListener('hashchange', (e) => {
+      logNavDebug('hashchange', {
+        oldURL: e.oldURL,
+        newURL: e.newURL
+      });
+      scheduleNavDebugSnapshots('hashchange');
+    });
+
+    window.addEventListener('pageshow', (e) => {
+      logNavDebug('pageshow', {
+        persisted: e.persisted
+      });
+    });
+
+    window.addEventListener('pagehide', (e) => {
+      logNavDebug('pagehide', {
+        persisted: e.persisted
+      });
+    });
+  }
+
+  function installBiliInternalFlowDebugHooks() {
+    if (window.__echoBiliFlowDebugInstalled) return;
+    window.__echoBiliFlowDebugInstalled = true;
+
+    document.addEventListener(PAGE_DEBUG_EVENT, (event) => {
+      if (!isSearchDebugActive()) return;
+      const detail = event.detail || {};
+      logNavDebug(`page-${detail.type || 'unknown'}`, detail.details || {}, true);
+    });
+
+    const script = document.createElement('script');
+    script.src = chrome.runtime.getURL('search-box/page-debug-hook.js');
+    (document.documentElement || document.head || document.body).appendChild(script);
+    script.addEventListener('load', () => script.remove(), { once: true });
+    script.addEventListener('error', () => {
+      logNavDebug('page-hook-load-error', {
+        scriptSrc: script.src
+      }, true);
+      script.remove();
+    }, { once: true });
+  }
 
   // 通道交换 SVG 滤镜定义
   const CHANNEL_SWAPS = [
@@ -729,7 +1068,7 @@
     host.style.transform = 'translateX(-50%)';
     host.style.transformOrigin = 'center bottom';
     
-    shadowRoot = host.attachShadow({ mode: 'closed' });
+    shadowRoot = host.attachShadow({ mode: 'open' });
 
     // 添加样式
     const style = document.createElement('style');
@@ -759,7 +1098,7 @@
         <circle cx="11" cy="11" r="8"/>
         <path d="M21 21l-4.35-4.35"/>
       </svg>
-      <input type="text" class="search-input" placeholder="搜索 Bing..." autofocus>
+      <input type="text" class="search-input" placeholder="搜索 Bing...">
       <span class="search-hint">${hintText}</span>
       <button class="close-btn" title="关闭">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1520,13 +1859,11 @@
    * 重置旋转
    */
   function clearRotate() {
-    console.log('[ECHO] clearRotate called, rotateAngle:', rotateAngle, ', rotateStyleElement:', rotateStyleElement, ', inDOM:', rotateStyleElement?.parentNode?.tagName);
     rotateAngle = 0;
     rotateFillMode = false;
     mirrorActive = false;
     if (rotateStyleElement) {
       rotateStyleElement.remove();
-      console.log('[ECHO] rotateStyleElement removed, still in DOM?', !!document.getElementById('echo-video-rotate-style'));
       rotateStyleElement = null;
     }
     updateWrapOverflow();
@@ -1657,6 +1994,28 @@
 
   function bindEvents() {
     const isAlwaysShowMode = settings.floatingSearchBoxAlwaysShow;
+
+    document.addEventListener('click', (e) => {
+      const info = getEventDebugInfo(e);
+      if (info.closestLink && !info.inHost) {
+        extendSearchDebugWindow('page-link-click');
+        logNavDebug('page-link-click', {
+          linkHref: info.closestLink,
+          clickTarget: info.target,
+          elementFromPoint: info.elementFromPoint,
+          defaultPrevented: info.defaultPrevented
+        });
+        scheduleNavDebugSnapshots('page-link-click');
+      }
+    });
+
+    searchInput.addEventListener('focus', (e) => {
+      logSearchDebug('search-input-focus', getEventDebugInfo(e));
+    });
+
+    searchInput.addEventListener('blur', (e) => {
+      logSearchDebug('search-input-blur', getEventDebugInfo(e));
+    });
     
     // 输入框回车搜索
     searchInput.addEventListener('keydown', (e) => {
@@ -1692,7 +2051,7 @@
       closeBtn.addEventListener('click', (e) => {
         e.preventDefault();
         e.stopPropagation();
-        hideSearchBox();
+        hideSearchBox('close-button', e);
       });
     }
 
@@ -1718,31 +2077,12 @@
       });
     }
 
-    // 点击搜索框外部：常驻模式不关闭，快捷键模式关闭
-    if (!isAlwaysShowMode) {
-      document.addEventListener('click', (e) => {
-        if (searchWrapper.classList.contains('show') && !host.contains(e.target)) {
-          hideSearchBox();
-        }
-      });
-    }
+    // 点击搜索框外部不再自动关闭，避免额外介入页面点击路径。
 
     // 阻止搜索框内的点击事件冒泡
     searchContainer.addEventListener('click', (e) => {
       e.stopPropagation();
     });
-
-    // [DEBUG] 全局点击监听：诊断旋转后点击区域问题
-    document.addEventListener('click', (e) => {
-      const hasEffects = invertActive || activeChannels.size > 0 || rotateAngle !== 0 || mirrorActive;
-      if (!hasEffects) return;
-      const rect = e.target.getBoundingClientRect();
-      console.log('[ECHO-CLICK] target:', e.target.tagName, e.target.className?.toString?.()?.substring(0, 80));
-      console.log('[ECHO-CLICK] click pos:', e.clientX, e.clientY, '| target rect:', JSON.stringify({l:rect.left.toFixed(0), t:rect.top.toFixed(0), r:rect.right.toFixed(0), b:rect.bottom.toFixed(0)}));
-      console.log('[ECHO-CLICK] defaultPrevented:', e.defaultPrevented, '| closest <a>:', e.target.closest('a')?.href?.substring(0, 80) || 'none');
-      const topEl = document.elementFromPoint(e.clientX, e.clientY);
-      console.log('[ECHO-CLICK] elementFromPoint:', topEl?.tagName, topEl?.className?.toString?.()?.substring(0, 80));
-    }, true);
   }
 
   // ============================================
@@ -1851,6 +2191,12 @@
    */
   async function showSearchBox(shouldFocus = true, withBurstAnimation = false) {
     createSearchBox();
+
+    logSearchDebug('show-search-box-enter', {
+      shouldFocus,
+      withBurstAnimation,
+      wasVisibleBefore: getSearchWrapperVisible()
+    }, true);
     
     // 记录显示前的状态，用于判断是否需要清空输入框
     const wasAlreadyShown = searchWrapper.classList.contains('show');
@@ -1863,6 +2209,11 @@
     }
     
     searchWrapper.classList.add('show');
+    logSearchDebug('show-search-box-visible', {
+      shouldFocus,
+      withBurstAnimation,
+      wasAlreadyShown
+    }, true);
 
     // 更新颜色反转工具条可见性（仅在B站视频页显示）
     updateInvertToolbarVisibility();
@@ -1876,36 +2227,37 @@
     updateTrendingVisibility();
     
     if (shouldFocus) {
-      // 用户主动呼出：必须抢焦点，多次尝试确保成功
-      // 某些页面（如 bing.com）有自己的搜索框会争抢焦点，需要更激进的策略
       const focusInput = () => {
-        // 检查焦点是否已在我们的输入框上
-        // 注意：searchInput 在 Shadow DOM 内，document.activeElement 可能返回 host
-        // 需要通过 shadowRoot.activeElement 或检查 host 来判断
         const activeInShadow = shadowRoot?.activeElement;
+        logSearchDebug('focus-attempt', {
+          source: 'single-raf',
+          activeInShadow: describeNode(activeInShadow),
+          documentActiveBefore: describeNode(document.activeElement)
+        }, true);
         if (activeInShadow === searchInput) {
-          return; // 已经聚焦，跳过（避免打断 IME 输入法组合状态）
+          logSearchDebug('focus-attempt-skip-already-focused', { source: 'single-raf' }, true);
+          return;
         }
-        
-        // 先 blur 当前活动元素，再 focus 我们的输入框
-        if (document.activeElement && document.activeElement !== host) {
-          document.activeElement.blur();
-        }
-        searchInput.focus();
+
+        searchInput.focus({ preventScroll: true });
+        logSearchDebug('focus-attempt-after-focus', {
+          source: 'single-raf',
+          documentActiveAfter: describeNode(document.activeElement),
+          shadowActiveAfter: describeNode(shadowRoot?.activeElement)
+        }, true);
       };
-      
-      // 立即尝试 + 多次延迟尝试，覆盖各种页面加载时机
-      focusInput();
-      setTimeout(focusInput, 50);
-      setTimeout(focusInput, 100);
-      setTimeout(focusInput, 200);
-      setTimeout(focusInput, 400);
-      setTimeout(focusInput, 800);
+
+      requestAnimationFrame(focusInput);
     }
     // 常驻模式初始化时不抢焦点，让用户正常浏览网页
   }
 
-  function hideSearchBox() {
+  function hideSearchBox(reason = 'unknown', triggerEvent = null) {
+    clearPendingOutsideHide();
+    logSearchDebug('hide-search-box-enter', {
+      reason,
+      triggerEvent: triggerEvent ? getEventDebugInfo(triggerEvent) : null
+    }, true);
     if (searchWrapper) {
       searchWrapper.classList.remove('show');
       searchInput.blur();
@@ -1914,17 +2266,21 @@
       trendingPanel.classList.remove('show');
       stopTrendingScroll();
     }
+    extendSearchDebugWindow(`hide:${reason}`);
+    logSearchDebug('hide-search-box-exit', { reason }, true);
   }
 
   /**
    * 切换搜索框（Ctrl+B 触发，始终需要焦点，播放聚焦动画）
    */
   function toggleSearchBox() {
+    logSearchDebug('toggle-search-box', {
+      currentlyVisible: getSearchWrapperVisible()
+    }, true);
     if (searchWrapper && searchWrapper.classList.contains('show')) {
-      hideSearchBox();
+      hideSearchBox('toggle-close');
     } else {
-      // Ctrl+B 呼出，抢焦点 + 播放聚焦动画
-      // 这里使用 async showSearchBox，避免首次呼出时 zoom 尚未获取导致光环补偿失效
+      // 保持 Ctrl+B 后可直接输入，继续验证是否是 closed Shadow DOM + focus 的组合导致页面异常
       showSearchBox(true, true);
     }
   }
@@ -1949,7 +2305,7 @@
     if (settings.floatingSearchBoxAlwaysShow) {
       searchInput.value = '';
     } else {
-      hideSearchBox();
+      hideSearchBox('perform-search');
     }
   }
 
@@ -1975,6 +2331,11 @@
         return;
       }
 
+      beginSearchDebugSession('ctrl-b-keydown', {
+        event: getEventDebugInfo(e),
+        isInOurSearchBox,
+        isInOtherInput
+      });
       e.preventDefault();
       e.stopPropagation();
       toggleSearchBox();
@@ -2004,25 +2365,31 @@
     init();
   }
 
+  installNavigationDebugHooks();
+  installBiliInternalFlowDebugHooks();
+
   // ============================================
   // SPA 导航监听：视频切换时自动清除工具状态
   // ============================================
 
   let lastUrl = location.href;
   const titleEl = document.querySelector('title') || document.head;
-  console.log('[ECHO] title observer setup, titleEl:', titleEl?.tagName, ', lastUrl:', lastUrl);
   new MutationObserver((mutations) => {
-    console.log('[ECHO] title mutation fired, mutations:', mutations.length, ', title:', document.title, ', lastUrl:', lastUrl, ', currentUrl:', location.href);
     if (location.href !== lastUrl) {
+      const previousUrl = lastUrl;
       lastUrl = location.href;
       const hadEffects = invertActive || activeChannels.size > 0 || rotateAngle !== 0 || mirrorActive;
-      console.log('[ECHO] URL changed! hadEffects:', hadEffects, ', invertActive:', invertActive, ', rotateAngle:', rotateAngle, ', mirrorActive:', mirrorActive);
+      extendSearchDebugWindow('title-observer-url-change');
+      logNavDebug('title-observer-url-change', {
+        previousUrl,
+        currentUrl: location.href,
+        mutationCount: mutations.length,
+        hadEffects
+      });
+      scheduleNavDebugSnapshots('title-observer-url-change');
       if (hadEffects) {
         clearAllBiliTools();
-        console.log('[ECHO] clearAllBiliTools called');
       }
-    } else {
-      console.log('[ECHO] title changed but URL same, skipping');
     }
   }).observe(titleEl, { childList: true, subtree: true, characterData: true });
 })();
