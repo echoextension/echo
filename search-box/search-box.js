@@ -692,7 +692,6 @@
   let searchWrapper = null;
   let searchContainer = null;
   let searchInput = null;
-  let pendingOutsideHideTimer = null;
   let trendingPanel = null;
   let invertToolbar = null;
   let trendingData = null;
@@ -713,13 +712,6 @@
   let rotateFillMode = false;           // false=适应(保留黑边), true=填充(裁切)
   let mirrorActive = false;             // 水平镜像
   let rotateStyleElement = null;
-
-  // Ctrl+B 时序问题定向调试状态
-  const SEARCH_DEBUG_WINDOW_MS = 10000;
-  const PAGE_DEBUG_EVENT = 'echo-search-page-debug';
-  let searchDebugSessionId = 0;
-  let searchDebugUntil = 0;
-  let searchDebugSeq = 0;
 
   function getSearchWrapperVisible() {
     return !!(searchWrapper && searchWrapper.classList.contains('show'));
@@ -756,126 +748,6 @@
     return `${tag}${id}${classes}${attrs ? ` [${attrs}]` : ''}`;
   }
 
-  function getActiveElementSummary() {
-    return {
-      documentActive: describeNode(document.activeElement),
-      shadowActive: describeNode(shadowRoot?.activeElement),
-      searchVisible: getSearchWrapperVisible(),
-      hostConnected: !!host?.isConnected,
-      hostRect: host
-        ? {
-            left: Math.round(host.getBoundingClientRect().left),
-            top: Math.round(host.getBoundingClientRect().top),
-            width: Math.round(host.getBoundingClientRect().width),
-            height: Math.round(host.getBoundingClientRect().height)
-          }
-        : null
-    };
-  }
-
-  function isSearchDebugActive(force = false) {
-    return force || getSearchWrapperVisible() || Date.now() <= searchDebugUntil;
-  }
-
-  function beginSearchDebugSession(reason, extra = {}) {
-    searchDebugSessionId += 1;
-    searchDebugUntil = Date.now() + SEARCH_DEBUG_WINDOW_MS;
-    searchDebugSeq = 0;
-    logSearchDebug('session-start', { reason, ...extra }, true);
-  }
-
-  function extendSearchDebugWindow(reason, ms = SEARCH_DEBUG_WINDOW_MS / 2) {
-    const nextUntil = Date.now() + ms;
-    if (nextUntil > searchDebugUntil) {
-      searchDebugUntil = nextUntil;
-    }
-  }
-
-  function logSearchDebug(type, details = {}, force = false) {
-    if (!isSearchDebugActive(force)) return;
-
-    searchDebugSeq += 1;
-    console.log(`[ECHO-SEARCH][S${searchDebugSessionId}][${String(searchDebugSeq).padStart(3, '0')}] ${type}`, {
-      t: Math.round(performance.now()),
-      url: location.href,
-      ...getActiveElementSummary(),
-      ...details
-    });
-  }
-
-  function getEventDebugInfo(e) {
-    const path = typeof e.composedPath === 'function'
-      ? e.composedPath().slice(0, 5).map(describeNode)
-      : [];
-    const target = e.target;
-    const targetRect = target?.getBoundingClientRect ? target.getBoundingClientRect() : null;
-    const topEl = typeof e.clientX === 'number' && typeof e.clientY === 'number'
-      ? document.elementFromPoint(e.clientX, e.clientY)
-      : null;
-
-    return {
-      eventType: e.type,
-      eventPhase: e.eventPhase,
-      isTrusted: e.isTrusted,
-      defaultPrevented: e.defaultPrevented,
-      cancelBubble: e.cancelBubble,
-      button: typeof e.button === 'number' ? e.button : undefined,
-      buttons: typeof e.buttons === 'number' ? e.buttons : undefined,
-      key: typeof e.key === 'string' ? e.key : undefined,
-      ctrlKey: !!e.ctrlKey,
-      metaKey: !!e.metaKey,
-      shiftKey: !!e.shiftKey,
-      altKey: !!e.altKey,
-      clientX: typeof e.clientX === 'number' ? e.clientX : undefined,
-      clientY: typeof e.clientY === 'number' ? e.clientY : undefined,
-      target: describeNode(target),
-      currentTarget: describeNode(e.currentTarget),
-      closestLink: target?.closest?.('a')?.href?.slice(0, 120) || null,
-      inHost: !!(target && host?.contains(target)),
-      elementFromPoint: describeNode(topEl),
-      targetRect: targetRect
-        ? {
-            left: Math.round(targetRect.left),
-            top: Math.round(targetRect.top),
-            width: Math.round(targetRect.width),
-            height: Math.round(targetRect.height)
-          }
-        : null,
-      path
-    };
-  }
-
-  function safePreview(value) {
-    if (value == null) return value;
-    if (typeof value === 'string') return value.slice(0, 160);
-    if (typeof value === 'number' || typeof value === 'boolean') return value;
-    try {
-      return JSON.stringify(value).slice(0, 160);
-    } catch {
-      return Object.prototype.toString.call(value);
-    }
-  }
-
-  function isBiliRelatedUrl(urlString) {
-    try {
-      const url = new URL(urlString, location.href);
-      return /(^|\.)bilibili\.com$|(^|\.)bilivideo\.com$/.test(url.hostname);
-    } catch {
-      return false;
-    }
-  }
-
-  function shouldLogBiliRequest(urlString) {
-    try {
-      const url = new URL(urlString, location.href);
-      if (!isBiliRelatedUrl(url.href)) return false;
-      const target = `${url.hostname}${url.pathname}${url.search}`.toLowerCase();
-      return /(player|playurl|pbp|comment|reply|loader|view|pagelist|season|video|subtitle|playerview|x\/web-interface)/.test(target);
-    } catch {
-      return false;
-    }
-  }
-
   function getUrlVideoId(urlString = location.href) {
     try {
       const url = new URL(urlString, location.href);
@@ -884,167 +756,6 @@
     } catch {
       return null;
     }
-  }
-
-  function getPageDebugSnapshot() {
-    const h1 = document.querySelector('h1');
-    const activeRouterLink = document.querySelector('a.router-link-exact-active, a.router-link-active');
-    const video = document.querySelector('video');
-    const bpxWrap = document.querySelector('.bpx-player-video-wrap');
-
-    return {
-      title: document.title,
-      readyState: document.readyState,
-      visibilityState: document.visibilityState,
-      urlVideoId: getUrlVideoId(location.href),
-      h1Text: h1?.textContent?.trim?.().replace(/\s+/g, ' ').slice(0, 80) || null,
-      activeRouterLink: activeRouterLink?.href?.slice(0, 160) || null,
-      activeRouterLinkText: activeRouterLink?.textContent?.trim?.().replace(/\s+/g, ' ').slice(0, 60) || null,
-      hasVideoElement: !!video,
-      videoPaused: video ? video.paused : null,
-      videoCurrentTime: video ? Math.round(video.currentTime * 10) / 10 : null,
-      videoSrc: video?.currentSrc?.slice(0, 160) || null,
-      hasBpxWrap: !!bpxWrap,
-      bpxWrapClasses: bpxWrap?.className?.toString?.().slice(0, 120) || null
-    };
-  }
-
-  function logNavDebug(type, details = {}, force = false) {
-    const payload = {
-      ...getPageDebugSnapshot(),
-      ...details
-    };
-    logSearchDebug(`nav-${type}`, payload, force);
-    console.log(
-      `[ECHO-NAV] ${type}`,
-      `urlVideoId=${payload.urlVideoId}`,
-      `h1=${payload.h1Text || 'null'}`,
-      `activeLink=${payload.activeRouterLink || payload.linkHref || 'null'}`,
-      `activeLinkText=${payload.activeRouterLinkText || 'null'}`,
-      `videoSrc=${payload.videoSrc || 'null'}`,
-      `ready=${payload.readyState}`,
-      `visibility=${payload.visibilityState}`,
-      payload
-    );
-  }
-
-  function scheduleNavDebugSnapshots(reason) {
-    [0, 100, 300, 1000, 2000].forEach(delay => {
-      setTimeout(() => {
-        logNavDebug('snapshot', { reason, delay });
-      }, delay);
-    });
-  }
-
-  function clearPendingOutsideHide() {
-    if (pendingOutsideHideTimer) {
-      clearTimeout(pendingOutsideHideTimer);
-      pendingOutsideHideTimer = null;
-    }
-  }
-
-  function scheduleOutsideHide(triggerEvent, reason = 'outside-interaction') {
-    clearPendingOutsideHide();
-
-    pendingOutsideHideTimer = setTimeout(() => {
-      pendingOutsideHideTimer = null;
-      if (!searchWrapper?.classList.contains('show')) {
-        return;
-      }
-      hideSearchBox(reason, triggerEvent);
-    }, 0);
-  }
-
-  function summarizeHistoryArgs(args) {
-    return args.map((arg, index) => ({ index, value: safePreview(arg) }));
-  }
-
-  function installNavigationDebugHooks() {
-    if (window.__echoSearchNavDebugInstalled) return;
-    window.__echoSearchNavDebugInstalled = true;
-
-    const originalPushState = history.pushState;
-    history.pushState = function(...args) {
-      const beforeUrl = location.href;
-      logNavDebug('pushState-before', {
-        beforeUrl,
-        args: summarizeHistoryArgs(args)
-      });
-      const result = originalPushState.apply(this, args);
-      logNavDebug('pushState-after', {
-        beforeUrl,
-        afterUrl: location.href,
-        args: summarizeHistoryArgs(args)
-      });
-      scheduleNavDebugSnapshots('pushState');
-      return result;
-    };
-
-    const originalReplaceState = history.replaceState;
-    history.replaceState = function(...args) {
-      const beforeUrl = location.href;
-      logNavDebug('replaceState-before', {
-        beforeUrl,
-        args: summarizeHistoryArgs(args)
-      });
-      const result = originalReplaceState.apply(this, args);
-      logNavDebug('replaceState-after', {
-        beforeUrl,
-        afterUrl: location.href,
-        args: summarizeHistoryArgs(args)
-      });
-      scheduleNavDebugSnapshots('replaceState');
-      return result;
-    };
-
-    window.addEventListener('popstate', (e) => {
-      logNavDebug('popstate', {
-        state: safePreview(e.state)
-      });
-      scheduleNavDebugSnapshots('popstate');
-    });
-
-    window.addEventListener('hashchange', (e) => {
-      logNavDebug('hashchange', {
-        oldURL: e.oldURL,
-        newURL: e.newURL
-      });
-      scheduleNavDebugSnapshots('hashchange');
-    });
-
-    window.addEventListener('pageshow', (e) => {
-      logNavDebug('pageshow', {
-        persisted: e.persisted
-      });
-    });
-
-    window.addEventListener('pagehide', (e) => {
-      logNavDebug('pagehide', {
-        persisted: e.persisted
-      });
-    });
-  }
-
-  function installBiliInternalFlowDebugHooks() {
-    if (window.__echoBiliFlowDebugInstalled) return;
-    window.__echoBiliFlowDebugInstalled = true;
-
-    document.addEventListener(PAGE_DEBUG_EVENT, (event) => {
-      if (!isSearchDebugActive()) return;
-      const detail = event.detail || {};
-      logNavDebug(`page-${detail.type || 'unknown'}`, detail.details || {}, true);
-    });
-
-    const script = document.createElement('script');
-    script.src = chrome.runtime.getURL('search-box/page-debug-hook.js');
-    (document.documentElement || document.head || document.body).appendChild(script);
-    script.addEventListener('load', () => script.remove(), { once: true });
-    script.addEventListener('error', () => {
-      logNavDebug('page-hook-load-error', {
-        scriptSrc: script.src
-      }, true);
-      script.remove();
-    }, { once: true });
   }
 
   // 通道交换 SVG 滤镜定义
@@ -1090,7 +801,7 @@
     // 根据模式显示不同的提示文字
     const hintText = settings.floatingSearchBoxAlwaysShow 
       ? '<kbd>Enter</kbd> 搜索 · <kbd>Ctrl+B</kbd> 开关'
-      : '<kbd>Enter</kbd> 搜索 · <kbd>Esc</kbd> 关闭';
+      : '<kbd>Enter</kbd> 搜索 · <kbd>Ctrl+B</kbd> 关闭';
     
     searchContainer.innerHTML = `
       <div class="search-glow"></div>
@@ -1145,20 +856,26 @@
     sep2.className = 'invert-toolbar-sep';
     invertToolbar.appendChild(sep2);
 
-    // 旋转按钮：顺时针
-    const rotateCW = document.createElement('button');
-    rotateCW.className = 'invert-mode-btn compact';
-    rotateCW.title = '顺时针旋转 90\u00b0';
-    rotateCW.dataset.action = 'rotate';
-    rotateCW.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>`;
-    invertToolbar.appendChild(rotateCW);
+      // 旋转按钮：顺时针
+      const rotateCW = document.createElement('button');
+      rotateCW.className = 'invert-mode-btn';
+      rotateCW.title = '顺时针旋转 90°';
+      rotateCW.dataset.action = 'rotate';
+      rotateCW.innerHTML = `
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+        <span>旋转</span>
+      `;
+      invertToolbar.appendChild(rotateCW);
 
     // 镜像按钮
     const mirrorBtn = document.createElement('button');
     mirrorBtn.className = 'invert-mode-btn compact';
     mirrorBtn.title = '水平镜像';
     mirrorBtn.dataset.action = 'mirror';
-    mirrorBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18"/><path d="M8 7H4l4 5-4 5h4"/><path d="M16 7h4l-4 5 4 5h-4"/></svg>`;
+      mirrorBtn.innerHTML = `
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18"/><path d="M8 7H4l4 5-4 5h4"/><path d="M16 7h4l-4 5 4 5h-4"/></svg>
+        <span>镜像</span>
+      `;
     invertToolbar.appendChild(mirrorBtn);
 
     // 适应/填充 切换按钮
@@ -1180,16 +897,16 @@
     helpBtn.title = '';
     helpBtn.innerHTML = `?
       <div class="invert-help-tooltip">
-        <strong>视频优化工具</strong>
-        <p>部分视频经过颜色处理（如反色、通道交换）以通过审核。使用这些按钮还原画面色彩。</p>
+        <strong>Bilibili 视频优化工具</strong>
+        <p>部分视频经过颜色处理（如反色、通道交换）以通过审核，使用这些按钮还原画面色彩，或者旋转及镜像获得更好的观看体验。</p>
         <ul>
           <li><b>颜色反转</b>：还原全通道反色处理</li>
           <li><b>红\u2194绿 / 红\u2194蓝 / 绿\u2194蓝</b>：还原对应通道交换</li>
-          <li><b>\u21bb</b>：顺时针旋转视频，每次 90\u00b0</li>
+          <li><b>旋转</b>：顺时针旋转视频，每次 90\u00b0</li>
           <li><b>镜像</b>：水平翻转视频</li>
           <li><b>适应/填充</b>：旋转 90\u00b0/270\u00b0 时的显示模式，适应保留黑边，填充裁切填满</li>
         </ul>
-        <p>各按钮可自由组合使用。关闭搜索框不影响工具状态。</p>
+        <p>各按钮可自由组合使用，关闭搜索框不影响状态。</p>
       </div>
     `;
     invertToolbar.appendChild(helpBtn);
@@ -1995,28 +1712,6 @@
   function bindEvents() {
     const isAlwaysShowMode = settings.floatingSearchBoxAlwaysShow;
 
-    document.addEventListener('click', (e) => {
-      const info = getEventDebugInfo(e);
-      if (info.closestLink && !info.inHost) {
-        extendSearchDebugWindow('page-link-click');
-        logNavDebug('page-link-click', {
-          linkHref: info.closestLink,
-          clickTarget: info.target,
-          elementFromPoint: info.elementFromPoint,
-          defaultPrevented: info.defaultPrevented
-        });
-        scheduleNavDebugSnapshots('page-link-click');
-      }
-    });
-
-    searchInput.addEventListener('focus', (e) => {
-      logSearchDebug('search-input-focus', getEventDebugInfo(e));
-    });
-
-    searchInput.addEventListener('blur', (e) => {
-      logSearchDebug('search-input-blur', getEventDebugInfo(e));
-    });
-    
     // 输入框回车搜索
     searchInput.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') {
@@ -2191,12 +1886,6 @@
    */
   async function showSearchBox(shouldFocus = true, withBurstAnimation = false) {
     createSearchBox();
-
-    logSearchDebug('show-search-box-enter', {
-      shouldFocus,
-      withBurstAnimation,
-      wasVisibleBefore: getSearchWrapperVisible()
-    }, true);
     
     // 记录显示前的状态，用于判断是否需要清空输入框
     const wasAlreadyShown = searchWrapper.classList.contains('show');
@@ -2209,11 +1898,6 @@
     }
     
     searchWrapper.classList.add('show');
-    logSearchDebug('show-search-box-visible', {
-      shouldFocus,
-      withBurstAnimation,
-      wasAlreadyShown
-    }, true);
 
     // 更新颜色反转工具条可见性（仅在B站视频页显示）
     updateInvertToolbarVisibility();
@@ -2228,23 +1912,11 @@
     
     if (shouldFocus) {
       const focusInput = () => {
-        const activeInShadow = shadowRoot?.activeElement;
-        logSearchDebug('focus-attempt', {
-          source: 'single-raf',
-          activeInShadow: describeNode(activeInShadow),
-          documentActiveBefore: describeNode(document.activeElement)
-        }, true);
-        if (activeInShadow === searchInput) {
-          logSearchDebug('focus-attempt-skip-already-focused', { source: 'single-raf' }, true);
+        if (shadowRoot?.activeElement === searchInput) {
           return;
         }
 
         searchInput.focus({ preventScroll: true });
-        logSearchDebug('focus-attempt-after-focus', {
-          source: 'single-raf',
-          documentActiveAfter: describeNode(document.activeElement),
-          shadowActiveAfter: describeNode(shadowRoot?.activeElement)
-        }, true);
       };
 
       requestAnimationFrame(focusInput);
@@ -2253,11 +1925,6 @@
   }
 
   function hideSearchBox(reason = 'unknown', triggerEvent = null) {
-    clearPendingOutsideHide();
-    logSearchDebug('hide-search-box-enter', {
-      reason,
-      triggerEvent: triggerEvent ? getEventDebugInfo(triggerEvent) : null
-    }, true);
     if (searchWrapper) {
       searchWrapper.classList.remove('show');
       searchInput.blur();
@@ -2266,17 +1933,12 @@
       trendingPanel.classList.remove('show');
       stopTrendingScroll();
     }
-    extendSearchDebugWindow(`hide:${reason}`);
-    logSearchDebug('hide-search-box-exit', { reason }, true);
   }
 
   /**
    * 切换搜索框（Ctrl+B 触发，始终需要焦点，播放聚焦动画）
    */
   function toggleSearchBox() {
-    logSearchDebug('toggle-search-box', {
-      currentlyVisible: getSearchWrapperVisible()
-    }, true);
     if (searchWrapper && searchWrapper.classList.contains('show')) {
       hideSearchBox('toggle-close');
     } else {
@@ -2314,6 +1976,24 @@
   // ============================================
 
   document.addEventListener('keydown', (e) => {
+    // 全局 Esc：搜索框可见时关闭（常驻模式除外）
+    // 焦点在页面自己的可编辑元素内时不拦截
+    if (e.key === 'Escape' && !settings.floatingSearchBoxAlwaysShow && getSearchWrapperVisible()) {
+      const activeEl = document.activeElement;
+      const isInPageEditable = activeEl && activeEl !== document.body && activeEl !== document.documentElement && (
+        activeEl.tagName === 'INPUT' ||
+        activeEl.tagName === 'TEXTAREA' ||
+        activeEl.tagName === 'SELECT' ||
+        activeEl.isContentEditable
+      ) && !host?.contains(activeEl);
+      if (!isInPageEditable) {
+        e.preventDefault();
+        e.stopPropagation();
+        hideSearchBox('esc-global');
+        return;
+      }
+    }
+
     // Ctrl+B (Windows) / Cmd+B (Mac)
     const isCtrlOrCmd = e.ctrlKey || e.metaKey;
     if (isCtrlOrCmd && e.key === 'b' && !e.shiftKey && !e.altKey) {
@@ -2331,11 +2011,6 @@
         return;
       }
 
-      beginSearchDebugSession('ctrl-b-keydown', {
-        event: getEventDebugInfo(e),
-        isInOurSearchBox,
-        isInOtherInput
-      });
       e.preventDefault();
       e.stopPropagation();
       toggleSearchBox();
@@ -2365,9 +2040,6 @@
     init();
   }
 
-  installNavigationDebugHooks();
-  installBiliInternalFlowDebugHooks();
-
   // ============================================
   // SPA 导航监听：视频切换时自动清除工具状态
   // ============================================
@@ -2379,14 +2051,6 @@
       const previousUrl = lastUrl;
       lastUrl = location.href;
       const hadEffects = invertActive || activeChannels.size > 0 || rotateAngle !== 0 || mirrorActive;
-      extendSearchDebugWindow('title-observer-url-change');
-      logNavDebug('title-observer-url-change', {
-        previousUrl,
-        currentUrl: location.href,
-        mutationCount: mutations.length,
-        hadEffects
-      });
-      scheduleNavDebugSnapshots('title-observer-url-change');
       if (hadEffects) {
         clearAllBiliTools();
       }

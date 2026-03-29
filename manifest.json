@@ -67,7 +67,7 @@
   },
   "web_accessible_resources": [
     {
-      "resources": ["_favicon/*", "wallpaper/*", "icons/*", "docs-viewer.html", "*.md", "search-box/page-debug-hook.js"],
+      "resources": ["_favicon/*", "wallpaper/*", "icons/*", "docs-viewer.html", "*.md"],
       "matches": ["<all_urls>"]
     }
   ]
