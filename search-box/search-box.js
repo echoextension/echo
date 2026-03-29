@@ -386,6 +386,47 @@
       color: #333;
     }
 
+    .rotate-fit-btn {
+      height: 28px;
+      border: none;
+      background: rgba(255, 255, 255, 0.9);
+      cursor: pointer;
+      color: #666;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 14px;
+      padding: 0 10px;
+      font-size: 11px;
+      font-family: inherit;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.12);
+      transition: background 0.15s, color 0.15s, opacity 0.15s;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      white-space: nowrap;
+    }
+
+    .rotate-fit-btn:hover {
+      background: rgba(255, 255, 255, 1);
+      color: #333;
+    }
+
+    .rotate-fit-btn.active {
+      color: #fff;
+      background: #0078d4;
+      box-shadow: 0 2px 10px rgba(0, 120, 212, 0.35);
+    }
+
+    .rotate-fit-btn.active:hover {
+      background: #106ebe;
+    }
+
+    .rotate-fit-btn.disabled {
+      opacity: 0.4;
+      cursor: default;
+      pointer-events: none;
+    }
+
     /* ============================================
      * 热搜推荐 - 右侧延伸面板样式
      * ============================================ */
@@ -586,6 +627,27 @@
         color: #ddd;
       }
 
+      .rotate-fit-btn {
+        background: rgba(40, 40, 40, 0.9);
+        color: #ccc;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+      }
+
+      .rotate-fit-btn:hover {
+        background: rgba(50, 50, 50, 1);
+        color: #fff;
+      }
+
+      .rotate-fit-btn.active {
+        color: #fff;
+        background: #3b82f6;
+        box-shadow: 0 2px 10px rgba(59, 130, 246, 0.4);
+      }
+
+      .rotate-fit-btn.active:hover {
+        background: #2563eb;
+      }
+
       /* 深色模式：热搜推荐面板 */
       .trending-panel {
         background: rgba(40, 40, 40, 0.8);
@@ -639,6 +701,12 @@
   let invertStyleElement = null;
   let invertSvgElement = null;
   let invertIndicator = null;
+
+  // 视频旋转状态
+  let rotateAngle = 0;                  // 0, 90, 180, 270
+  let rotateFillMode = false;           // false=适应(保留黑边), true=填充(裁切)
+  let mirrorActive = false;             // 水平镜像
+  let rotateStyleElement = null;
 
   // 通道交换 SVG 滤镜定义
   const CHANNEL_SWAPS = [
@@ -738,19 +806,51 @@
     sep2.className = 'invert-toolbar-sep';
     invertToolbar.appendChild(sep2);
 
+    // 旋转按钮：顺时针
+    const rotateCW = document.createElement('button');
+    rotateCW.className = 'invert-mode-btn compact';
+    rotateCW.title = '顺时针旋转 90\u00b0';
+    rotateCW.dataset.action = 'rotate';
+    rotateCW.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>`;
+    invertToolbar.appendChild(rotateCW);
+
+    // 镜像按钮
+    const mirrorBtn = document.createElement('button');
+    mirrorBtn.className = 'invert-mode-btn compact';
+    mirrorBtn.title = '水平镜像';
+    mirrorBtn.dataset.action = 'mirror';
+    mirrorBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18"/><path d="M8 7H4l4 5-4 5h4"/><path d="M16 7h4l-4 5 4 5h-4"/></svg>`;
+    invertToolbar.appendChild(mirrorBtn);
+
+    // 适应/填充 切换按钮
+    const fitBtn = document.createElement('button');
+    fitBtn.className = 'rotate-fit-btn disabled';
+    fitBtn.title = '旋转 90\u00b0/270\u00b0 时可切换适应/填充';
+    fitBtn.dataset.action = 'rotate-fit';
+    fitBtn.textContent = '适应';
+    invertToolbar.appendChild(fitBtn);
+
+    // 分隔符
+    const sep3 = document.createElement('div');
+    sep3.className = 'invert-toolbar-sep';
+    invertToolbar.appendChild(sep3);
+
     // 帮助按钮
     const helpBtn = document.createElement('button');
     helpBtn.className = 'invert-help-btn';
     helpBtn.title = '';
     helpBtn.innerHTML = `?
       <div class="invert-help-tooltip">
-        <strong>视频颜色工具</strong>
+        <strong>视频优化工具</strong>
         <p>部分视频经过颜色处理（如反色、通道交换）以通过审核。使用这些按钮还原画面色彩。</p>
         <ul>
           <li><b>颜色反转</b>：还原全通道反色处理</li>
           <li><b>红\u2194绿 / 红\u2194蓝 / 绿\u2194蓝</b>：还原对应通道交换</li>
+          <li><b>\u21bb</b>：顺时针旋转视频，每次 90\u00b0</li>
+          <li><b>镜像</b>：水平翻转视频</li>
+          <li><b>适应/填充</b>：旋转 90\u00b0/270\u00b0 时的显示模式，适应保留黑边，填充裁切填满</li>
         </ul>
-        <p>各按钮可自由组合使用。关闭搜索框不影响滤镜状态。</p>
+        <p>各按钮可自由组合使用。关闭搜索框不影响工具状态。</p>
       </div>
     `;
     invertToolbar.appendChild(helpBtn);
@@ -1235,10 +1335,10 @@
       invertStyleElement = null;
     }
 
-    // 无任何效果
+    // 无任何颜色效果
     if (!invertActive && activeChannels.size === 0) {
-      removeInvertIndicator();
-      updateInvertToolbarState();
+      updateToolbarState();
+      updateBiliIndicator();
       return;
     }
 
@@ -1264,8 +1364,8 @@
       }
     `;
     document.head.appendChild(invertStyleElement);
-    showInvertIndicator();
-    updateInvertToolbarState();
+    updateToolbarState();
+    updateBiliIndicator();
   }
 
   /**
@@ -1289,21 +1389,138 @@
   }
 
   /**
-   * 关闭所有滤镜
+   * 关闭所有滤镜和旋转
    */
-  function clearInvertMode() {
-    if (!invertActive && activeChannels.size === 0) return;
+  function clearAllBiliTools() {
     invertActive = false;
     activeChannels.clear();
     applyInvertFilter();
+    clearRotate();
+    updateToolbarState();
+    removeBiliIndicator();
+  }
+
+  // ============================================
+  // 视频旋转功能
+  // ============================================
+
+  /**
+   * 旋转视频（顺时针 +90\u00b0）
+   */
+  function rotateVideo() {
+    rotateAngle = (rotateAngle + 90) % 360;
+    applyRotateTransform();
+  }
+
+  /**
+   * 切换镜像
+   */
+  function toggleMirror() {
+    mirrorActive = !mirrorActive;
+    applyRotateTransform();
+  }
+
+  /**
+   * 切换适应/填充模式
+   */
+  function toggleRotateFitMode() {
+    rotateFillMode = !rotateFillMode;
+    applyRotateTransform();
+    updateToolbarState();
+  }
+
+  /**
+   * 应用旋转变换
+   */
+  function applyRotateTransform() {
+    // 移除旧样式
+    if (rotateStyleElement) {
+      rotateStyleElement.remove();
+      rotateStyleElement = null;
+    }
+
+    if (rotateAngle === 0 && !mirrorActive) {
+      updateToolbarState();
+      updateBiliIndicator();
+      return;
+    }
+
+    // 计算缩放比例：旋转 90°/270° 时宽高互换，需要缩放
+    const isRotated90 = (rotateAngle === 90 || rotateAngle === 270);
+    let scaleCSS = '';
+
+    if (isRotated90) {
+      // 获取播放器容器和视频尺寸
+      const container = document.querySelector('.bpx-player-video-area') || document.querySelector('.bpx-player-video-wrap');
+      const video = document.querySelector('.bpx-player-video-wrap video');
+
+      if (container && video) {
+        const cw = container.clientWidth;
+        const ch = container.clientHeight;
+        // 旋转后视频的逻辑宽高互换
+        // 适应模式：缩放到容器能完全包含（取小值）
+        // 填充模式：缩放到填满容器（取大值）
+        const scaleX = cw / ch;  // 宽度方向缩放比
+        const scaleY = ch / cw;  // 高度方向缩放比
+
+        let scale;
+        if (rotateFillMode) {
+          scale = Math.max(scaleX, scaleY);
+        } else {
+          scale = Math.min(scaleX, scaleY);
+        }
+        scaleCSS = ` scale(${scale.toFixed(4)})`;
+      } else {
+        // 找不到容器，用安全的默认值
+        const defaultScale = rotateFillMode ? 1.78 : 0.5625; // 16:9 假设
+        scaleCSS = ` scale(${defaultScale})`;
+      }
+    }
+
+    // 构建 transform
+    const transforms = [];
+    if (rotateAngle !== 0) {
+      transforms.push(`rotate(${rotateAngle}deg)`);
+    }
+    if (scaleCSS) {
+      transforms.push(scaleCSS.trim());
+    }
+    if (mirrorActive) {
+      transforms.push('scaleX(-1)');
+    }
+
+    rotateStyleElement = document.createElement('style');
+    rotateStyleElement.id = 'echo-video-rotate-style';
+    rotateStyleElement.textContent = `
+      .bpx-player-video-wrap video {
+        transform: ${transforms.join(' ')} !important;
+      }
+    `;
+    document.head.appendChild(rotateStyleElement);
+
+    updateToolbarState();
+    updateBiliIndicator();
+  }
+
+  /**
+   * 重置旋转
+   */
+  function clearRotate() {
+    rotateAngle = 0;
+    rotateFillMode = false;
+    mirrorActive = false;
+    if (rotateStyleElement) {
+      rotateStyleElement.remove();
+      rotateStyleElement = null;
+    }
   }
 
   /**
    * 更新工具条按钮激活状态
    */
-  function updateInvertToolbarState() {
+  function updateToolbarState() {
     if (!invertToolbar) return;
-    // 主按钮
+    // 颜色反转主按钮
     const mainBtn = invertToolbar.querySelector('[data-action="invert"]');
     if (mainBtn) {
       mainBtn.classList.toggle('active', invertActive);
@@ -1313,6 +1530,24 @@
       const id = parseInt(btn.dataset.channelId);
       btn.classList.toggle('active', activeChannels.has(id));
     });
+    // 旋转按钮高亮（旋转角度非0时）
+    const rotateBtn = invertToolbar.querySelector('[data-action="rotate"]');
+    if (rotateBtn) {
+      rotateBtn.classList.toggle('active', rotateAngle !== 0);
+    }
+    // 镜像按钮高亮
+    const mirrorBtn = invertToolbar.querySelector('[data-action="mirror"]');
+    if (mirrorBtn) {
+      mirrorBtn.classList.toggle('active', mirrorActive);
+    }
+    // 适应/填充按钮
+    const fitBtn = invertToolbar.querySelector('[data-action="rotate-fit"]');
+    if (fitBtn) {
+      const isRotated90 = (rotateAngle === 90 || rotateAngle === 270);
+      fitBtn.textContent = rotateFillMode ? '填充' : '适应';
+      fitBtn.classList.toggle('active', rotateFillMode);
+      fitBtn.classList.toggle('disabled', !isRotated90);
+    }
   }
 
   /**
@@ -1325,14 +1560,38 @@
     } else {
       invertToolbar.classList.remove('show');
     }
-    updateInvertToolbarState();
+    updateToolbarState();
   }
 
   /**
-   * 显示颜色反转指示器（document.body 上，搜索框外）
+   * 更新B站工具指示器（综合颜色+旋转状态）
    */
-  function showInvertIndicator() {
-    if (invertIndicator) return;
+  function updateBiliIndicator() {
+    const hasColorEffect = invertActive || activeChannels.size > 0;
+    const hasRotate = rotateAngle !== 0;
+    const hasMirror = mirrorActive;
+    if (hasColorEffect || hasRotate || hasMirror) {
+      const parts = [];
+      if (hasColorEffect) parts.push('颜色已调整');
+      if (hasRotate) {
+        parts.push(`已旋转${rotateAngle}\u00b0`);
+      }
+      if (hasMirror) parts.push('已镜像');
+      showBiliIndicator(parts.join(' / '));
+    } else {
+      removeBiliIndicator();
+    }
+  }
+
+  /**
+   * 显示B站工具指示器（document.body 上，搜索框外）
+   */
+  function showBiliIndicator(text) {
+    if (invertIndicator) {
+      // 已存在，更新文案
+      invertIndicator.textContent = text + ' \u00b7 点击重置';
+      return;
+    }
 
     invertIndicator = document.createElement('div');
     invertIndicator.id = 'echo-invert-indicator';
@@ -1354,11 +1613,11 @@
       transition: opacity 0.3s;
       opacity: 0;
     `;
-    invertIndicator.textContent = '颜色已反转 · 点击关闭';
-    invertIndicator.title = '点击关闭颜色反转';
+    invertIndicator.textContent = text + ' \u00b7 点击重置';
+    invertIndicator.title = '点击重置所有视频工具';
     invertIndicator.addEventListener('click', (e) => {
       e.stopPropagation();
-      clearInvertMode();
+      clearAllBiliTools();
     });
 
     document.body.appendChild(invertIndicator);
@@ -1369,9 +1628,9 @@
   }
 
   /**
-   * 移除颜色反转指示器
+   * 移除B站工具指示器
    */
-  function removeInvertIndicator() {
+  function removeBiliIndicator() {
     if (!invertIndicator) return;
     invertIndicator.style.opacity = '0';
     const el = invertIndicator;
@@ -1420,10 +1679,10 @@
       });
     }
 
-    // B站视频颜色反转工具条
+    // B站视频工具条
     if (invertToolbar) {
       invertToolbar.addEventListener('click', (e) => {
-        const btn = e.target.closest('.invert-mode-btn');
+        const btn = e.target.closest('.invert-mode-btn, .rotate-fit-btn');
         if (!btn) return;
         e.preventDefault();
         e.stopPropagation();
@@ -1432,6 +1691,12 @@
           toggleInvert();
         } else if (action === 'channel') {
           toggleChannelSwap(parseInt(btn.dataset.channelId));
+        } else if (action === 'rotate') {
+          rotateVideo();
+        } else if (action === 'mirror') {
+          toggleMirror();
+        } else if (action === 'rotate-fit') {
+          toggleRotateFitMode();
         }
       });
     }
