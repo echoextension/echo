@@ -24,7 +24,8 @@
     floatingSearchBox: true,        // 主开关，默认开启
     floatingSearchBoxAlwaysShow: false,  // 子选项：默认常驻显示，默认关闭
     floatingSearchBoxTrending: false,    // 子选项：显示热搜榜，默认关闭
-    floatingSearchBoxFollowZoom: false   // 子选项：跟随页面缩放，默认关闭（即默认反向补偿）
+    floatingSearchBoxFollowZoom: false,  // 子选项：跟随页面缩放，默认关闭（即默认反向补偿）
+    floatingSearchBoxBiliTool: true      // 子选项：B站视频优化工具，默认开启
   };
 
   // 加载设置
@@ -75,6 +76,10 @@
           // 开启补偿
           initZoomCompensation();
         }
+      }
+      if (changes.floatingSearchBoxBiliTool) {
+        settings.floatingSearchBoxBiliTool = changes.floatingSearchBoxBiliTool.newValue;
+        updateInvertToolbarVisibility();
       }
     }
   });
@@ -715,9 +720,9 @@
   // 通道交换定义：循环排列 R→G→B→R
   // rows 表示交换哪两行（0=R, 1=G, 2=B）
   const CHANNEL_SWAPS = [
-    { id: 1, label: '红\u2194绿', title: '红\u2194绿 通道交换', rows: [0, 1] },
-    { id: 2, label: '绿\u2194蓝', title: '绿\u2194蓝 通道交换', rows: [1, 2] },
-    { id: 3, label: '蓝\u2194红', title: '蓝\u2194红 通道交换', rows: [2, 0] },
+    { id: 1, label: '红\u2194绿', title: '红\u2194绿 通道交换', rows: [0, 1], colors: ['#FF0000', '#00CC00'] },
+    { id: 2, label: '绿\u2194蓝', title: '绿\u2194蓝 通道交换', rows: [1, 2], colors: ['#00CC00', '#4488FF'] },
+    { id: 3, label: '蓝\u2194红', title: '蓝\u2194红 通道交换', rows: [2, 0], colors: ['#4488FF', '#FF0000'] },
   ];
 
     const FRAME_PAD = 40; // 预留阴影空间
@@ -879,7 +884,7 @@
         <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/>
         <path d="M12 3a9 9 0 0 1 0 18V3z" fill="currentColor"/>
       </svg>
-      <span>颜色反转</span>
+      <span>全部颜色反转</span>
     `;
     colorCapsule.appendChild(mainBtn);
 
@@ -893,7 +898,14 @@
       btn.title = swap.title;
       btn.dataset.action = 'channel';
       btn.dataset.channelId = swap.id;
-      btn.textContent = swap.label;
+      btn.innerHTML = `
+        <svg width="14" height="14" viewBox="0 0 24 24" style="flex-shrink:0">
+          <path d="M12 3a9 9 0 0 0 0 18V3z" fill="${swap.colors[0]}"/>
+          <path d="M12 3a9 9 0 0 1 0 18V3z" fill="${swap.colors[1]}"/>
+          <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.3"/>
+        </svg>
+        <span>${swap.label}</span>
+      `;
       colorCapsule.appendChild(btn);
     });
     invertToolbar.appendChild(colorCapsule);
@@ -1722,7 +1734,7 @@
    */
   function updateInvertToolbarVisibility() {
     if (!invertToolbar) return;
-    if (isBilibiliVideoPage()) {
+    if (settings.floatingSearchBoxBiliTool && isBilibiliVideoPage()) {
       invertToolbar.classList.add('show');
     } else {
       invertToolbar.classList.remove('show');
