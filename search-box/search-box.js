@@ -1911,15 +1911,8 @@
     updateTrendingVisibility();
     
     if (shouldFocus) {
-      const focusInput = () => {
-        if (shadowRoot?.activeElement === searchInput) {
-          return;
-        }
-
-        searchInput.focus({ preventScroll: true });
-      };
-
-      requestAnimationFrame(focusInput);
+      // 不自动 focus shadow DOM input，避免干扰 B站等 SPA 路由导航。
+      // 用户可以点击搜索框来激活输入。
     }
     // 常驻模式初始化时不抢焦点，让用户正常浏览网页
   }
