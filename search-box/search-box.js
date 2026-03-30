@@ -252,11 +252,11 @@
       color: #666;
     }
 
-    /* B站视频颜色反转工具条（搜索框上方） */
+    /* B站视频工具条（搜索框上方） */
     .invert-toolbar {
       display: none;
       align-items: center;
-      gap: 6px;
+      gap: 8px;
       margin-bottom: 16px;
     }
 
@@ -264,83 +264,69 @@
       display: flex;
     }
 
-    .invert-mode-btn {
-      height: 28px;
-      border: none;
-      background: rgba(255, 255, 255, 0.9);
-      cursor: pointer;
-      color: #666;
+    /* 胶囊按钮组（标签胶囊 + 功能胶囊共用） */
+    .toolbar-capsule {
       display: flex;
       align-items: center;
-      justify-content: center;
-      gap: 5px;
-      border-radius: 14px;
-      padding: 0 12px;
-      font-size: 12px;
-      font-family: inherit;
-      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.12);
-      transition: background 0.15s, color 0.15s, box-shadow 0.15s;
+      background: rgba(255, 255, 255, 0.88);
       backdrop-filter: blur(12px);
       -webkit-backdrop-filter: blur(12px);
+      border-radius: 14px;
+      border: 0.5px solid rgba(0, 0, 0, 0.1);
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+      overflow: hidden;
+      height: 28px;
+    }
+
+    .toolbar-capsule.capsule-overflow {
+      overflow: visible;
+    }
+
+    /* 标签胶囊内的文字 */
+    .toolbar-capsule .capsule-label {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 0 6px 0 12px;
+      font-size: 11px;
+      color: #00AEEC;
+      font-weight: 500;
       white-space: nowrap;
+      user-select: none;
     }
 
-    .invert-mode-btn:hover {
-      background: rgba(255, 255, 255, 1);
-      color: #333;
-    }
-
-    .invert-mode-btn.active {
-      color: #fff;
-      background: #0078d4;
-      box-shadow: 0 2px 10px rgba(0, 120, 212, 0.35);
-    }
-
-    .invert-mode-btn.active:hover {
-      background: #106ebe;
-    }
-
-    .invert-toolbar-sep {
-      width: 1px;
-      height: 16px;
-      background: rgba(0, 0, 0, 0.15);
+    .toolbar-capsule .capsule-label svg {
       flex-shrink: 0;
     }
 
-    .invert-mode-btn.compact {
-      padding: 0 10px;
-      min-width: 28px;
-    }
-
+    /* ⓘ 帮助按钮 */
     .invert-help-btn {
-      width: 22px;
-      height: 22px;
+      width: 16px;
+      height: 16px;
       border: none;
-      background: rgba(255, 255, 255, 0.7);
+      background: transparent;
       cursor: pointer;
-      color: #aaa;
+      color: #00AEEC;
       display: flex;
       align-items: center;
       justify-content: center;
-      border-radius: 50%;
       flex-shrink: 0;
-      font-size: 12px;
-      font-weight: 600;
-      font-family: inherit;
-      transition: background 0.15s, color 0.15s;
+      transition: color 0.15s, opacity 0.15s;
       position: relative;
+      padding: 0;
+      margin-right: 10px;
+      opacity: 0.6;
     }
 
     .invert-help-btn:hover {
-      background: rgba(255, 255, 255, 1);
-      color: #666;
+      opacity: 1;
     }
 
     .invert-help-tooltip {
       display: none;
       position: absolute;
       bottom: calc(100% + 8px);
-      right: -10px;
+      left: -10px;
       width: 280px;
       background: rgba(255, 255, 255, 0.95);
       backdrop-filter: blur(16px);
@@ -349,6 +335,8 @@
       padding: 14px 16px;
       box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
       font-size: 12px;
+      font-style: normal;
+      font-weight: 400;
       line-height: 1.6;
       color: #444;
       text-align: left;
@@ -384,45 +372,58 @@
       color: #333;
     }
 
-    .rotate-fit-btn {
+    /* 胶囊内功能按钮 */
+    .toolbar-capsule .capsule-btn {
       height: 28px;
       border: none;
-      background: rgba(255, 255, 255, 0.9);
+      background: transparent;
       cursor: pointer;
-      color: #666;
+      color: #444;
       display: flex;
       align-items: center;
       justify-content: center;
-      border-radius: 14px;
+      gap: 4px;
       padding: 0 10px;
-      font-size: 11px;
+      font-size: 12px;
       font-family: inherit;
-      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.12);
-      transition: background 0.15s, color 0.15s, opacity 0.15s;
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
       white-space: nowrap;
+      transition: background 0.15s, color 0.15s;
+      position: relative;
     }
 
-    .rotate-fit-btn:hover {
-      background: rgba(255, 255, 255, 1);
-      color: #333;
+    .toolbar-capsule .capsule-btn:first-child {
+      padding-left: 12px;
     }
 
-    .rotate-fit-btn.active {
+    .toolbar-capsule .capsule-btn:last-child {
+      padding-right: 12px;
+    }
+
+    .toolbar-capsule .capsule-btn:hover {
+      background: rgba(0, 0, 0, 0.06);
+      color: #222;
+    }
+
+    .toolbar-capsule .capsule-btn.active {
       color: #fff;
       background: #0078d4;
-      box-shadow: 0 2px 10px rgba(0, 120, 212, 0.35);
     }
 
-    .rotate-fit-btn.active:hover {
+    .toolbar-capsule .capsule-btn.active:hover {
       background: #106ebe;
     }
 
-    .rotate-fit-btn.disabled {
+    .toolbar-capsule .capsule-btn.disabled {
       opacity: 0.4;
       cursor: default;
       pointer-events: none;
+    }
+
+    .toolbar-capsule .capsule-sep {
+      width: 1px;
+      height: 14px;
+      background: rgba(0, 0, 0, 0.1);
+      flex-shrink: 0;
     }
 
     /* ============================================
@@ -572,39 +573,22 @@
         color: #ccc;
       }
 
-      .invert-toolbar-sep {
-        background: rgba(255, 255, 255, 0.15);
+      .toolbar-capsule {
+        background: rgba(40, 40, 40, 0.88);
+        border-color: rgba(255, 255, 255, 0.1);
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.35);
       }
 
-      .invert-mode-btn {
-        background: rgba(40, 40, 40, 0.9);
-        color: #ccc;
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
-      }
-
-      .invert-mode-btn:hover {
-        background: rgba(50, 50, 50, 1);
-        color: #fff;
-      }
-
-      .invert-mode-btn.active {
-        color: #fff;
-        background: #3b82f6;
-        box-shadow: 0 2px 10px rgba(59, 130, 246, 0.4);
-      }
-
-      .invert-mode-btn.active:hover {
-        background: #2563eb;
+      .toolbar-capsule .capsule-label {
+        color: #5bcefa;
       }
 
       .invert-help-btn {
-        background: rgba(40, 40, 40, 0.7);
-        color: #888;
+        color: #5bcefa;
       }
 
       .invert-help-btn:hover {
-        background: rgba(50, 50, 50, 1);
-        color: #ccc;
+        opacity: 1;
       }
 
       .invert-help-tooltip {
@@ -625,25 +609,26 @@
         color: #ddd;
       }
 
-      .rotate-fit-btn {
-        background: rgba(40, 40, 40, 0.9);
+      .toolbar-capsule .capsule-btn {
         color: #ccc;
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
       }
 
-      .rotate-fit-btn:hover {
-        background: rgba(50, 50, 50, 1);
+      .toolbar-capsule .capsule-btn:hover {
+        background: rgba(255, 255, 255, 0.08);
         color: #fff;
       }
 
-      .rotate-fit-btn.active {
+      .toolbar-capsule .capsule-btn.active {
         color: #fff;
         background: #3b82f6;
-        box-shadow: 0 2px 10px rgba(59, 130, 246, 0.4);
       }
 
-      .rotate-fit-btn.active:hover {
+      .toolbar-capsule .capsule-btn.active:hover {
         background: #2563eb;
+      }
+
+      .toolbar-capsule .capsule-sep {
+        background: rgba(255, 255, 255, 0.1);
       }
 
       /* 深色模式：热搜推荐面板 */
@@ -868,80 +853,30 @@
     // 获取输入框引用
     searchInput = searchContainer.querySelector('.search-input');
 
-    // 创建颜色反转工具条（搜索框上方，B站视频页专用）
+    // 创建B站视频工具条（搜索框上方，B站视频页专用）
     invertToolbar = document.createElement('div');
     invertToolbar.className = 'invert-toolbar';
 
-    // 主按钮：颜色反转
-    const mainBtn = document.createElement('button');
-    mainBtn.className = 'invert-mode-btn';
-    mainBtn.title = '全通道反转';
-    mainBtn.dataset.action = 'invert';
-    mainBtn.innerHTML = `
-      <svg width="14" height="14" viewBox="0 0 24 24" style="flex-shrink:0">
-        <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/>
-        <path d="M12 3a9 9 0 0 1 0 18V3z" fill="currentColor"/>
+    // ---- 标签胶囊：📺 B站助手 ⓘ ----
+    const labelCapsule = document.createElement('div');
+    labelCapsule.className = 'toolbar-capsule capsule-overflow';
+
+    const labelSpan = document.createElement('span');
+    labelSpan.className = 'capsule-label';
+    labelSpan.innerHTML = `
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="2" y="5" width="20" height="14" rx="3"/>
+        <path d="M8 2L10 5"/>
+        <path d="M16 2L14 5"/>
       </svg>
-      <span>颜色反转</span>
+      <span>B站助手</span>
     `;
-    invertToolbar.appendChild(mainBtn);
+    labelCapsule.appendChild(labelSpan);
 
-    // 副按钮：通道交换（各自独立开关，可叠加）
-    CHANNEL_SWAPS.forEach(swap => {
-      const btn = document.createElement('button');
-      btn.className = 'invert-mode-btn compact';
-      btn.title = swap.title;
-      btn.dataset.action = 'channel';
-      btn.dataset.channelId = swap.id;
-      btn.textContent = swap.label;
-      invertToolbar.appendChild(btn);
-    });
-
-    // 分隔符
-    const sep2 = document.createElement('div');
-    sep2.className = 'invert-toolbar-sep';
-    invertToolbar.appendChild(sep2);
-
-      // 旋转按钮：顺时针
-      const rotateCW = document.createElement('button');
-      rotateCW.className = 'invert-mode-btn';
-      rotateCW.title = '顺时针旋转 90°';
-      rotateCW.dataset.action = 'rotate';
-      rotateCW.innerHTML = `
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
-        <span>旋转</span>
-      `;
-      invertToolbar.appendChild(rotateCW);
-
-    // 镜像按钮
-    const mirrorBtn = document.createElement('button');
-    mirrorBtn.className = 'invert-mode-btn compact';
-    mirrorBtn.title = '水平镜像';
-    mirrorBtn.dataset.action = 'mirror';
-      mirrorBtn.innerHTML = `
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18"/><path d="M8 7H4l4 5-4 5h4"/><path d="M16 7h4l-4 5 4 5h-4"/></svg>
-        <span>镜像</span>
-      `;
-    invertToolbar.appendChild(mirrorBtn);
-
-    // 适应/填充 切换按钮
-    const fitBtn = document.createElement('button');
-    fitBtn.className = 'rotate-fit-btn disabled';
-    fitBtn.title = '旋转 90\u00b0/270\u00b0 时可切换适应/填充';
-    fitBtn.dataset.action = 'rotate-fit';
-    fitBtn.textContent = '适应';
-    invertToolbar.appendChild(fitBtn);
-
-    // 分隔符
-    const sep3 = document.createElement('div');
-    sep3.className = 'invert-toolbar-sep';
-    invertToolbar.appendChild(sep3);
-
-    // 帮助按钮
     const helpBtn = document.createElement('button');
     helpBtn.className = 'invert-help-btn';
-    helpBtn.title = '';
-    helpBtn.innerHTML = `?
+    helpBtn.innerHTML = `
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="11" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="7" r="1.5"/><rect x="10.5" y="10.5" width="3" height="8" rx="1"/></svg>
       <div class="invert-help-tooltip">
         <strong>Bilibili 视频优化工具</strong>
         <p>部分视频经过颜色处理（如反色、通道交换）以通过审核，使用这些按钮还原画面色彩，或者旋转及镜像获得更好的观看体验。</p>
@@ -955,7 +890,83 @@
         <p>各按钮可自由组合使用，关闭搜索框不影响状态。</p>
       </div>
     `;
-    invertToolbar.appendChild(helpBtn);
+    labelCapsule.appendChild(helpBtn);
+    invertToolbar.appendChild(labelCapsule);
+
+    // ---- 颜色胶囊：颜色反转 | 红↔绿 | 绿↔蓝 | 蓝↔红 ----
+    const colorCapsule = document.createElement('div');
+    colorCapsule.className = 'toolbar-capsule';
+
+    const mainBtn = document.createElement('button');
+    mainBtn.className = 'capsule-btn';
+    mainBtn.title = '全通道反转';
+    mainBtn.dataset.action = 'invert';
+    mainBtn.innerHTML = `
+      <svg width="14" height="14" viewBox="0 0 24 24" style="flex-shrink:0">
+        <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/>
+        <path d="M12 3a9 9 0 0 1 0 18V3z" fill="currentColor"/>
+      </svg>
+      <span>颜色反转</span>
+    `;
+    colorCapsule.appendChild(mainBtn);
+
+    CHANNEL_SWAPS.forEach(swap => {
+      const sep = document.createElement('div');
+      sep.className = 'capsule-sep';
+      colorCapsule.appendChild(sep);
+
+      const btn = document.createElement('button');
+      btn.className = 'capsule-btn';
+      btn.title = swap.title;
+      btn.dataset.action = 'channel';
+      btn.dataset.channelId = swap.id;
+      btn.textContent = swap.label;
+      colorCapsule.appendChild(btn);
+    });
+    invertToolbar.appendChild(colorCapsule);
+
+    // ---- 变换胶囊：旋转 | 镜像 | 适应 ----
+    const transformCapsule = document.createElement('div');
+    transformCapsule.className = 'toolbar-capsule';
+
+    const rotateCW = document.createElement('button');
+    rotateCW.className = 'capsule-btn';
+    rotateCW.title = '顺时针旋转 90°';
+    rotateCW.dataset.action = 'rotate';
+    rotateCW.innerHTML = `
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+      <span>旋转</span>
+    `;
+    transformCapsule.appendChild(rotateCW);
+
+    const sepMirror = document.createElement('div');
+    sepMirror.className = 'capsule-sep';
+    transformCapsule.appendChild(sepMirror);
+
+    const mirrorBtn = document.createElement('button');
+    mirrorBtn.className = 'capsule-btn';
+    mirrorBtn.title = '水平镜像';
+    mirrorBtn.dataset.action = 'mirror';
+    mirrorBtn.innerHTML = `
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18"/><path d="M8 7H4l4 5-4 5h4"/><path d="M16 7h4l-4 5 4 5h-4"/></svg>
+      <span>镜像</span>
+    `;
+    transformCapsule.appendChild(mirrorBtn);
+
+    const sepFit = document.createElement('div');
+    sepFit.className = 'capsule-sep';
+    transformCapsule.appendChild(sepFit);
+
+    const fitBtn = document.createElement('button');
+    fitBtn.className = 'capsule-btn disabled';
+    fitBtn.title = '旋转 90\u00b0/270\u00b0 时可切换适应/填充';
+    fitBtn.dataset.action = 'rotate-fit';
+    fitBtn.innerHTML = `
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/><path d="M15 3v18"/></svg>
+      <span>适应</span>
+    `;
+    transformCapsule.appendChild(fitBtn);
+    invertToolbar.appendChild(transformCapsule);
 
     // 插入到 searchRow 前面（搜索框上方）
     searchWrapper.appendChild(invertToolbar);
@@ -1727,8 +1738,9 @@
     const fitBtn = invertToolbar.querySelector('[data-action="rotate-fit"]');
     if (fitBtn) {
       const isRotated90 = (rotateAngle === 90 || rotateAngle === 270);
-      fitBtn.textContent = rotateFillMode ? '填充' : '适应';
-      fitBtn.classList.toggle('active', rotateFillMode);
+      const fitLabel = fitBtn.querySelector('span');
+      if (fitLabel) fitLabel.textContent = rotateFillMode ? '填充' : '适应';
+      fitBtn.classList.toggle('active', rotateFillMode && isRotated90);
       fitBtn.classList.toggle('disabled', !isRotated90);
     }
   }
@@ -1865,7 +1877,7 @@
     // B站视频工具条
     if (invertToolbar) {
       invertToolbar.addEventListener('click', (e) => {
-        const btn = e.target.closest('.invert-mode-btn, .rotate-fit-btn');
+        const btn = e.target.closest('.capsule-btn');
         if (!btn) return;
         e.preventDefault();
         e.stopPropagation();
