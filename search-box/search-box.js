@@ -84,15 +84,9 @@
   // ============================================
 
   const getStyles = () => `
-    :host {
-      all: initial;
-      position: fixed !important;
-      /* bottom 通过宿主 CSS 变量动态控制（用于反向缩放补偿） */
-      bottom: var(--echo-bottom, ${BOTTOM_OFFSET_PX}px) !important;
-      left: 50% !important;
-      z-index: 2147483647 !important;
+    body {
+      color-scheme: light dark;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
-      /* transform 由 JS 动态控制，用于缩放补偿 */
     }
 
     /* 主容器：包含工具按钮和搜索框 */
@@ -767,37 +761,80 @@
     { id: 3, label: '蓝\u2194红', title: '蓝\u2194红 通道交换', rows: [2, 0] },
   ];
 
+    const FRAME_PAD = 40; // 预留阴影空间
+
   function createSearchBox() {
     if (host) return;
 
-    // 创建 Shadow DOM 宿主
-    host = document.createElement('div');
+    // 创建 iframe 宿主以实现沙盒隔离并解决 SPA 路由冲突
+    host = document.createElement('iframe');
     host.id = 'echo-search-box-host';
+    host.src = 'about:blank';
+    host.setAttribute('frameborder', '0');
+    host.setAttribute('scrolling', 'no');
+    host.setAttribute('tabindex', '-1'); 
+    host.title = 'ECHO Search Box';
 
     // 默认 bottom（100% 缩放时）
     host.style.setProperty('--echo-bottom', `${BOTTOM_OFFSET_PX}px`);
+
+    // iframe 的样式配置
+    host.style.cssText = `
+      all: initial;
+      position: fixed !important;
+      bottom: var(--echo-bottom, ${BOTTOM_OFFSET_PX}px) !important;
+      left: 50% !important;
+      z-index: 2147483647 !important;
+      border: none !important;
+      background: transparent !important;
+      transform: translateX(-50%);
+      transform-origin: center bottom;
+      margin-bottom: -${FRAME_PAD}px !important; /* 抵消内部 padding 的视觉偏移 */
+      width: 0px;
+      height: 0px;
+      color-scheme: light dark;
+      /* iframe 本身允许响应鼠标事件，我们通过控制其精确包裹内容来避免遮挡底层页面 */
+    `;
+
+    // 必须先行挂载，才能访问 contentDocument
+    document.body.appendChild(host);
+
+    const iframeDoc = host.contentDocument;
     
-    // 设置初始 transform（居中）
-    host.style.transform = 'translateX(-50%)';
-    host.style.transformOrigin = 'center bottom';
+    // 初始化 iframe 内部的 body 作为新的 "shadowRoot"
+    iframeDoc.body.style.cssText = `
+      margin: 0;
+      padding: ${FRAME_PAD}px;
+      display: flex;
+      justify-content: center;
+      align-items: flex-end; /* 内容底部对齐，随着高度增加向上生长 */
+      background: transparent;
+      overflow: hidden;
+      outline: none;
+    `;
     
-    shadowRoot = host.attachShadow({ mode: 'open' });
+    // 同步宿主的属性，以便后续代码直接使用 shadowRoot
+    shadowRoot = iframeDoc.body;
+    
+    // 绑定 iframe 内的键盘事件（因为焦点在 iframe 内，主文档的 keydown 不会触发）
+    iframeDoc.addEventListener('keydown', handleGlobalKeydown, true);
 
     // 添加样式
-    const style = document.createElement('style');
-    style.textContent = getStyles();
+    const style = iframeDoc.createElement('style');
+    // :host 替换为 body
+    style.textContent = getStyles().replace(/:host\b/g, 'body');
     shadowRoot.appendChild(style);
 
     // 创建外层包装器
-    searchWrapper = document.createElement('div');
+    searchWrapper = iframeDoc.createElement('div');
     searchWrapper.className = 'search-wrapper';
 
     // 创建搜索行包装器（搜索框 + 热搜面板）
-    const searchRow = document.createElement('div');
+    const searchRow = iframeDoc.createElement('div');
     searchRow.className = 'search-row';
 
     // 创建搜索容器
-    searchContainer = document.createElement('div');
+    searchContainer = iframeDoc.createElement('div');
     searchContainer.className = 'search-container';
     
     // 根据模式显示不同的提示文字
@@ -930,7 +967,19 @@
     searchRow.appendChild(trendingPanel);
 
     searchWrapper.appendChild(searchRow);
-    shadowRoot.appendChild(searchWrapper);
+            shadowRoot.appendChild(searchWrapper);
+
+    // 动态调整 iframe 尺寸以精确包裹可视内容
+    const ro = new ResizeObserver((entries) => {
+      for (let entry of entries) {
+        const rect = entry.target.getBoundingClientRect();
+        if (host) {
+          host.style.width = Math.ceil(rect.width + FRAME_PAD * 2) + 'px';
+          host.style.height = Math.ceil(rect.height + FRAME_PAD * 2) + 'px';
+        }
+      }
+    });
+    ro.observe(searchWrapper);
 
     // 绑定事件
     bindEvents();
@@ -938,9 +987,6 @@
     // 启动光谱旋转动画
     startSpectrumAnimation();
 
-    // 添加到页面
-    document.body.appendChild(host);
-    
     // 初始化缩放补偿（如果需要）
     initZoomCompensation();
   }
@@ -1924,6 +1970,10 @@
       playFocusBurstAnimation();
     }
     
+    if (host) {
+      host.style.pointerEvents = 'auto'; // 显示时恢复接受鼠标事件
+    }
+
     searchWrapper.classList.add('show');
 
     // 更新颜色反转工具条可见性（仅在B站视频页显示）
@@ -1938,8 +1988,19 @@
     updateTrendingVisibility();
     
     if (shouldFocus) {
-      // 不自动 focus shadow DOM input，避免干扰 B站等 SPA 路由导航。
-      // 用户可以点击搜索框来激活输入。
+      const focusInput = () => {
+        if (host && host.contentDocument && host.contentDocument.activeElement === searchInput) {
+          return;
+        }
+        if (host && host.contentWindow) {
+          host.contentWindow.focus();
+        }
+        if (searchInput) {
+          searchInput.focus({ preventScroll: true });
+        }
+      };
+      // 等待 DOM/iframe 渲染完成
+      requestAnimationFrame(() => requestAnimationFrame(focusInput));
     }
     // 常驻模式初始化时不抢焦点，让用户正常浏览网页
   }
@@ -1952,6 +2013,10 @@
     if (trendingPanel) {
       trendingPanel.classList.remove('show');
       stopTrendingScroll();
+    }
+    // 隐藏时彻底禁用 iframe 指针事件，防止遮挡底部页面元素（如播放器控件）
+    if (host) {
+      host.style.pointerEvents = 'none';
     }
   }
 
@@ -1995,17 +2060,17 @@
   // 监听 Ctrl+B 快捷键
   // ============================================
 
-  document.addEventListener('keydown', (e) => {
+  function handleGlobalKeydown(e) {
     // 全局 Esc：搜索框可见时关闭（常驻模式除外）
-    // 焦点在页面自己的可编辑元素内时不拦截
     if (e.key === 'Escape' && !settings.floatingSearchBoxAlwaysShow && getSearchWrapperVisible()) {
-      const activeEl = document.activeElement;
+      const activeEl = e.target;
       const isInPageEditable = activeEl && activeEl !== document.body && activeEl !== document.documentElement && (
         activeEl.tagName === 'INPUT' ||
         activeEl.tagName === 'TEXTAREA' ||
         activeEl.tagName === 'SELECT' ||
         activeEl.isContentEditable
-      ) && !host?.contains(activeEl);
+      ) && activeEl !== searchInput && (!host || activeEl !== host);
+      
       if (!isInPageEditable) {
         e.preventDefault();
         e.stopPropagation();
@@ -2017,16 +2082,14 @@
     // Ctrl+B (Windows) / Cmd+B (Mac)
     const isCtrlOrCmd = e.ctrlKey || e.metaKey;
     if (isCtrlOrCmd && e.key === 'b' && !e.shiftKey && !e.altKey) {
-      // 检查是否在输入框中（排除我们自己的搜索框）
-      const activeEl = document.activeElement;
-      const isInOurSearchBox = searchInput && (activeEl === searchInput);
+      const activeEl = e.target;
+      const isInOurSearchBox = searchInput && (activeEl === searchInput || activeEl === host);
       const isInOtherInput = !isInOurSearchBox && activeEl && (
         activeEl.tagName === 'INPUT' ||
         activeEl.tagName === 'TEXTAREA' ||
         activeEl.isContentEditable
       );
 
-      // 如果在其他输入框中，不拦截（让用户可以正常使用 Ctrl+B 加粗等功能）
       if (isInOtherInput) {
         return;
       }
@@ -2035,7 +2098,9 @@
       e.stopPropagation();
       toggleSearchBox();
     }
-  }, true);
+  }
+
+  document.addEventListener('keydown', handleGlobalKeydown, true);
 
   // ============================================
   // 暴露全局方法供外部调用（如 FRE 页面点击触发）
