@@ -759,10 +759,12 @@
   }
 
   // 通道交换 SVG 滤镜定义
+  // 通道交换定义：循环排列 R→G→B→R
+  // rows 表示交换哪两行（0=R, 1=G, 2=B）
   const CHANNEL_SWAPS = [
-    { id: 1, label: '红\u2194绿', title: '红\u2194绿 通道交换', filterId: 'echo-filter-rg', matrix: '0 1 0 0 0  1 0 0 0 0  0 0 1 0 0  0 0 0 1 0' },
-    { id: 2, label: '红\u2194蓝', title: '红\u2194蓝 通道交换', filterId: 'echo-filter-rb', matrix: '0 0 1 0 0  0 1 0 0 0  1 0 0 0 0  0 0 0 1 0' },
-    { id: 3, label: '绿\u2194蓝', title: '绿\u2194蓝 通道交换', filterId: 'echo-filter-gb', matrix: '1 0 0 0 0  0 0 1 0 0  0 1 0 0 0  0 0 0 1 0' },
+    { id: 1, label: '红\u2194绿', title: '红\u2194绿 通道交换', rows: [0, 1] },
+    { id: 2, label: '绿\u2194蓝', title: '绿\u2194蓝 通道交换', rows: [1, 2] },
+    { id: 3, label: '蓝\u2194红', title: '蓝\u2194红 通道交换', rows: [2, 0] },
   ];
 
   function createSearchBox() {
@@ -901,7 +903,7 @@
         <p>部分视频经过颜色处理（如反色、通道交换）以通过审核，使用这些按钮还原画面色彩，或者旋转及镜像获得更好的观看体验。</p>
         <ul>
           <li><b>颜色反转</b>：还原全通道反色处理</li>
-          <li><b>红\u2194绿 / 红\u2194蓝 / 绿\u2194蓝</b>：还原对应通道交换</li>
+          <li><b>红\u2194绿 / 绿\u2194蓝 / 蓝\u2194红</b>：还原对应通道交换</li>
           <li><b>旋转</b>：顺时针旋转视频，每次 90\u00b0</li>
           <li><b>镜像</b>：水平翻转视频</li>
           <li><b>适应/填充</b>：旋转 90\u00b0/270\u00b0 时的显示模式，适应保留黑边，填充裁切填满</li>
@@ -1373,6 +1375,7 @@
 
   /**
    * 确保 SVG 滤镜定义已注入 document
+   * 使用单一动态 filter，根据当前激活的通道组合计算最终矩阵
    */
   function ensureInvertSvgFilters() {
     if (invertSvgElement) return;
@@ -1380,16 +1383,38 @@
     invertSvgElement.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
     invertSvgElement.style.cssText = 'position:absolute;width:0;height:0;overflow:hidden';
     invertSvgElement.id = 'echo-invert-svg-filters';
-    CHANNEL_SWAPS.forEach(swap => {
-      const filter = document.createElementNS('http://www.w3.org/2000/svg', 'filter');
-      filter.setAttribute('id', swap.filterId);
-      const matrix = document.createElementNS('http://www.w3.org/2000/svg', 'feColorMatrix');
-      matrix.setAttribute('type', 'matrix');
-      matrix.setAttribute('values', swap.matrix);
-      filter.appendChild(matrix);
-      invertSvgElement.appendChild(filter);
-    });
+    const filter = document.createElementNS('http://www.w3.org/2000/svg', 'filter');
+    filter.setAttribute('id', 'echo-filter-channel');
+    const matrix = document.createElementNS('http://www.w3.org/2000/svg', 'feColorMatrix');
+    matrix.setAttribute('type', 'matrix');
+    matrix.setAttribute('values', '1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 1 0');
+    filter.appendChild(matrix);
+    invertSvgElement.appendChild(filter);
     document.body.appendChild(invertSvgElement);
+  }
+
+  /**
+   * 根据当前激活的通道交换，计算最终的颜色矩阵
+   * 通过交换行实现，与激活顺序无关
+   */
+  function computeChannelMatrix() {
+    // 单位矩阵的行：R, G, B, A（每行 5 个值，最后一个是偏移）
+    const rows = [
+      [1, 0, 0, 0, 0],  // R
+      [0, 1, 0, 0, 0],  // G
+      [0, 0, 1, 0, 0],  // B
+      [0, 0, 0, 1, 0],  // A
+    ];
+    for (const chId of activeChannels) {
+      const swap = CHANNEL_SWAPS.find(s => s.id === chId);
+      if (swap) {
+        const [a, b] = swap.rows;
+        const temp = rows[a];
+        rows[a] = rows[b];
+        rows[b] = temp;
+      }
+    }
+    return rows.map(r => r.join(' ')).join('  ');
   }
 
   /**
@@ -1415,12 +1440,14 @@
     if (invertActive) {
       filters.push('invert(1) hue-rotate(180deg)');
     }
-    for (const chId of activeChannels) {
-      const swap = CHANNEL_SWAPS.find(s => s.id === chId);
-      if (swap) {
-        ensureInvertSvgFilters();
-        filters.push(`url(#${swap.filterId})`);
+    if (activeChannels.size > 0) {
+      ensureInvertSvgFilters();
+      // 更新 SVG filter 的矩阵值
+      const matrixEl = invertSvgElement.querySelector('feColorMatrix');
+      if (matrixEl) {
+        matrixEl.setAttribute('values', computeChannelMatrix());
       }
+      filters.push('url(#echo-filter-channel)');
     }
 
     invertStyleElement = document.createElement('style');
@@ -1546,16 +1573,16 @@
       }
     }
 
-    // 构建 transform
+    // 构建 transform（从右往左执行：先 scale 适配 → 再 rotate → 最后 mirror）
     const transforms = [];
+    if (mirrorActive) {
+      transforms.push('scaleX(-1)');
+    }
     if (rotateAngle !== 0) {
       transforms.push(`rotate(${rotateAngle}deg)`);
     }
     if (scaleCSS) {
       transforms.push(scaleCSS.trim());
-    }
-    if (mirrorActive) {
-      transforms.push('scaleX(-1)');
     }
 
     rotateStyleElement = document.createElement('style');
