@@ -1491,14 +1491,13 @@
       [0, 0, 1, 0, 0],  // B
       [0, 0, 0, 1, 0],  // A
     ];
-    for (const chId of activeChannels) {
-      const swap = CHANNEL_SWAPS.find(s => s.id === chId);
-      if (swap) {
-        const [a, b] = swap.rows;
-        const temp = rows[a];
-        rows[a] = rows[b];
-        rows[b] = temp;
-      }
+    // 按固定 id 顺序遍历，消除 Set 插入顺序导致的结果差异
+    for (const swap of CHANNEL_SWAPS) {
+      if (!activeChannels.has(swap.id)) continue;
+      const [a, b] = swap.rows;
+      const temp = rows[a];
+      rows[a] = rows[b];
+      rows[b] = temp;
     }
     return rows.map(r => r.join(' ')).join('  ');
   }
