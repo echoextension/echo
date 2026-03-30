@@ -1113,6 +1113,13 @@
     } else {
       host.style.setProperty('--echo-bottom', `${BOTTOM_OFFSET_PX * inverseScale}px`);
     }
+
+    // margin-bottom 补偿：抵消 iframe 内部 FRAME_PAD 的视觉偏移，需随缩放同步补偿
+    if (settings.floatingSearchBoxFollowZoom || zoomLevel === 1) {
+      host.style.marginBottom = `-${FRAME_PAD}px`;
+    } else {
+      host.style.marginBottom = `-${FRAME_PAD * inverseScale}px`;
+    }
     
     // 应用到 host 元素
     // translateX(-50%) 用于居中，scale 用于缩放补偿
