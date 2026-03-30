@@ -340,8 +340,7 @@
       display: none;
       position: absolute;
       bottom: calc(100% + 8px);
-      left: 50%;
-      transform: translateX(-50%);
+      right: -10px;
       width: 280px;
       background: rgba(255, 255, 255, 0.95);
       backdrop-filter: blur(16px);
@@ -800,6 +799,12 @@
     document.body.appendChild(host);
 
     const iframeDoc = host.contentDocument;
+
+    // 保证 html 父级能充满整个扩高后的 iframe，并将内容推到底部
+    iframeDoc.documentElement.style.cssText = `
+      height: 100%;
+      margin: 0;
+    `;
     
     // 初始化 iframe 内部的 body 作为新的 "shadowRoot"
     iframeDoc.body.style.cssText = `
@@ -807,12 +812,14 @@
       padding: ${FRAME_PAD}px;
       display: flex;
       justify-content: center;
-      align-items: flex-end; /* 内容底部对齐，随着高度增加向上生长 */
+      align-items: flex-end; /* 配合 100% 高度将内容紧贴框体底部 */
       background: transparent;
       overflow: hidden;
       outline: none;
+      height: 100%;
+      box-sizing: border-box;
     `;
-    
+
     // 同步宿主的属性，以便后续代码直接使用 shadowRoot
     shadowRoot = iframeDoc.body;
     
@@ -969,17 +976,50 @@
     searchWrapper.appendChild(searchRow);
             shadowRoot.appendChild(searchWrapper);
 
-    // 动态调整 iframe 尺寸以精确包裹可视内容
-    const ro = new ResizeObserver((entries) => {
-      for (let entry of entries) {
-        const rect = entry.target.getBoundingClientRect();
-        if (host) {
-          host.style.width = Math.ceil(rect.width + FRAME_PAD * 2) + 'px';
-          host.style.height = Math.ceil(rect.height + FRAME_PAD * 2) + 'px';
+    let isHelpTooltipHovered = false;
+
+    // 根据内容实时计算并设置 iframe 外壳的安全尺寸
+    const updateIframeSize = () => {
+      if (!host || !searchWrapper) return;
+      const rect = searchWrapper.getBoundingClientRect();
+      let w = rect.width + FRAME_PAD * 2;
+      let h = rect.height + FRAME_PAD * 2;
+
+      // 如果帮助面板悬浮，为其追加高度。
+      // 因为 iframe 内部实现了 100% 高度 + flex-end 底端对齐，
+      // 增加 iframe 外层高度只会往上方拉伸屏幕空间以容纳绝对定位的内容，
+      // 里面的搜索框 UI 将因为底端对齐而保持视觉位置纹丝不动！
+      if (isHelpTooltipHovered) {
+        h += 240;
+      }
+
+      host.style.width = Math.ceil(w) + 'px';
+      host.style.height = Math.ceil(h) + 'px';
+    };
+
+    const ro = new ResizeObserver(() => updateIframeSize());
+    ro.observe(searchWrapper);
+
+    // 基于鼠标事件更新悬浮状态，重新计算 iframe 尺寸
+    searchWrapper.addEventListener('mouseover', (e) => {
+      if (e.target.closest('.invert-help-btn')) {
+        if (!isHelpTooltipHovered) {
+          isHelpTooltipHovered = true;
+          updateIframeSize();
         }
       }
     });
-    ro.observe(searchWrapper);
+
+    searchWrapper.addEventListener('mouseout', (e) => {
+      const related = e.relatedTarget;
+      // 鼠标必须移动到 help-btn 以及其内部 tooltip 层之外才算离开
+      if (!related || !related.closest('.invert-help-btn')) {
+        if (isHelpTooltipHovered) {
+          isHelpTooltipHovered = false;
+          updateIframeSize();
+        }
+      }
+    });
 
     // 绑定事件
     bindEvents();
