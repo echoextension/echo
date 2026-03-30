@@ -287,46 +287,29 @@
       display: flex;
       align-items: center;
       gap: 5px;
-      padding: 0 6px 0 12px;
+      padding: 0 12px;
       font-size: 11px;
       color: #00AEEC;
       font-weight: 500;
       white-space: nowrap;
       user-select: none;
+      cursor: default;
     }
 
     .toolbar-capsule .capsule-label svg {
       flex-shrink: 0;
     }
 
-    /* ⓘ 帮助按钮 */
-    .invert-help-btn {
-      width: 16px;
-      height: 16px;
-      border: none;
-      background: transparent;
-      cursor: pointer;
-      color: #00AEEC;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-      transition: color 0.15s, opacity 0.15s;
+    /* 标签胶囊的帮助提示 */
+    .toolbar-capsule.capsule-overflow {
       position: relative;
-      padding: 0;
-      margin-right: 10px;
-      opacity: 0.6;
-    }
-
-    .invert-help-btn:hover {
-      opacity: 1;
     }
 
     .invert-help-tooltip {
       display: none;
       position: absolute;
       bottom: calc(100% + 8px);
-      left: -10px;
+      left: 0;
       width: 280px;
       background: rgba(255, 255, 255, 0.95);
       backdrop-filter: blur(16px);
@@ -343,7 +326,7 @@
       z-index: 10;
     }
 
-    .invert-help-btn:hover .invert-help-tooltip {
+    .toolbar-capsule.capsule-overflow:hover .invert-help-tooltip {
       display: block;
     }
 
@@ -581,14 +564,6 @@
 
       .toolbar-capsule .capsule-label {
         color: #5bcefa;
-      }
-
-      .invert-help-btn {
-        color: #5bcefa;
-      }
-
-      .invert-help-btn:hover {
-        opacity: 1;
       }
 
       .invert-help-tooltip {
@@ -873,11 +848,10 @@
     `;
     labelCapsule.appendChild(labelSpan);
 
-    const helpBtn = document.createElement('button');
-    helpBtn.className = 'invert-help-btn';
-    helpBtn.innerHTML = `
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="11" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="7" r="1.5"/><rect x="10.5" y="10.5" width="3" height="8" rx="1"/></svg>
-      <div class="invert-help-tooltip">
+    // tooltip 直接挂在标签胶囊内，hover 整个胶囊触发
+    const tooltip = document.createElement('div');
+    tooltip.className = 'invert-help-tooltip';
+    tooltip.innerHTML = `
         <strong>Bilibili 视频优化工具</strong>
         <p>部分视频经过颜色处理（如反色、通道交换）以通过审核，使用这些按钮还原画面色彩，或者旋转及镜像获得更好的观看体验。</p>
         <ul>
@@ -888,9 +862,8 @@
           <li><b>适应/填充</b>：旋转 90\u00b0/270\u00b0 时的显示模式，适应保留黑边，填充裁切填满</li>
         </ul>
         <p>各按钮可自由组合使用，关闭搜索框不影响状态。</p>
-      </div>
     `;
-    labelCapsule.appendChild(helpBtn);
+    labelCapsule.appendChild(tooltip);
     invertToolbar.appendChild(labelCapsule);
 
     // ---- 颜色胶囊：颜色反转 | 红↔绿 | 绿↔蓝 | 蓝↔红 ----
@@ -1013,7 +986,7 @@
 
     // 基于鼠标事件更新悬浮状态，重新计算 iframe 尺寸
     searchWrapper.addEventListener('mouseover', (e) => {
-      if (e.target.closest('.invert-help-btn')) {
+      if (e.target.closest('.capsule-overflow')) {
         if (!isHelpTooltipHovered) {
           isHelpTooltipHovered = true;
           updateIframeSize();
@@ -1023,8 +996,7 @@
 
     searchWrapper.addEventListener('mouseout', (e) => {
       const related = e.relatedTarget;
-      // 鼠标必须移动到 help-btn 以及其内部 tooltip 层之外才算离开
-      if (!related || !related.closest('.invert-help-btn')) {
+      if (!related || !related.closest('.capsule-overflow')) {
         if (isHelpTooltipHovered) {
           isHelpTooltipHovered = false;
           updateIframeSize();
