@@ -1202,6 +1202,81 @@
         font-size: 12px;
       }
     }
+
+    /* B站功能亮点展示条 */
+    .bili-feature-highlight {
+      grid-column: 1 / -1;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 14px 20px;
+      background: linear-gradient(135deg, rgba(251,114,153,0.07), rgba(252,145,83,0.07));
+      border: 1px solid rgba(251,114,153,0.2);
+      border-radius: 14px;
+      flex-wrap: wrap;
+      margin-top: 4px;
+    }
+
+    .bili-highlight-label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #fb7299;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .bili-highlight-buttons {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .bili-demo-btn {
+      display: inline-flex;
+      align-items: center;
+      padding: 5px 12px;
+      background: rgba(251,114,153,0.1);
+      border: 1px solid rgba(251,114,153,0.25);
+      border-radius: 20px;
+      font-size: 13px;
+      color: #e05585;
+      font-weight: 500;
+      white-space: nowrap;
+    }
+
+    .bili-speed-btn {
+      background: rgba(252,145,83,0.1);
+      border-color: rgba(252,145,83,0.3);
+      color: #d4600a;
+      font-weight: 700;
+    }
+
+    .bili-demo-desc {
+      font-size: 12px;
+      color: var(--text-light);
+      margin-left: 4px;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      .bili-feature-highlight {
+        background: linear-gradient(135deg, rgba(251,114,153,0.08), rgba(252,145,83,0.08));
+        border-color: rgba(251,114,153,0.15);
+      }
+      .bili-demo-btn {
+        color: #fb7299;
+        background: rgba(251,114,153,0.12);
+        border-color: rgba(251,114,153,0.2);
+      }
+      .bili-speed-btn {
+        color: #fc9153;
+        background: rgba(252,145,83,0.12);
+        border-color: rgba(252,145,83,0.2);
+      }
+    }
   </style>
   <!-- Low Poly 背景模块（共享） -->
   <script src="../common/lowpoly-bg.js"></script>
@@ -1401,23 +1476,23 @@
         <div class="feature-title">Ctrl+B 悬浮搜索</div>
       </div>
     
-      <!-- B站视频优化 -->
-      <div class="static-feature-card" data-tooltip="B站视频页专属工具条：颜色还原、旋转、镜像、极速/慢速播放">
-        <div class="feature-icon-box" style="background: linear-gradient(135deg, rgba(251,114,153,0.10), rgba(252,145,83,0.10))">
-          <svg viewBox="0 0 48 48" fill="none" stroke-linecap="round" stroke-linejoin="round">
-            <defs>
-              <linearGradient id="grad9" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stop-color="#fb7299"/>
-                <stop offset="100%" stop-color="#fc9153"/>
-              </linearGradient>
-            </defs>
-            <!-- 播放器外框 -->
-            <rect x="3" y="9" width="42" height="28" rx="4" stroke="url(#grad9)" stroke-width="3" fill="none"/>
-            <!-- 播放三角 -->
-            <polygon points="18,18 18,32 34,24" fill="url(#grad9)" opacity="0.9"/>
+      <!-- B站工具条亮点展示 -->
+      <div class="bili-feature-highlight">
+        <div class="bili-highlight-label">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="5" width="20" height="14" rx="3"/>
+            <path d="M8 2L10 5"/><path d="M16 2L14 5"/>
           </svg>
+          <span>B站视频专属工具条</span>
         </div>
-        <div class="feature-title">B站视频优化</div>
+        <div class="bili-highlight-buttons">
+          <span class="bili-demo-btn">颜色反转</span>
+          <span class="bili-demo-btn">旋转</span>
+          <span class="bili-demo-btn">镜像</span>
+          <span class="bili-demo-btn bili-speed-btn">0.25×</span>
+          <span class="bili-demo-btn bili-speed-btn">3×</span>
+          <span class="bili-demo-desc">在 B站视频页呼出搜索框后，工具条自动出现于顶部</span>
+        </div>
       </div>
 
         <!-- 更多功能提示 - 作为网格的一部分 -->
