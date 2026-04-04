@@ -596,4 +596,98 @@
   } else {
     initCustomBookmarkBar();
   }
+
+  // ============================================
+  // B站歪脖子视频举报按钮
+  // 仅在 bilibili.com/video/* 播放页注入
+  // ============================================
+  function initBilibiliCrookedNeckButton() {
+    // 只在顶层 frame 运行，只在 B站视频播放页注入
+    if (window !== window.top) return;
+    if (!location.hostname.endsWith('bilibili.com')) return;
+    if (!/^\/video\//.test(location.pathname)) return;
+
+    const ECHO_STORE_URL = 'https://chromewebstore.google.com/detail/echo/hhencbhpdipjhfoeoanfpgdiegdhopol';
+    const BTN_ID = 'echo-crooked-neck-btn';
+
+    function createButton() {
+      if (document.getElementById(BTN_ID)) return;
+
+      const btn = document.createElement('div');
+      btn.id = BTN_ID;
+      btn.textContent = '🦒 视频歪了？试试 ECHO 易可';
+      btn.title = '点击了解 ECHO 易可 — 一键旋转视频';
+      btn.style.cssText = [
+        'position: fixed',
+        'bottom: 80px',
+        'right: 20px',
+        'z-index: 9999',
+        'background: rgba(0, 0, 0, 0.55)',
+        'backdrop-filter: blur(8px)',
+        '-webkit-backdrop-filter: blur(8px)',
+        'color: rgba(255, 255, 255, 0.92)',
+        'padding: 8px 14px',
+        'border-radius: 20px',
+        'font-size: 13px',
+        'font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+        'font-weight: 500',
+        'cursor: pointer',
+        'user-select: none',
+        'box-shadow: 0 2px 12px rgba(0,0,0,0.3)',
+        'transition: opacity 0.2s, transform 0.2s',
+        'opacity: 0.75',
+        'line-height: 1.4',
+        'max-width: 220px',
+        'text-align: center',
+      ].join(';');
+
+      btn.addEventListener('mouseenter', () => {
+        btn.style.opacity = '1';
+        btn.style.transform = 'scale(1.04)';
+      });
+      btn.addEventListener('mouseleave', () => {
+        btn.style.opacity = '0.75';
+        btn.style.transform = 'scale(1)';
+      });
+      btn.addEventListener('click', () => {
+        window.open(ECHO_STORE_URL, '_blank');
+      });
+
+      document.body.appendChild(btn);
+    }
+
+    // 等待 DOM 就绪后注入
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', createButton);
+    } else {
+      createButton();
+    }
+
+    // B站是 SPA，监听路由变化（pushState / popstate）
+    const _pushState = history.pushState.bind(history);
+    history.pushState = function(...args) {
+      _pushState(...args);
+      // 导航后重新检查是否在视频页
+      setTimeout(() => {
+        const existing = document.getElementById(BTN_ID);
+        if (/^\/video\//.test(location.pathname)) {
+          if (!existing) createButton();
+        } else {
+          if (existing) existing.remove();
+        }
+      }, 500);
+    };
+    window.addEventListener('popstate', () => {
+      setTimeout(() => {
+        const existing = document.getElementById(BTN_ID);
+        if (/^\/video\//.test(location.pathname)) {
+          if (!existing) createButton();
+        } else {
+          if (existing) existing.remove();
+        }
+      }, 500);
+    });
+  }
+
+  initBilibiliCrookedNeckButton();
 })();
