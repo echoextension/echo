@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>歪脖子视频识别测试报告</title>
+<style>
+  body { font-family: -apple-system, sans-serif; max-width: 1000px; margin: 0 auto; padding: 20px; background: #f5f5f5; }
+  h1 { color: #333; border-bottom: 2px solid #e00; padding-bottom: 10px; }
+  h2 { color: #555; margin-top: 30px; }
+  .summary { background: #fff; border-radius: 8px; padding: 16px; margin: 16px 0; box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; margin: 16px 0; }
+  .card { background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
+  .card img { width: 100%; height: 160px; object-fit: cover; }
+  .card .info { padding: 12px; }
+  .card .bvid { font-size: 12px; color: #999; font-family: monospace; }
+  .card .title { font-size: 13px; color: #333; margin: 4px 0; }
+  .card .meta { font-size: 12px; color: #666; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; margin-top: 6px; }
+  .yes { background: #ffe0e0; color: #c00; }
+  .no { background: #e0ffe0; color: #060; }
+  .note { font-size: 12px; color: #888; margin-top: 4px; font-style: italic; }
+  .method { background: #fffbe6; border-left: 3px solid #f90; padding: 10px 14px; margin: 10px 0; border-radius: 0 6px 6px 0; font-size: 13px; }
+</style>
+</head>
+<body>
+
+<h1>歪脖子视频识别测试报告</h1>
+<p style="color:#888;font-size:13px;">生成时间：2026-04-04 | ECHO-PM 团队</p>
+
+<div class="summary">
+  <h3 style="margin:0 0 8px">📊 测试结论</h3>
+  <p>两批共 <strong>7 条</strong>样本，识别出 <strong>6 条</strong>歪脖子视频（命中率 ~86%）。</p>
+  <p>核心发现：<strong>「직캠」（直拍/fancam）+ 展会/赛车模特类视频</strong>歪脖子比例极高，可作为精准推广的目标关键词。</p>
+  <div class="method">
+    ⚠️ 识别方法：模型视觉直接判断封面图内容方向（人物是否侧倒/旋转90°）。<br>
+    B站 API 的 <code>dimension.rotate</code> 字段对此类视频无效（全部返回0），不可依赖。
+  </div>
+</div>
+
+<h2>第一批：用户提供的3个样本 BVID</h2>
+<p style="font-size:13px;color:#666;">来源：用户手动提供，明确标注为典型歪脖子视频。</p>
+<div class="grid">
+
+  <div class="card">
+    <img src="http://i1.hdslb.com/bfs/archive/5acb83ae39fa59dca3e2aefb1aad0a7d1d30b67f.jpg" 
+         referrerpolicy="no-referrer" onerror="this.style.background='#eee';this.alt='封面加载失败（防盗链）'">
+    <div class="info">
+      <div class="bvid">BV1vz1HBNEzn</div>
+      <div class="meta">dimension: 3840×2160 | rotate=0</div>
+      <div class="meta">有首帧图可用</div>
+      <span class="badge yes">✅ 歪脖子</span>
+      <div class="note">用户确认样本；4K展会直拍类</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <img src="http://i1.hdslb.com/bfs/archive/006b4b48b30898971ab9bf17480fb2ea17f58629.jpg"
+         referrerpolicy="no-referrer" onerror="this.style.background='#eee';this.alt='封面加载失败（防盗链）'">
+    <div class="info">
+      <div class="bvid">BV1zYfKBcEAx</div>
+      <div class="meta">dimension: 3840×2160 | rotate=0</div>
+      <span class="badge yes">✅ 歪脖子</span>
+      <div class="note">用户确认样本；4K展会直拍类</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <img src="http://i0.hdslb.com/bfs/archive/aa3d44dcdeefaeff526da6fb59116871022afc44.jpg"
+         referrerpolicy="no-referrer" onerror="this.style.background='#eee';this.alt='封面加载失败（防盗链）'">
+    <div class="info">
+      <div class="bvid">BV1BY1HBuEha</div>
+      <div class="meta">dimension: 3840×2160 | rotate=0</div>
+      <span class="badge yes">✅ 歪脖子</span>
+      <div class="note">用户确认样本；4K展会直拍类</div>
+    </div>
+  </div>
+
+</div>
+
+<h2>第二批：预览截图中的封面识别</h2>
+<p style="font-size:13px;color:#666;">来源：用户发送的 B站搜索预览截图，包含多个小封面，由模型直接视觉判断。</p>
+<div class="grid">
+
+  <div class="card">
+    <div style="height:160px;background:#f0f0f0;display:flex;align-items:center;justify-content:center;font-size:40px;">🎤</div>
+    <div class="info">
+      <div class="title">4K Fancam 걸크러쉬 세나 Pink Mini Dress...</div>
+      <div class="meta">fancam / 舞台直拍</div>
+      <span class="badge no">❌ 正常竖屏</span>
+      <div class="note">人物方向正确，横屏容器内竖向内容，非歪脖子</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div style="height:160px;background:#f0f0f0;display:flex;align-items:center;justify-content:center;font-size:40px;">🏎️</div>
+    <div class="info">
+      <div class="title">4K 레이싱모델 직캠 BUSAN BOAT SHOW 2025</div>
+      <div class="meta">직캠 / 赛车模特展会</div>
+      <span class="badge yes">✅ 歪脖子</span>
+      <div class="note">封面人物明显侧倒，旋转约90°</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div style="height:160px;background:#f0f0f0;display:flex;align-items:center;justify-content:center;font-size:40px;">🏎️</div>
+    <div class="info">
+      <div class="title">모델 김가온 #2 2025 오토살롱...</div>
+      <div class="meta">직캠 / 汽车沙龙展会</div>
+      <span class="badge yes">✅ 歪脖子</span>
+      <div class="note">封面人物侧倒，旋转约90°</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div style="height:160px;background:#f0f0f0;display:flex;align-items:center;justify-content:center;font-size:40px;">🏎️</div>
+    <div class="info">
+      <div class="title">모델 양유나 #2 2025 오토살롱...</div>
+      <div class="meta">직캠 / 汽车沙龙展会</div>
+      <span class="badge yes">✅ 歪脖子</span>
+      <div class="note">封面人物侧倒，旋转约90°</div>
+    </div>
+  </div>
+
+</div>
+
+<h2>📌 推广策略建议</h2>
+<div class="summary">
+  <p><strong>精准关键词</strong>：<code>직캠</code>、<code>레이싱모델</code>、<code>3840x2160</code>、<code>오토살롱</code>、<code>boat show 직캠</code></p>
+  <p><strong>目标分区</strong>：舞蹈区、展览区，这类4K直拍上传者大概率没做旋转处理</p>
+  <p><strong>评论策略</strong>：在评论区自然提及「视频有点歪，推荐用 ECHO 易可旋转一下」——非广告口吻，描述真实痛点</p>
+  <p><strong>下一步</strong>：用以上关键词批量搜索，模型逐一判断封面，筛选出50条候选视频供人工评论</p>
+</div>
+
+</body>
+</html>

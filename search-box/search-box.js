@@ -953,6 +953,44 @@
     transformCapsule.appendChild(fitBtn);
     invertToolbar.appendChild(transformCapsule);
 
+    // ---- 倍速胶囊：0.25x 慢速 | 3x 快速 ----
+    const speedCapsule = document.createElement('div');
+    speedCapsule.className = 'toolbar-capsule';
+
+    const slowBtn = document.createElement('button');
+    slowBtn.className = 'capsule-btn';
+    slowBtn.title = '超慢速播放 0.25×';
+    slowBtn.dataset.action = 'speed-slow';
+    slowBtn.innerHTML = `
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9 8v8"/><path d="M15 8v8"/></svg>
+      <span>0.25×</span>
+    `;
+    slowBtn.addEventListener('click', () => {
+      const video = document.querySelector('bwp-video, video');
+      if (video) video.playbackRate = 0.25;
+    });
+    speedCapsule.appendChild(slowBtn);
+
+    const sepSpeed = document.createElement('div');
+    sepSpeed.className = 'capsule-sep';
+    speedCapsule.appendChild(sepSpeed);
+
+    const fastBtn = document.createElement('button');
+    fastBtn.className = 'capsule-btn';
+    fastBtn.title = '极速播放 3×';
+    fastBtn.dataset.action = 'speed-fast';
+    fastBtn.innerHTML = `
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+      <span>3×</span>
+    `;
+    fastBtn.addEventListener('click', () => {
+      const video = document.querySelector('bwp-video, video');
+      if (video) video.playbackRate = 3.0;
+    });
+    speedCapsule.appendChild(fastBtn);
+
+    invertToolbar.appendChild(speedCapsule);
+
     // 插入到 searchRow 前面（搜索框上方）
     searchWrapper.appendChild(invertToolbar);
 
