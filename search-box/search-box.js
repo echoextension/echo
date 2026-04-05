@@ -967,7 +967,12 @@
     `;
     slowBtn.addEventListener('click', () => {
       const video = document.querySelector('bwp-video, video');
-      if (video) video.playbackRate = 0.25;
+      if (!video) return;
+      if (slowBtn.classList.contains('active')) {
+        video.playbackRate = 1.0;
+      } else {
+        video.playbackRate = 0.25;
+      }
     });
     speedCapsule.appendChild(slowBtn);
 
@@ -985,9 +990,53 @@
     `;
     fastBtn.addEventListener('click', () => {
       const video = document.querySelector('bwp-video, video');
-      if (video) video.playbackRate = 3.0;
+      if (!video) return;
+      if (fastBtn.classList.contains('active')) {
+        video.playbackRate = 1.0;
+      } else {
+        video.playbackRate = 3.0;
+      }
     });
     speedCapsule.appendChild(fastBtn);
+
+    // ratechange 监听：同步 active 状态
+    function syncSpeedButtons() {
+      const video = document.querySelector('bwp-video, video');
+      if (!video) return;
+      video.addEventListener('ratechange', () => {
+        const rate = video.playbackRate;
+        slowBtn.classList.toggle('active', rate === 0.25);
+        fastBtn.classList.toggle('active', rate === 3.0);
+      });
+    }
+    // 等待视频元素就绪
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', syncSpeedButtons);
+    } else {
+      syncSpeedButtons();
+    }
+
+    // B站 SPA 路由切换时重置倍速
+    const _origPushState = history.pushState.bind(history);
+    history.pushState = function(...args) {
+      _origPushState(...args);
+      setTimeout(() => {
+        const video = document.querySelector('bwp-video, video');
+        if (video) video.playbackRate = 1.0;
+        slowBtn.classList.remove('active');
+        fastBtn.classList.remove('active');
+        syncSpeedButtons();
+      }, 800);
+    };
+    window.addEventListener('popstate', () => {
+      setTimeout(() => {
+        const video = document.querySelector('bwp-video, video');
+        if (video) video.playbackRate = 1.0;
+        slowBtn.classList.remove('active');
+        fastBtn.classList.remove('active');
+        syncSpeedButtons();
+      }, 800);
+    });
 
     invertToolbar.appendChild(speedCapsule);
 
