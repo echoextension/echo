@@ -484,22 +484,6 @@
 
     /* 图标渐变色在各SVG的<defs>中定义 */
 
-    /* 12+ 项优化提示 - 作为网格一部分 */
-    .more-features-hint {
-      grid-column: 1 / -1;
-      margin-top: 8px;
-      font-size: 16px;
-      font-weight: 400;
-      color: var(--text-medium);
-      background: transparent;
-      padding: 0;
-      border-radius: 0;
-      border: none;
-      backdrop-filter: none;
-      box-shadow: none;
-      text-align: center;
-    }
-
     /* ========== 暗色模式适配 ========== */
     @media (prefers-color-scheme: dark) {
       /* Tooltip */
@@ -563,11 +547,6 @@
       .static-feature-card:hover .feature-icon-box svg ellipse[fill]:not([fill="none"]),
       .static-feature-card:hover .feature-icon-box svg text {
         fill: #5bb8f5;
-      }
-      /* 更多功能提示 - 去掉背景 */
-      .more-features-hint {
-        background: transparent;
-        border: none;
       }
     }
 
@@ -1184,11 +1163,6 @@
         font-size: 14px;
       }
       
-      .more-features-hint {
-        font-size: 14px;
-        margin-top: 4px;
-      }
-      
       .cta-btn {
         padding: 12px 40px;
         font-size: 18px;
@@ -1275,83 +1249,10 @@
       flex-shrink: 0;
     }
 
-    .bili-feature-group {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .bili-feature-group-label {
-      font-size: 12px;
-      color: var(--text-light);
-      white-space: nowrap;
-    }
-
-    .bili-demo-btn {
-      display: inline-flex;
-      align-items: center;
-      padding: 8px 20px;
-      background: linear-gradient(135deg, rgba(251,114,153,0.13), rgba(252,145,83,0.13));
-      border: 1px solid rgba(251,130,118,0.3);
-      border-radius: 20px;
-      font-size: 15px;
-      color: #e05585;
-      font-weight: 600;
-      white-space: nowrap;
-      transition: background 0.4s, border-color 0.4s, transform 0.4s;
-    }
-
-    .bili-demo-btn.bili-btn-glow {
-      background: rgba(251,114,153,0.25);
-      border-color: rgba(251,114,153,0.5);
-      transform: scale(1.08);
-    }
-
-    .bili-speed-btn {
-      background: rgba(252,145,83,0.1);
-      border-color: rgba(252,145,83,0.3);
-      color: #d4600a;
-      font-weight: 700;
-    }
-
-    .bili-speed-btn.bili-btn-glow {
-      background: rgba(252,145,83,0.3);
-      border-color: rgba(252,145,83,0.55);
-    }
-
-    .bili-group-sep {
-      width: 1px;
-      height: 20px;
-      background: rgba(251,114,153,0.2);
-      margin: 0 4px;
-      flex-shrink: 0;
-    }
-
     @media (prefers-color-scheme: dark) {
       .bili-feature-highlight {
         background: linear-gradient(135deg, rgba(251,114,153,0.08), rgba(252,145,83,0.08));
         border-color: rgba(251,114,153,0.15);
-      }
-      .bili-demo-btn {
-        color: #fb7299;
-        background: rgba(251,114,153,0.12);
-        border-color: rgba(251,114,153,0.2);
-      }
-      .bili-demo-btn.bili-btn-glow {
-        background: rgba(251,114,153,0.3);
-        border-color: rgba(251,114,153,0.5);
-      }
-      .bili-speed-btn {
-        color: #fc9153;
-        background: rgba(252,145,83,0.12);
-        border-color: rgba(252,145,83,0.2);
-      }
-      .bili-speed-btn.bili-btn-glow {
-        background: rgba(252,145,83,0.35);
-        border-color: rgba(252,145,83,0.55);
-      }
-      .bili-group-sep {
-        background: rgba(251,114,153,0.15);
       }
     }
   </style>
