@@ -844,10 +844,16 @@
     const labelSpan = document.createElement('span');
     labelSpan.className = 'capsule-label';
     labelSpan.innerHTML = `
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
         <rect x="2" y="5" width="20" height="14" rx="3"/>
         <path d="M8 2L10 5"/>
         <path d="M16 2L14 5"/>
+        <ellipse cx="9" cy="12" rx="1.5" ry="1.5" fill="currentColor" stroke="none">
+          <animate attributeName="ry" values="1.5;0.1;1.5" dur="4s" begin="1s" repeatCount="indefinite"/>
+        </ellipse>
+        <ellipse cx="15" cy="12" rx="1.5" ry="1.5" fill="currentColor" stroke="none">
+          <animate attributeName="ry" values="1.5;0.1;1.5" dur="4s" begin="1s" repeatCount="indefinite"/>
+        </ellipse>
       </svg>
       <span>B站助手</span>
     `;
@@ -858,13 +864,14 @@
     tooltip.className = 'invert-help-tooltip';
     tooltip.innerHTML = `
         <strong>Bilibili 视频优化工具</strong>
-        <p>部分视频经过颜色处理（如反色、通道交换）以通过审核，使用这些按钮还原画面色彩，或者旋转及镜像获得更好的观看体验。</p>
+        <p>部分视频经过颜色处理（如反色、通道交换）以通过审核，使用这些按钮还原画面色彩，或者旋转、镜像、以及更大范围倍速获得更好的观看体验。</p>
         <ul>
           <li><b>颜色反转</b>：还原全通道反色处理</li>
           <li><b>红\u2194绿 / 绿\u2194蓝 / 蓝\u2194红</b>：还原对应通道交换</li>
           <li><b>旋转</b>：顺时针旋转视频，每次 90\u00b0</li>
           <li><b>镜像</b>：水平翻转视频</li>
           <li><b>适应/填充</b>：旋转 90\u00b0/270\u00b0 时的显示模式，适应保留黑边，填充裁切填满</li>
+          <li><b>0.25× / 3×</b>：超慢速或极速播放，突破 B站原生倍速限制</li>
         </ul>
         <p>各按钮可自由组合使用，关闭搜索框不影响状态。</p>
     `;
@@ -1051,7 +1058,7 @@
       // 增加 iframe 外层高度只会往上方拉伸屏幕空间以容纳绝对定位的内容，
       // 里面的搜索框 UI 将因为底端对齐而保持视觉位置纹丝不动！
       if (isHelpTooltipHovered) {
-        h += 240;
+        h += 300;
       }
 
       host.style.width = Math.ceil(w) + 'px';
