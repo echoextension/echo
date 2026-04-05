@@ -18,36 +18,6 @@ const BING_WALLPAPER_HISTORY = [
   { id: "WildflowerValley_ZH-CN7048300331", date: "2026-04-02", desc: "野花绽放, 中央谷地, 加利福尼亚州, 美国", copyright: "© Jeff Lewis/Tandem Stills + Motion" },
   { id: "JapaneseTreeFrog_ZH-CN6467379766", date: "2026-04-01", desc: "粉色牵牛花里的日本树蛙", copyright: "© Tetsuya Tanooka/Getty Images" },
 
-  // 2026-04
-  { id: "SpringSnowdrops_ZH-CN2933051747", date: "2026-04-05", desc: "春天的雪钟花", copyright: "© klagyivik/Getty Images" },
-  { id: "GrouseGuff_ZH-CN2647001885", date: "2026-04-04", desc: "求偶展示场上对峙的雄性黑琴鸡，爱沙尼亚", copyright: "© Sven Zacek/Nature Picture Library" },
-  { id: "ArmbrugBridge_ZH-CN4600005169", date: "2026-04-03", desc: "阿姆布鲁大桥，阿姆斯特丹，荷兰", copyright: "© Alexander Spatari/Getty Images" },
-  { id: "WildflowerValley_ZH-CN7048300331", date: "2026-04-02", desc: "野花绽放, 中央谷地, 加利福尼亚州, 美国", copyright: "© Jeff Lewis/Tandem Stills + Motion" },
-  { id: "JapaneseTreeFrog_ZH-CN6467379766", date: "2026-04-01", desc: "粉色牵牛花里的日本树蛙", copyright: "© Tetsuya Tanooka/Getty Images" },
-
-  // 2026-03（补充 03-11 至 03-31）
-  { id: "ParadiseCave_ZH-CN6371627729", date: "2026-03-31", desc: "天堂洞, 峰牙-格邦国家公园, 越南", copyright: "© Pakawat Thongcharoen/Getty Images" },
-  { id: "IndiaCranes_ZH-CN5871338482", date: "2026-03-30", desc: "蓑羽鹤, 印度", copyright: "© Axel Gomille/Nature Picture Library" },
-  { id: "PeggysLighthouse_ZH-CN5730463973", date: "2026-03-29", desc: "佩吉角灯塔, 大西洋海岸, 新斯科舍省, 加拿大", copyright: "© Prashanth Bala/Shutterstock" },
-  { id: "CapeBuffalo_ZH-CN5591123662", date: "2026-03-28", desc: "非洲水牛, 恩戈罗恩戈罗火山口, 坦桑尼亚", copyright: "© jesuss8/500px/Getty Images" },
-  { id: "RadioCityHall_ZH-CN5492649461", date: "2026-03-27", desc: "纽约市的无线电城音乐厅, 美国", copyright: "© Clarence Holmes Photography/Alamy" },
-  { id: "LoganCreek_ZH-CN5372283365", date: "2026-03-26", desc: "洛根溪吊桥，西海岸步道，加拿大", copyright: "© Tandem Stock/Adobe Stock" },
-  { id: "ManateeSpring_ZH-CN5252847120", date: "2026-03-25", desc: "淡水泉中的幼年海牛，水晶河，佛罗里达州，美国", copyright: "© Gregory Sweeney/Getty Images" },
-  { id: "WuhanCherryBlossom_ZH-CN1031985926", date: "2026-03-24", desc: "东湖樱花园的樱花，武汉，中国", copyright: "© Zhang Qiao/VCG/Getty Images" },
-  { id: "SonoranStorm_ZH-CN0579792563", date: "2026-03-23", desc: "坦噶尼喀湖，非洲", copyright: "© BEST-BACKGROUNDS/NASA/Shutterstock" },
-  { id: "TanganyikaWater_ZH-CN4884850067", date: "2026-03-22", desc: "坦噶尼喀湖，非洲", copyright: "© BEST-BACKGROUNDS/NASA/Shutterstock" },
-  { id: "LeteaForest_ZH-CN4153496399", date: "2026-03-21", desc: "莱泰亚森林，多瑙河三角洲，罗马尼亚", copyright: "© Wild Wonders of Europe/Widstrand/Nature Picture Library" },
-  { id: "SpringEquinoxY26_ZH-CN7450181382", date: "2026-03-20", desc: "春日樱花，上海，中国", copyright: "© junyyeung/Getty Images" },
-  { id: "EchidnaAustralia_ZH-CN0913792118", date: "2026-03-19", desc: "澳洲针鼹，阿德莱德山，澳大利亚", copyright: "© Etienne Littlefair/naturepl.com" },
-  { id: "PortlandBlossoms_ZH-CN0814501668", date: "2026-03-18", desc: "汤姆·麦考尔滨水公园的樱花，波特兰，俄勒冈州，美国", copyright: "© Eric Vogt/Tandem Stills + Motion" },
-  { id: "DonegalFort_ZH-CN0718842170", date: "2026-03-17", desc: "艾利赫格里安南环形堡，多内加尔，爱尔兰", copyright: "© Lukassek/Getty Images" },
-  { id: "PandaForest_ZH-CN0545156080", date: "2026-03-16", desc: "正在吃竹子的大熊猫，中国", copyright: "© Entwicklungsknecht/Getty Images" },
-  { id: "PacificRimNP_ZH-CN0350089584", date: "2026-03-15", desc: "太平洋沿岸国家公园保护区，温哥华岛，加拿大", copyright: "© EmilyNorton/Getty Images" },
-  { id: "CornwallDolmen_ZH-CN0045468799", date: "2026-03-14", desc: "兰扬石门，位于英格兰康沃尔郡的一座兰扬新石器时代石棚墓，英国", copyright: "© Helen Hotson/Alamy" },
-  { id: "VendeeVaults_ZH-CN9885568795", date: "2026-03-13", desc: "邦港圣母教堂拱顶，莱萨布勒多洛讷，法国", copyright: "© Helmut Meyer zur Capellen/Alamy" },
-  { id: "SunbitternEcuador_ZH-CN9772788253", date: "2026-03-12", desc: "幼年日鳽在巢穴附近展示求偶行为, 厄瓜多尔", copyright: "© Andy Rouse/naturepl.com" },
-  { id: "PeachBloom_ZH-CN9660251274", date: "2026-03-11", desc: "盛开的桃树, 谢萨, 穆尔西亚, 西班牙", copyright: "© Juan Maria Coy Vergara/Getty Images" },
-
   // 2026-03
   { id: "ParadiseCave_ZH-CN6371627729", date: "2026-03-31", desc: "天堂洞, 峰牙-格邦国家公园, 越南", copyright: "© Pakawat Thongcharoen/Getty Images" },
   { id: "IndiaCranes_ZH-CN5871338482", date: "2026-03-30", desc: "蓑羽鹤, 印度", copyright: "© Axel Gomille/Nature Picture Library" },

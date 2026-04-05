@@ -1205,7 +1205,9 @@
 
     /* B站功能亮点展示条 */
     .bili-feature-highlight {
-      grid-column: 1 / -1;
+      width: fit-content;
+      max-width: 700px;
+      margin: 16px auto 0;
       display: flex;
       flex-direction: column;
       gap: 10px;
@@ -1213,7 +1215,6 @@
       background: linear-gradient(135deg, rgba(251,114,153,0.07), rgba(252,145,83,0.07));
       border: 1px solid rgba(251,114,153,0.2);
       border-radius: 14px;
-      margin-top: 4px;
     }
 
     .bili-highlight-row1 {
@@ -1264,14 +1265,6 @@
       border-color: rgba(252,145,83,0.3);
       color: #d4600a;
       font-weight: 700;
-    }
-
-    @keyframes biliBlink {
-      0%, 90%, 100% { ry: 1.2; }
-      95% { ry: 0.1; }
-    }
-    .bili-eye {
-      animation: biliBlink 4s infinite;
     }
 
     @media (prefers-color-scheme: dark) {
@@ -1489,29 +1482,6 @@
         <div class="feature-title">Ctrl+B 悬浮搜索</div>
       </div>
     
-      <!-- B站工具条亮点展示 -->
-      <div class="bili-feature-highlight">
-        <div class="bili-highlight-row1">
-          <div class="bili-highlight-label">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="bili-tv-icon">
-              <rect x="2" y="5" width="20" height="14" rx="3"/>
-              <path d="M8 2L10 5"/><path d="M16 2L14 5"/>
-              <ellipse class="bili-eye" cx="9" cy="12" rx="1.2" ry="1.2" fill="currentColor" stroke="none"/>
-              <ellipse class="bili-eye" cx="15" cy="12" rx="1.2" ry="1.2" fill="currentColor" stroke="none"/>
-            </svg>
-            <span>B站视频专属工具条</span>
-          </div>
-          <div class="bili-highlight-buttons">
-            <span class="bili-demo-btn">颜色反转</span>
-            <span class="bili-demo-btn">旋转</span>
-            <span class="bili-demo-btn">镜像</span>
-            <span class="bili-demo-btn bili-speed-btn">0.25×</span>
-            <span class="bili-demo-btn bili-speed-btn">3×</span>
-          </div>
-        </div>
-        <div class="bili-highlight-row2">Ctrl+B 呼出后自动出现</div>
-      </div>
-
         <!-- 更多功能提示 - 作为网格的一部分 -->
         <div class="more-features-hint">以及更多 … 所有功能都支持独立开关和精细化控制</div>
         </div>
@@ -1519,6 +1489,33 @@
       <!-- content-area 结束 -->
     </div>
     <!-- main-content 结束 -->
+
+    <!-- B站工具条亮点展示（在 content-area 外、grid 外） -->
+    <div class="bili-feature-highlight">
+      <div class="bili-highlight-row1">
+        <div class="bili-highlight-label">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="5" width="20" height="14" rx="3"/>
+            <path d="M8 2L10 5"/><path d="M16 2L14 5"/>
+            <ellipse cx="9" cy="12" rx="1.5" ry="1.5" fill="currentColor" stroke="none">
+              <animate attributeName="ry" values="1.5;0.1;1.5" dur="4s" begin="1s" repeatCount="indefinite"/>
+            </ellipse>
+            <ellipse cx="15" cy="12" rx="1.5" ry="1.5" fill="currentColor" stroke="none">
+              <animate attributeName="ry" values="1.5;0.1;1.5" dur="4s" begin="1s" repeatCount="indefinite"/>
+            </ellipse>
+          </svg>
+          <span>B站视频专属工具条</span>
+        </div>
+        <div class="bili-highlight-buttons">
+          <span class="bili-demo-btn">颜色反转</span>
+          <span class="bili-demo-btn">旋转</span>
+          <span class="bili-demo-btn">镜像</span>
+          <span class="bili-demo-btn bili-speed-btn">0.25×</span>
+          <span class="bili-demo-btn bili-speed-btn">3×</span>
+        </div>
+      </div>
+      <div class="bili-highlight-row2">Ctrl+B 呼出后自动出现</div>
+    </div>
 
     <!-- Step 2 容器 (初始隐藏) -->
     <div id="step2Container" class="step2-container">
