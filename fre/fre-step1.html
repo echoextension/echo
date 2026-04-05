@@ -1205,59 +1205,94 @@
 
     /* B站功能亮点展示条 */
     .bili-feature-highlight {
-      width: fit-content;
-      max-width: 700px;
-      margin: 16px auto 0;
+      grid-column: 1 / -1;
+      width: 90%;
+      max-width: 990px;
+      margin: 8px auto 0;
       display: flex;
-      flex-direction: column;
-      gap: 10px;
-      padding: 14px 20px;
-      background: linear-gradient(135deg, rgba(251,114,153,0.07), rgba(252,145,83,0.07));
-      border: 1px solid rgba(251,114,153,0.2);
+      align-items: center;
+      justify-content: center;
+      gap: 24px;
+      padding: 8px 24px 4px;
+      background: linear-gradient(135deg, rgba(251,114,153,0.12), rgba(252,145,83,0.12));
+      border: 1px solid rgba(251,130,118,0.25);
       border-radius: 14px;
     }
 
-    .bili-highlight-row1 {
+    .bili-highlight-brand {
       display: flex;
       align-items: center;
-      gap: 16px;
-      flex-wrap: wrap;
-    }
-
-    .bili-highlight-row2 {
-      font-size: 12px;
-      color: var(--text-light);
-    }
-
-    .bili-highlight-label {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 13px;
-      font-weight: 600;
+      gap: 10px;
+      flex-shrink: 0;
       color: #fb7299;
-      white-space: nowrap;
+    }
+
+    .bili-highlight-brand svg {
       flex-shrink: 0;
     }
 
-    .bili-highlight-buttons {
+    .bili-highlight-brand-text {
+      font-size: 18px;
+      font-weight: 700;
+      color: #fb7299;
+      white-space: nowrap;
+      line-height: 1.3;
+    }
+
+    .bili-highlight-features {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 24px;
+      align-items: center;
+    }
+
+    .bili-feature-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 22px;
+      font-weight: 600;
+      color: #e05585;
+      white-space: nowrap;
+    }
+
+    .bili-feature-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .bili-feature-group {
       display: flex;
       align-items: center;
-      gap: 8px;
-      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .bili-feature-group-label {
+      font-size: 12px;
+      color: var(--text-light);
+      white-space: nowrap;
     }
 
     .bili-demo-btn {
       display: inline-flex;
       align-items: center;
-      padding: 5px 12px;
-      background: rgba(251,114,153,0.1);
-      border: 1px solid rgba(251,114,153,0.25);
+      padding: 8px 20px;
+      background: linear-gradient(135deg, rgba(251,114,153,0.13), rgba(252,145,83,0.13));
+      border: 1px solid rgba(251,130,118,0.3);
       border-radius: 20px;
-      font-size: 13px;
+      font-size: 15px;
       color: #e05585;
-      font-weight: 500;
+      font-weight: 600;
       white-space: nowrap;
+      transition: background 0.4s, border-color 0.4s, transform 0.4s;
+    }
+
+    .bili-demo-btn.bili-btn-glow {
+      background: rgba(251,114,153,0.25);
+      border-color: rgba(251,114,153,0.5);
+      transform: scale(1.08);
     }
 
     .bili-speed-btn {
@@ -1265,6 +1300,19 @@
       border-color: rgba(252,145,83,0.3);
       color: #d4600a;
       font-weight: 700;
+    }
+
+    .bili-speed-btn.bili-btn-glow {
+      background: rgba(252,145,83,0.3);
+      border-color: rgba(252,145,83,0.55);
+    }
+
+    .bili-group-sep {
+      width: 1px;
+      height: 20px;
+      background: rgba(251,114,153,0.2);
+      margin: 0 4px;
+      flex-shrink: 0;
     }
 
     @media (prefers-color-scheme: dark) {
@@ -1277,10 +1325,21 @@
         background: rgba(251,114,153,0.12);
         border-color: rgba(251,114,153,0.2);
       }
+      .bili-demo-btn.bili-btn-glow {
+        background: rgba(251,114,153,0.3);
+        border-color: rgba(251,114,153,0.5);
+      }
       .bili-speed-btn {
         color: #fc9153;
         background: rgba(252,145,83,0.12);
         border-color: rgba(252,145,83,0.2);
+      }
+      .bili-speed-btn.bili-btn-glow {
+        background: rgba(252,145,83,0.35);
+        border-color: rgba(252,145,83,0.55);
+      }
+      .bili-group-sep {
+        background: rgba(251,114,153,0.15);
       }
     }
   </style>
@@ -1482,40 +1541,28 @@
         <div class="feature-title">Ctrl+B 悬浮搜索</div>
       </div>
     
-        <!-- 更多功能提示 - 作为网格的一部分 -->
-        <div class="more-features-hint">以及更多 … 所有功能都支持独立开关和精细化控制</div>
+        <!-- B站工具条亮点展示（替代原 more-features-hint） -->
+    <div class="bili-feature-highlight">
+      <div class="bili-highlight-brand">
+        <svg width="72" height="72" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="2" y="5" width="20" height="14" rx="3" fill="white"/>
+          <path d="M8 2L10 5"/><path d="M16 2L14 5"/>
+          <ellipse class="bili-eye" cx="9" cy="11" rx="1.5" ry="1.5" fill="currentColor" stroke="none"/>
+          <ellipse class="bili-eye" cx="15" cy="11" rx="1.5" ry="1.5" fill="currentColor" stroke="none"/>
+        </svg>
+        <span class="bili-highlight-brand-text">B站视频<br>专属优化工具条</span>
+      </div>
+      <div class="bili-highlight-features">
+        <span class="bili-feature-item"><span class="bili-feature-icon"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/></svg></span>颜色反转</span>
+        <span class="bili-feature-item"><span class="bili-feature-icon"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/></svg></span>旋转镜像</span>
+        <span class="bili-feature-item"><span class="bili-feature-icon"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/></svg></span>超级变速</span>
+      </div>
+    </div>
         </div>
       </div>
       <!-- content-area 结束 -->
     </div>
     <!-- main-content 结束 -->
-
-    <!-- B站工具条亮点展示（在 content-area 外、grid 外） -->
-    <div class="bili-feature-highlight">
-      <div class="bili-highlight-row1">
-        <div class="bili-highlight-label">
-          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="2" y="5" width="20" height="14" rx="3"/>
-            <path d="M8 2L10 5"/><path d="M16 2L14 5"/>
-            <ellipse cx="9" cy="12" rx="1.5" ry="1.5" fill="currentColor" stroke="none">
-              <animate attributeName="ry" values="1.5;0.1;1.5" dur="4s" begin="1s" repeatCount="indefinite"/>
-            </ellipse>
-            <ellipse cx="15" cy="12" rx="1.5" ry="1.5" fill="currentColor" stroke="none">
-              <animate attributeName="ry" values="1.5;0.1;1.5" dur="4s" begin="1s" repeatCount="indefinite"/>
-            </ellipse>
-          </svg>
-          <span>B站视频专属工具条</span>
-        </div>
-        <div class="bili-highlight-buttons">
-          <span class="bili-demo-btn">颜色反转</span>
-          <span class="bili-demo-btn">旋转</span>
-          <span class="bili-demo-btn">镜像</span>
-          <span class="bili-demo-btn bili-speed-btn">0.25×</span>
-          <span class="bili-demo-btn bili-speed-btn">3×</span>
-        </div>
-      </div>
-      <div class="bili-highlight-row2">Ctrl+B 呼出后自动出现</div>
-    </div>
 
     <!-- Step 2 容器 (初始隐藏) -->
     <div id="step2Container" class="step2-container">

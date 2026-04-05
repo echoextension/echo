@@ -126,3 +126,27 @@
     // 自动轮播已移除，仅保留 hover 触发的果冻跳
   }, 500);
 })();
+
+// 小电视随机眨眼
+(function() {
+  const eyes = document.querySelectorAll('.bili-eye');
+  if (!eyes.length) return;
+  function blink() {
+    eyes.forEach(e => e.setAttribute('ry', '0.1'));
+    setTimeout(() => {
+      eyes.forEach(e => e.setAttribute('ry', '1.5'));
+      // 50% 概率连续眨第二次
+      if (Math.random() < 0.5) {
+        setTimeout(() => {
+          eyes.forEach(e => e.setAttribute('ry', '0.1'));
+          setTimeout(() => eyes.forEach(e => e.setAttribute('ry', '1.5')), 100);
+        }, 200);
+      }
+    }, 100);
+  }
+  function schedule() {
+    const delay = 2000 + Math.random() * 2000;
+    setTimeout(() => { blink(); schedule(); }, delay);
+  }
+  schedule();
+})();
