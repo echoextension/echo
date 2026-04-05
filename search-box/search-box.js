@@ -999,44 +999,22 @@
     });
     speedCapsule.appendChild(fastBtn);
 
-    // ratechange 监听：同步 active 状态
-    function syncSpeedButtons() {
+    // ratechange 监听：同步倍速按钮 active 状态（一次性绑定，防重复）
+    let _speedListenerBound = false;
+    function bindSpeedRateChange() {
       const video = document.querySelector('bwp-video, video');
-      if (!video) return;
+      if (!video || _speedListenerBound) return;
+      _speedListenerBound = true;
       video.addEventListener('ratechange', () => {
+        if (!invertToolbar) return;
         const rate = video.playbackRate;
-        slowBtn.classList.toggle('active', rate === 0.25);
-        fastBtn.classList.toggle('active', rate === 3.0);
+        const slow = invertToolbar.querySelector('[data-action="speed-slow"]');
+        const fast = invertToolbar.querySelector('[data-action="speed-fast"]');
+        if (slow) slow.classList.toggle('active', rate === 0.25);
+        if (fast) fast.classList.toggle('active', rate === 3.0);
       });
     }
-    // 等待视频元素就绪
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', syncSpeedButtons);
-    } else {
-      syncSpeedButtons();
-    }
-
-    // B站 SPA 路由切换时重置倍速
-    const _origPushState = history.pushState.bind(history);
-    history.pushState = function(...args) {
-      _origPushState(...args);
-      setTimeout(() => {
-        const video = document.querySelector('bwp-video, video');
-        if (video) video.playbackRate = 1.0;
-        slowBtn.classList.remove('active');
-        fastBtn.classList.remove('active');
-        syncSpeedButtons();
-      }, 800);
-    };
-    window.addEventListener('popstate', () => {
-      setTimeout(() => {
-        const video = document.querySelector('bwp-video, video');
-        if (video) video.playbackRate = 1.0;
-        slowBtn.classList.remove('active');
-        fastBtn.classList.remove('active');
-        syncSpeedButtons();
-      }, 800);
-    });
+    bindSpeedRateChange();
 
     invertToolbar.appendChild(speedCapsule);
 
@@ -1666,6 +1644,9 @@
     activeChannels.clear();
     applyInvertFilter();
     clearRotate();
+    // 重置倍速
+    const video = document.querySelector('bwp-video, video');
+    if (video && video.playbackRate !== 1.0) video.playbackRate = 1.0;
     updateToolbarState();
     removeBiliIndicator();
   }
@@ -1821,6 +1802,13 @@
       fitBtn.classList.toggle('active', rotateFillMode && isRotated90);
       fitBtn.classList.toggle('disabled', !isRotated90);
     }
+    // 倍速按钮状态同步
+    const video = document.querySelector('bwp-video, video');
+    const currentRate = video ? video.playbackRate : 1.0;
+    const speedSlowBtn = invertToolbar.querySelector('[data-action="speed-slow"]');
+    const speedFastBtn = invertToolbar.querySelector('[data-action="speed-fast"]');
+    if (speedSlowBtn) speedSlowBtn.classList.toggle('active', currentRate === 0.25);
+    if (speedFastBtn) speedFastBtn.classList.toggle('active', currentRate === 3.0);
   }
 
   /**
@@ -2264,7 +2252,8 @@
     if (location.href !== lastUrl) {
       const previousUrl = lastUrl;
       lastUrl = location.href;
-      const hadEffects = invertActive || activeChannels.size > 0 || rotateAngle !== 0 || mirrorActive;
+      const video = document.querySelector('bwp-video, video');
+      const hadEffects = invertActive || activeChannels.size > 0 || rotateAngle !== 0 || mirrorActive || (video && video.playbackRate !== 1.0);
       if (hadEffects) {
         clearAllBiliTools();
       }
