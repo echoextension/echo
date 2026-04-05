@@ -1213,7 +1213,7 @@
       align-items: center;
       justify-content: center;
       gap: 24px;
-      padding: 8px 24px 4px;
+      padding: 6px 24px 0px;
       background: linear-gradient(135deg, rgba(251,114,153,0.12), rgba(252,145,83,0.12));
       border: 1px solid rgba(251,130,118,0.25);
       border-radius: 14px;
@@ -1225,6 +1225,7 @@
       gap: 10px;
       flex-shrink: 0;
       color: #fb7299;
+      margin-right: 16px;
     }
 
     .bili-highlight-brand svg {
@@ -1232,7 +1233,7 @@
     }
 
     .bili-highlight-brand-text {
-      font-size: 18px;
+      font-size: 15px;
       font-weight: 700;
       color: #fb7299;
       white-space: nowrap;
@@ -1242,17 +1243,18 @@
     .bili-highlight-features {
       display: flex;
       flex-wrap: wrap;
-      gap: 24px;
+      gap: 32px;
       align-items: center;
+      margin-top: -5px;
     }
 
     .bili-feature-item {
       display: inline-flex;
       align-items: center;
-      gap: 4px;
+      gap: 8px;
       font-size: 22px;
       font-weight: 600;
-      color: #e05585;
+      color: #c7446e;
       white-space: nowrap;
     }
 
@@ -1553,9 +1555,30 @@
         <span class="bili-highlight-brand-text">B站视频<br>专属优化工具条</span>
       </div>
       <div class="bili-highlight-features">
-        <span class="bili-feature-item"><span class="bili-feature-icon"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/></svg></span>颜色反转</span>
-        <span class="bili-feature-item"><span class="bili-feature-icon"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/></svg></span>旋转镜像</span>
-        <span class="bili-feature-item"><span class="bili-feature-icon"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/></svg></span>超级变速</span>
+        <span class="bili-feature-item"><span class="bili-feature-icon" style="margin-right:4px"><svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+          <rect x="1" y="3" width="10" height="18" rx="2" stroke="#fb7299" stroke-width="0.7">
+            <animate attributeName="fill" values="#fb7299;white;#fb7299" keyTimes="0;0.5;1" dur="4s" repeatCount="indefinite"/>
+          </rect>
+          <rect x="13" y="3" width="10" height="18" rx="2" stroke="#fb7299" stroke-width="0.7">
+            <animate attributeName="fill" values="white;#fb7299;white" keyTimes="0;0.5;1" dur="4s" repeatCount="indefinite"/>
+          </rect>
+        </svg></span>颜色反转</span>
+        <span class="bili-feature-item"><span class="bili-feature-icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="white" stroke="#fb7299" stroke-width="0.8" stroke-linecap="round" stroke-linejoin="round">
+          <g>
+            <animateTransform attributeName="transform" type="rotate" values="0 12 12;0 12 12;90 12 12;90 12 12;0 12 12" keyTimes="0;0.35;0.5;0.85;1" dur="3s" repeatCount="indefinite"/>
+            <rect x="4" y="5" width="16" height="14" rx="2"/>
+            <path d="M9 9l6 0"/>
+            <path d="M9 13l3 0"/>
+          </g>
+        </svg></span>旋转镜像</span>
+        <span class="bili-feature-item"><span class="bili-feature-icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="#fb7299" stroke="none">
+          <polygon points="4,3 14,12 4,21">
+            <animate attributeName="opacity" values="1;0.3;1" dur="3s" repeatCount="indefinite"/>
+          </polygon>
+          <polygon points="13,6 20,12 13,18">
+            <animate attributeName="opacity" values="0.3;1;0.3" dur="3s" repeatCount="indefinite"/>
+          </polygon>
+        </svg></span>超级变速</span>
       </div>
     </div>
         </div>
