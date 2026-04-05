@@ -18,5 +18,9 @@ package-lock.json
 *.crx
 *.pem
 
+# Local tools / scripts (not for distribution)
+crawler/
+*.py
+
 # Edge sideload cache
 _metadata/
