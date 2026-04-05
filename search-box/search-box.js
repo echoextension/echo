@@ -1019,6 +1019,7 @@
         const fast = invertToolbar.querySelector('[data-action="speed-fast"]');
         if (slow) slow.classList.toggle('active', rate === 0.25);
         if (fast) fast.classList.toggle('active', rate === 3.0);
+        updateBiliIndicator();
       });
     }
     bindSpeedRateChange();
@@ -1838,13 +1839,16 @@
     const hasColorEffect = invertActive || activeChannels.size > 0;
     const hasRotate = rotateAngle !== 0;
     const hasMirror = mirrorActive;
-    if (hasColorEffect || hasRotate || hasMirror) {
+    const video = document.querySelector('bwp-video, video');
+    const hasSpeed = video && video.playbackRate !== 1.0;
+    if (hasColorEffect || hasRotate || hasMirror || hasSpeed) {
       const parts = [];
       if (hasColorEffect) parts.push('颜色已调整');
       if (hasRotate) {
         parts.push(`已旋转${rotateAngle}\u00b0`);
       }
       if (hasMirror) parts.push('已镜像');
+      if (hasSpeed) parts.push(`${video.playbackRate}×倍速`);
       showBiliIndicator(parts.join(' / '));
     } else {
       removeBiliIndicator();
