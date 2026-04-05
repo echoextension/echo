@@ -1,0 +1,2481 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ECHO 易可 — 让 Edge 更懂中国用户</title>
+  <meta name="description" content="ECHO 易可是一款免费开源的 Edge 浏览器扩展，为中国用户补齐鼠标手势、超级拖拽、悬浮搜索框、自定义新标签页等十余项本土化功能。无广告、不收集数据。">
+  <meta property="og:title" content="ECHO 易可 — 让 Edge 更懂中国用户">
+  <meta property="og:description" content="免费开源的 Edge 扩展，一键补齐鼠标手势、超级拖拽、新标签页壁纸等中国用户最需要的功能。">
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="icon300.png">
+  <link rel="icon" type="image/png" href="icon300.png">
+  <style>
+    /* ============================================
+       全局基础
+       ============================================ */
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --gp: 100%;
+    }
+
+    html {
+      overflow-x: hidden;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background: #ffffff;
+      color: #333333;
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    /* ============================================
+       全局布局
+       ============================================ */
+    .page-content {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 40px;
+    }
+
+    /* ============================================
+       顶部固定导航
+       ============================================ */
+    .site-nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 1000;
+      height: 70px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 32px;
+      transition: background 0.3s, box-shadow 0.3s;
+    }
+
+    .site-nav.transparent {
+      background: rgba(26,26,46,0.15);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .site-nav.solid {
+      background: rgba(240,242,255,0.88);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      box-shadow: 0 1px 8px rgba(0,0,0,0.08);
+      border-bottom: 1px solid rgba(0,0,0,0.06);
+    }
+
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+    }
+
+    .nav-brand img {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      box-shadow: 0 8px 32px rgba(0, 120, 212, 0.2);
+      border: 1px solid rgba(0, 120, 212, 0.1);
+    }
+
+    .nav-brand-name {
+      font-size: 24px;
+      font-weight: 700;
+      transition: color 0.3s;
+    }
+
+    .site-nav.transparent .nav-brand-name {
+      color: #ffffff;
+    }
+
+    .site-nav.solid .nav-brand-name {
+      color: #1a1a2e;
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+    }
+
+    .nav-links a {
+      font-size: 18px;
+      font-weight: 500;
+      text-decoration: none;
+      transition: color 0.3s;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .nav-cta {
+      padding: 6px 24px;
+      border-radius: 24px;
+      font-size: 18px !important;
+      font-weight: 600 !important;
+      transition: background 0.3s, color 0.3s, border-color 0.3s;
+    }
+
+    .site-nav.transparent .nav-cta {
+      background: linear-gradient(90deg, #3584e4, #00b7c3);
+      border: 1px solid transparent;
+      color: #ffffff !important;
+      transition: opacity 0.2s, transform 0.2s;
+    }
+
+    .site-nav.transparent .nav-cta:hover {
+      opacity: 0.85;
+      transform: translateY(-1px);
+    }
+
+    .site-nav.solid .nav-cta {
+      background: linear-gradient(90deg, #3584e4, #00b7c3);
+      border: 1px solid transparent;
+      color: #ffffff !important;
+      transition: opacity 0.2s, transform 0.2s;
+    }
+
+    .site-nav.solid .nav-cta:hover {
+      opacity: 0.85;
+      transform: translateY(-1px);
+    }
+
+    .site-nav.transparent .nav-links a {
+      color: rgba(255,255,255,0.8);
+    }
+
+    .site-nav.transparent .nav-links a:hover {
+      color: #ffffff;
+    }
+
+    .site-nav.solid .nav-links a {
+      color: #555;
+    }
+
+    .site-nav.solid .nav-links a:hover {
+      color: #0078d4;
+    }
+
+    /* ============================================
+       Section 占位（留白）
+       ============================================ */
+    .section-placeholder {
+      min-height: 600px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      color: rgba(0,0,0,0.2);
+      border-bottom: 1px solid rgba(0,0,0,0.06);
+    }
+
+    /* 图片渲染优化 */
+    img {
+      image-rendering: -webkit-optimize-contrast;
+      image-rendering: smooth;
+      -ms-interpolation-mode: bicubic;
+      backface-visibility: hidden;
+      -webkit-backface-visibility: hidden;
+      transform: translateZ(0);
+    }
+
+    /* ============================================
+       Hero: 大磁贴深色版（搬自 store-assets-combined.html C 段）
+       适配调整：width 1400px → 100%, height 560px → auto min-height
+       ============================================ */
+    .tile-large.dark {
+      width: 100%;
+      min-height: 600px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      padding: 100px 40px 40px;
+      gap: 0;
+      background: linear-gradient(145deg, #1a1a2e 0%, #16213e 40%, #0f3460 100%);
+    }
+
+    .tile-large .tl-inner {
+      display: flex;
+      align-items: center;
+      gap: 40px;
+      width: 100%;
+      max-width: 1200px;
+    }
+
+    .tile-large.dark .tl-brand img {
+      width: 108px;
+      height: 108px;
+      border-radius: 27px;
+      border: 2px solid rgba(255,255,255,0.15);
+      box-shadow: 0 8px 32px rgba(0, 120, 212, 0.3);
+    }
+
+    .tile-large.dark .tl-name {
+      font-size: 72px;
+      font-weight: 700;
+      line-height: 1.4;
+      white-space: nowrap;
+      margin-top: 120px;
+      background: linear-gradient(90deg, #58a6ff, #3584e4, #00b7c3, #2ec27e, #58a6ff);
+      background-size: 200% auto;
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-position: var(--gp) center;
+    }
+
+    .tile-large.dark .tl-slogan {
+      font-size: 28px;
+      font-weight: 600;
+      letter-spacing: 1px;
+      color: #ffffff;
+    }
+
+    .tile-large.dark .tl-slogan::before,
+    .tile-large.dark .tl-slogan::after {
+      content: '';
+      width: 40px;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+    }
+
+    .tile-large.dark .tl-desc {
+      font-size: 21px;
+      font-weight: 600;
+      line-height: 1.8;
+      color: #ffffff;
+      margin-top: 20px;
+    }
+
+    .tile-large.dark .tl-tag {
+      font-size: 19px;
+      padding: 6px 18px;
+      border-radius: 20px;
+      font-weight: 500;
+      background: rgba(255,255,255,0.08);
+      color: #ffffff;
+      border: 1px solid rgba(255,255,255,0.15);
+    }
+
+    /* 共享布局 */
+    .tile-large .tl-left {
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      gap: 20px;
+    }
+
+    .tile-large .tl-brand {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      margin-bottom: 6px;
+    }
+
+    .tile-large .tl-brand-text {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      text-align: left;
+    }
+
+    .tile-large .tl-slogan {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .tile-large .tl-features {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-top: 16px;
+    }
+
+    .tile-large .tl-right {
+      flex: 1;
+      position: relative;
+      overflow: visible;
+      perspective: 600px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      align-self: stretch;
+    }
+
+    /* 透视画廊 */
+    .tl-right .c-gallery {
+      position: absolute;
+      top: 50%;
+      left: 60%;
+      transform: translateX(-40%) translateY(-50%) rotateX(20deg) translateZ(-20px);
+      display: grid;
+      grid-template-columns: repeat(4, 145px);
+      gap: 10px;
+      transform-origin: center center;
+      transform-style: preserve-3d;
+    }
+
+    .tl-right .c-gallery .c-card {
+      position: relative;
+      border-radius: 8px;
+      overflow: hidden;
+      aspect-ratio: 16 / 10;
+      transform-style: preserve-3d;
+    }
+
+    .tl-right .c-gallery .c-card img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    /* 实体卡片透明度层级 */
+    .tl-right .c-gallery .c-card.c-dim {
+      opacity: 0.3;
+      filter: brightness(0.6) saturate(0.45);
+    }
+
+    .tl-right .c-gallery .c-card.c-mid {
+      opacity: 0.55;
+      filter: brightness(0.8) saturate(0.7);
+    }
+
+    .tl-right .c-gallery .c-card.c-hero {
+      opacity: 1;
+      filter: brightness(1) saturate(1);
+      transform: translateY(-16px) translateZ(60px) scale(1.4);
+      z-index: 3;
+    }
+
+    /* ghost 卡片 */
+    .tl-right .c-gallery .c-card.c-ghost {
+      background: transparent !important;
+      opacity: 1 !important;
+      filter: none !important;
+      box-shadow: none !important;
+    }
+
+    .tile-large.dark .c-gallery .c-card.c-ghost {
+      border: 1px solid rgba(255,255,255,0.12);
+    }
+    .tile-large.dark .c-gallery .c-card.c-ghost.cg2 {
+      border-color: rgba(255,255,255,0.06);
+    }
+
+    /* 实体卡片深色版 */
+    .tile-large.dark .c-gallery .c-card {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.1);
+      box-shadow: 0 3px 12px rgba(0,0,0,0.3);
+    }
+    .tile-large.dark .c-gallery .c-card.c-hero {
+      box-shadow: 0 14px 40px rgba(0,0,0,0.5),
+                  0 0 0 1px rgba(88,166,255,0.3);
+    }
+
+    /* 微光反射 */
+    .tl-right .c-gallery .c-card::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(165deg, rgba(255,255,255,0.1) 0%, transparent 40%);
+      pointer-events: none;
+      border-radius: inherit;
+    }
+    .tl-right .c-gallery .c-card.c-ghost::after { display: none; }
+
+    /* Hero CTA 按钮组 */
+    .hero-cta {
+      display: flex;
+      gap: 16px;
+      margin-top: 32px;
+      align-items: center;
+    }
+
+    .hero-cta-primary {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 28px;
+      border-radius: 24px;
+      font-size: 16px;
+      font-weight: 600;
+      color: #ffffff;
+      background: rgba(255,255,255,0.12);
+      border: 1px solid rgba(255,255,255,0.2);
+      text-decoration: none;
+      border: none;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.2s;
+    }
+
+    .hero-cta-primary:hover {
+      background: rgba(255,255,255,0.2);
+      transform: translateY(-1px);
+    }
+
+    .hero-cta-secondary {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 12px 24px;
+      border-radius: 24px;
+      font-size: 15px;
+      font-weight: 500;
+      color: rgba(255,255,255,0.8);
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.15);
+      text-decoration: none;
+      cursor: pointer;
+      transition: background 0.2s, color 0.2s;
+    }
+
+    .hero-cta-secondary:hover {
+      background: rgba(255,255,255,0.15);
+      color: #ffffff;
+    }
+
+    .hero-cta-secondary svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    /* Hero 副标题 */
+    .tl-subtitle {
+      font-size: 30px;
+      font-weight: 500;
+      color: rgba(255,255,255,0.75);
+      line-height: 1.6;
+      text-align: center;
+      margin-top: 20px;
+      white-space: nowrap;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      width: 100%;
+    }
+
+    .tl-subtitle-line {
+      width: 40px;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+      flex-shrink: 0;
+    }
+
+    /* Hero 信任徽章行 */
+    .trust-badges {
+      display: flex;
+      gap: 14px;
+      margin-top: 40px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .trust-badge {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 18px;
+      font-weight: 600;
+      color: rgba(255,255,255,0.75);
+      padding: 0 18px 0 0;
+      border-radius: 99px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(46,194,126,0.25);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      height: 38px;
+    }
+
+    .trust-badge svg {
+      width: 36px;
+      height: 36px;
+      flex-shrink: 0;
+      margin: 0;
+    }
+
+    /* Hero 补充特效样式 */
+    .rotator-wrap {
+      display: inline-grid;
+      align-items: center;
+      color: #00b7c3;
+      font-weight: 700;
+      margin: 0 6px;
+    }
+    .rotator-item {
+      grid-area: 1 / 1;
+      opacity: 0;
+      transform: translateY(16px);
+      transition: opacity 0.5s ease, transform 0.5s cubic-bezier(0.23, 1, 0.32, 1);
+    }
+    .rotator-item.active {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    .rotator-item.exit {
+      opacity: 0;
+      transform: translateY(-16px);
+    }
+
+    .hero-glow-1, .hero-glow-2 {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(100px);
+      z-index: 1;
+      opacity: 0.15;
+      pointer-events: none;
+    }
+    .hero-glow-1 {
+      width: 500px; height: 500px;
+      background: #3584e4;
+      top: -150px; left: -150px;
+    }
+    .hero-glow-2 {
+      width: 400px; height: 400px;
+      background: #00b7c3;
+      bottom: -100px; right: 5%;
+    }
+
+    .hero-quote {
+      margin-top: 102px;
+      margin-bottom: 20px;
+      font-size: 17px;
+      color: rgba(255,255,255,0.45);
+    }
+
+    /* ============================================
+       Section 2: NTP 壁纸展示（浅色版）
+       搬自 store-assets-combined.html D1 浅色 + ntp-gallery
+       适配：width/height 固定值 → 响应式
+       ============================================ */
+    .screenshot.light {
+      width: 100%;
+      min-height: 700px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 28px;
+      padding: 80px 40px 40px;
+      position: relative;
+      background: #ffffff;
+    }
+
+    #search-box .screenshot.light {
+      background: linear-gradient(to bottom, transparent 0%, transparent 30%, #fdfdff 55%, #fafcfe 80%, #f8fafe 100%);
+    }
+
+    .screenshot.light .ss-title {
+      font-size: 56px;
+      font-weight: 700;
+      text-align: center;
+      line-height: 1.4;
+      letter-spacing: -0.5px;
+      background: linear-gradient(90deg, #1a5fb4, #3584e4, #00b7c3, #2ec27e, #1a5fb4);
+      background-size: 200% auto;
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-position: var(--gp) center;
+    }
+
+    .screenshot.light .ss-subtitle {
+      font-size: 36px;
+      font-weight: 500;
+      color: rgba(0,0,0,0.85);
+      text-align: center;
+      margin-top: -8px;
+    }
+
+    .screenshot.light .ss-key {
+      display: inline-block;
+      padding: 6px 16px;
+      border-radius: 8px;
+      position: relative;
+      top: -4px;
+      font-family: "SF Mono", Consolas, monospace;
+      font-size: 28px;
+      font-weight: 600;
+      background: linear-gradient(180deg, #3a3a52, #2a2a40);
+      color: #ffffff;
+      border: 1px solid rgba(255,255,255,0.1);
+      box-shadow: 0 3px 0 #1a1a2e, inset 0 1px 0 rgba(255,255,255,0.15);
+      animation: key-press 2s ease infinite;
+    }
+
+    @keyframes key-press {
+      0%, 70%, 100% { transform: scale(1); box-shadow: 0 3px 0 #1a1a2e, inset 0 1px 0 rgba(255,255,255,0.15); }
+      80% { transform: scale(0.95) translateY(2px); box-shadow: 0 1px 0 #1a1a2e, inset 0 1px 0 rgba(255,255,255,0.15); }
+    }
+
+    /* D1 NTP section 标题层级 */
+    .screenshot.ntp-section .ss-title {
+      margin-top: 70px;
+      position: relative;
+      z-index: 5;
+    }
+    .screenshot.ntp-section .ss-subtitle {
+      position: relative;
+      z-index: 5;
+    }
+
+    /* NTP 透视画廊 */
+    .ntp-gallery-wrapper {
+      flex: 1;
+      width: calc(100% + 160px);
+      margin-left: -80px;
+      margin-right: -80px;
+      position: relative;
+      overflow: visible;
+      perspective: 1200px;
+    }
+
+    .ntp-gallery-scaler {
+      position: absolute;
+      top: -320px;
+      left: 50%;
+      transform: translateX(-50%) scale(0.5);
+      transform-origin: center top;
+      transform-style: preserve-3d;
+    }
+
+    .ntp-gallery {
+      transform: rotateX(20deg) translateZ(-30px);
+      display: grid;
+      grid-template-columns: repeat(6, 520px);
+      gap: 32px;
+      transform-origin: center 35%;
+      transform-style: preserve-3d;
+    }
+
+    .ntp-gallery .ntp-card {
+      position: relative;
+      border-radius: 4px;
+      overflow: hidden;
+      aspect-ratio: 16 / 10;
+      cursor: default;
+      transform-style: preserve-3d;
+      will-change: transform;
+      opacity: 0.75;
+      filter: brightness(0.9) saturate(0.85);
+      transition: transform 0.45s cubic-bezier(0.23, 1, 0.32, 1),
+                  box-shadow 0.45s cubic-bezier(0.23, 1, 0.32, 1),
+                  opacity 0.4s ease,
+                  filter 0.4s ease;
+    }
+
+    .ntp-gallery .ntp-card:hover {
+      transform: translateY(-48px) translateZ(80px) scale(1.45);
+      z-index: 3;
+      opacity: 1;
+      filter: brightness(1) saturate(1);
+    }
+
+    .ntp-gallery .ntp-card.op-low {
+      opacity: 0.25;
+      filter: brightness(0.55) saturate(0.4);
+    }
+    .ntp-gallery .ntp-card.op-mid {
+      opacity: 0.6;
+      filter: brightness(0.8) saturate(0.75);
+    }
+
+    .screenshot.light .ntp-gallery .ntp-card {
+      background: rgba(0,0,0,0.02);
+      border: 2px solid rgba(0,0,0,0.08);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.1),
+                  0 2px 6px rgba(0,0,0,0.06);
+    }
+
+    .screenshot.light .ntp-gallery .ntp-card:hover {
+      box-shadow: 0 40px 100px rgba(0,0,0,0.2),
+                  0 0 0 2px rgba(26,95,180,0.25),
+                  0 0 60px rgba(26,95,180,0.05);
+    }
+
+    .ntp-gallery .ntp-card img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .ntp-gallery .ntp-card::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(165deg, rgba(255,255,255,0.12) 0%, transparent 40%);
+      pointer-events: none;
+      border-radius: inherit;
+    }
+
+    .ntp-gallery .ntp-card.ghost {
+      opacity: 1 !important;
+      filter: none !important;
+      box-shadow: none !important;
+    }
+    .ntp-gallery .ntp-card.ghost::after { display: none; }
+    .ntp-gallery .ntp-card.ghost img { display: none; }
+
+    .screenshot.light .ntp-gallery .ntp-card.ghost {
+      background: rgba(255,255,255,0.35);
+      border: 2px solid rgba(0,0,0,0.14);
+      box-shadow: inset 0 2px 0 rgba(255,255,255,0.5) !important;
+    }
+    .screenshot.light .ntp-gallery .ntp-card.ghost.g2 {
+      background: rgba(255,255,255,0.18);
+      border-color: rgba(0,0,0,0.07);
+      box-shadow: inset 0 2px 0 rgba(255,255,255,0.25) !important;
+    }
+    .ntp-gallery .ntp-card.ghost.fadeout {
+      -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,0) 100%);
+      mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,0) 100%);
+    }
+    .ntp-gallery .ntp-card.ghost.fadein {
+      -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,1) 100%);
+      mask-image: linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,1) 100%);
+    }
+
+    .ntp-gallery .ntp-card.float-full {
+      transform: translateY(28px) translateZ(100px) scale(1.45);
+      z-index: 3;
+      opacity: 1;
+      filter: brightness(1) saturate(1);
+    }
+
+    .ntp-gallery .ntp-card.float-half {
+      transform: translateX(24px) translateY(-24px) translateZ(40px) scale(1.2);
+      z-index: 2;
+      opacity: 1;
+      filter: brightness(1) saturate(1);
+    }
+
+    .screenshot.light .ntp-gallery .ntp-card.float-full {
+      box-shadow: 0 40px 100px rgba(0,0,0,0.2),
+                  0 0 0 2px rgba(26,95,180,0.25),
+                  0 0 60px rgba(26,95,180,0.05);
+    }
+
+    .screenshot.light .ntp-gallery .ntp-card.float-half {
+      box-shadow: 0 24px 64px rgba(0,0,0,0.15),
+                  0 0 0 2px rgba(26,95,180,0.1);
+    }
+
+    /* ============================================
+       Section 3: 悬浮搜索框 + B站工具条（浅色版）
+       搬自 store-assets-combined.html D2 浅色版
+       搜索框/工具条样式搬自 search-box.js 生产代码
+       ============================================ */
+
+    /* 骨架屏舞台 */
+    .sb-stage {
+      position: relative;
+      width: calc(100% + 160px);
+      margin-left: -80px;
+      margin-right: -80px;
+      height: 600px;
+      overflow: visible;
+    }
+
+    .sb-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 180px);
+      grid-template-rows: 1fr 1fr;
+      gap: 14px;
+      justify-content: center;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 10%, rgba(0,0,0,0) 100%);
+      mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 10%, rgba(0,0,0,0) 100%);
+    }
+
+    /* 骨架屏 mock 卡片 */
+    .sb-mock {
+      border-radius: 10px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid transparent;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+    }
+    .sb-mock .m-nav {
+      height: 18px;
+      display: flex;
+      align-items: center;
+      padding: 0 10px;
+      gap: 4px;
+      flex-shrink: 0;
+      background: rgba(0,0,0,0.04);
+    }
+    .sb-mock .m-dot {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: rgba(0,0,0,0.14);
+    }
+    .sb-mock .m-body {
+      flex: 1;
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .sb-mock .m-line {
+      height: 4px;
+      border-radius: 2px;
+      background: rgba(0,0,0,0.07);
+    }
+    .sb-mock .m-block {
+      width: 40%;
+      height: 14px;
+      border-radius: 3px;
+      margin-top: 2px;
+      background: rgba(0,0,0,0.05);
+    }
+
+    .sb-mock.span-2r { grid-row: span 2; }
+    .sb-mock.t-far  { opacity: 0.35; }
+    .sb-mock.t-mid  { opacity: 0.55; }
+    .sb-mock.t-near { opacity: 0.8; }
+
+    .sb-grid > .sb-mock:nth-child(2),
+    .sb-grid > .sb-mock:nth-child(4),
+    .sb-grid > .sb-mock:nth-child(6) {
+      transform: translateY(40px);
+    }
+
+    /* 莫兰迪色骨架卡片 */
+    .sb-mock.mc1  { background: rgba(210,215,228,0.35); border-color: rgba(0,0,0,0.04); }
+    .sb-mock.mc2  { background: rgba(228,215,210,0.35); border-color: rgba(0,0,0,0.04); }
+    .sb-mock.mc3  { background: rgba(218,215,228,0.35); border-color: rgba(0,0,0,0.04); }
+    .sb-mock.mc4  { background: rgba(210,225,218,0.35); border-color: rgba(0,0,0,0.04); }
+    .sb-mock.mc5  { background: rgba(228,220,210,0.35); border-color: rgba(0,0,0,0.04); }
+    .sb-mock.mc6  { background: rgba(210,222,228,0.35); border-color: rgba(0,0,0,0.04); }
+    .sb-mock.mc7  { background: rgba(228,212,215,0.35); border-color: rgba(0,0,0,0.04); }
+    .sb-mock.mc8  { background: rgba(215,225,218,0.35); border-color: rgba(0,0,0,0.04); }
+    .sb-mock.mc9  { background: rgba(225,220,212,0.35); border-color: rgba(0,0,0,0.04); }
+    .sb-mock.mc10 { background: rgba(212,215,228,0.35); border-color: rgba(0,0,0,0.04); }
+
+    /* 搜索框英雄容器 */
+    .sb-hero {
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      bottom: 60px;
+    }
+
+    /* 工具条标注 */
+    .toolbar-annotation {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      margin-bottom: 8px;
+      transform: translateX(130px);
+    }
+
+    .toolbar-annotation-text {
+      font-family: "Segoe Script", "Comic Sans MS", cursive;
+      font-size: 32px;
+      font-weight: 700;
+      color: rgba(251,114,153,1);
+      white-space: nowrap;
+    }
+
+    .toolbar-annotation-arrow {
+      width: 100px;
+      height: auto;
+    }
+
+    /* ---- B站工具条（搬自 search-box.js 生产样式） ---- */
+    .demo-toolbar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 26px;
+      transform: scale(1.4);
+      transform-origin: center bottom;
+    }
+
+    .demo-toolbar .toolbar-capsule {
+      display: flex;
+      align-items: center;
+      background: rgba(255, 255, 255, 0.88);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-radius: 14px;
+      border: 0.5px solid rgba(0, 0, 0, 0.1);
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+      overflow: hidden;
+      height: 28px;
+    }
+
+    .demo-toolbar .capsule-label {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 0 12px;
+      font-size: 11px;
+      color: #00AEEC;
+      font-weight: 500;
+      white-space: nowrap;
+      user-select: none;
+      cursor: default;
+    }
+
+    .demo-toolbar .capsule-label svg {
+      flex-shrink: 0;
+    }
+
+    .demo-toolbar .capsule-btn {
+      height: 28px;
+      border: none;
+      background: transparent;
+      cursor: default;
+      color: #444;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      padding: 0 10px;
+      font-size: 12px;
+      font-family: inherit;
+      white-space: nowrap;
+    }
+
+    .demo-toolbar .capsule-btn:first-child {
+      padding-left: 12px;
+    }
+
+    .demo-toolbar .capsule-btn:last-child {
+      padding-right: 12px;
+    }
+
+    .demo-toolbar .capsule-sep {
+      width: 1px;
+      height: 14px;
+      background: rgba(0, 0, 0, 0.1);
+      flex-shrink: 0;
+    }
+
+    /* ---- 搜索框胶囊（搬自 store 资产 D2 浅色版） ---- */
+    .sb-search {
+      display: flex;
+      align-items: center;
+      padding: 0 22px;
+      height: 66px;
+      border-radius: 34px;
+      gap: 12px;
+      position: relative;
+      z-index: 2;
+      min-width: 640px;
+      border: 3px solid transparent;
+      background:
+        linear-gradient(#ffffff, #ffffff) padding-box,
+        conic-gradient(from 45deg, #f472b6, #c084fc, #818cf8, #38bdf8, #34d399, #fbbf24, #f472b6) border-box;
+      box-shadow: 0 12px 48px rgba(0,0,0,0.28), 0 4px 16px rgba(0,0,0,0.18);
+    }
+
+    .sb-search::after {
+      content: '';
+      position: absolute;
+      inset: -11px;
+      border-radius: 39px;
+      background: conic-gradient(
+        from 45deg,
+        rgba(244,114,182,0.05), rgba(192,132,252,0.05), rgba(129,140,248,0.05),
+        rgba(56,189,248,0.05), rgba(52,211,153,0.05), rgba(251,191,36,0.05),
+        rgba(244,114,182,0.05)
+      );
+      filter: blur(13px);
+      z-index: -1;
+      pointer-events: none;
+    }
+
+    /* 搜索图标 */
+    .sb-hero .sb-icon {
+      width: 20px;
+      height: 20px;
+      flex-shrink: 0;
+      position: relative;
+    }
+    .sb-hero .sb-icon::before {
+      content: '';
+      position: absolute;
+      width: 13px;
+      height: 13px;
+      border-radius: 50%;
+      border: 2.5px solid #3584e4;
+      top: 0; left: 0;
+    }
+    .sb-hero .sb-icon::after {
+      content: '';
+      position: absolute;
+      width: 2.5px;
+      height: 7px;
+      bottom: 0; right: 1px;
+      transform: rotate(-45deg);
+      border-radius: 1px;
+      background: #3584e4;
+    }
+
+    .sb-hero .sb-placeholder {
+      font-size: 20px;
+      flex: 1;
+      padding-left: 10px;
+      color: rgba(0,0,0,0.75);
+    }
+
+    .sb-keyhints {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      flex-shrink: 0;
+      font-size: 12px;
+      color: rgba(0,0,0,0.75);
+    }
+    .sb-kbd {
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-family: "SF Mono", Consolas, monospace;
+      font-size: 14px;
+      background: rgba(0,0,0,0.1);
+      color: rgba(0,0,0,0.8);
+      border: 1px solid rgba(0,0,0,0.2);
+    }
+
+    .sb-close {
+      font-size: 18px;
+      margin-left: 4px;
+      color: rgba(0,0,0,0.5);
+      cursor: default;
+    }
+
+    /* 热搜胶囊 */
+    .sb-trending {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 0 28px 0 52px;
+      height: 52px;
+      border-radius: 28px;
+      margin-left: -48px;
+      white-space: nowrap;
+      font-size: 15px;
+      position: relative;
+      z-index: 1;
+      background: #ffffff;
+      color: rgba(0,0,0,0.55);
+      box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+    }
+    .sb-trending .sb-fire {
+      font-size: 15px;
+      margin-right: -8px;
+    }
+    .sb-trending .sb-trend-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: rgba(0,0,0,0.4);
+    }
+    .sb-trending .sb-trend-text {
+      font-size: 15px;
+      font-weight: 500;
+      color: #1a5fb4;
+    }
+
+    /* 打字动画 */
+    @keyframes typing-cursor {
+      0%, 100% { border-color: rgba(0,0,0,0.6); }
+      50% { border-color: transparent; }
+    }
+    .sb-typing-cursor {
+      border-right: 2px solid rgba(0,0,0,0.6);
+      animation: typing-cursor 1s step-end infinite;
+    }
+
+    /* ============================================
+       Section 4 & 5: 功能卡片（浅色版）
+       搬自 store-assets-combined.html D3/D4 浅色版
+       ============================================ */
+    .ss-features-row {
+      display: flex;
+      gap: 32px;
+      justify-content: center;
+      max-width: 1200px;
+      width: 100%;
+    }
+
+    .screenshot.light .ss-feature-card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      padding: 24px 24px;
+      min-width: 160px;
+    }
+
+    .screenshot.light .feat-icon {
+      width: 100px;
+      height: 100px;
+      border-radius: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, rgba(255,255,255,0.95), rgba(255,255,255,0.6));
+      border: 1px solid rgba(255,255,255,0.8);
+      box-shadow:
+        0 12px 40px rgba(0,0,0,0.12),
+        0 4px 12px rgba(0,0,0,0.08),
+        inset 0 2px 4px rgba(255,255,255,1);
+    }
+
+    .screenshot.light .feat-icon svg {
+      width: 60px;
+      height: 60px;
+      filter: drop-shadow(0 1px 2px rgba(0,0,0,0.15));
+    }
+
+    .screenshot.light .feat-icon svg path,
+    .screenshot.light .feat-icon svg rect,
+    .screenshot.light .feat-icon svg circle,
+    .screenshot.light .feat-icon svg ellipse,
+    .screenshot.light .feat-icon svg line,
+    .screenshot.light .feat-icon svg polyline,
+    .screenshot.light .feat-icon svg text {
+      stroke: #4a4a4a;
+    }
+
+    .screenshot.light .feat-icon svg path[fill]:not([fill="none"]),
+    .screenshot.light .feat-icon svg rect[fill]:not([fill="none"]),
+    .screenshot.light .feat-icon svg circle[fill]:not([fill="none"]),
+    .screenshot.light .feat-icon svg ellipse[fill]:not([fill="none"]),
+    .screenshot.light .feat-icon svg text {
+      fill: #4a4a4a;
+    }
+
+    .screenshot.light .feat-name {
+      font-size: 18px;
+      font-weight: 500;
+      color: rgba(0,0,0,0.85);
+      text-align: center;
+    }
+
+    /* D4 四卡片特殊样式 */
+    .ss-features-row.d4-row .ss-feature-card {
+      padding: 36px 24px;
+      gap: 18px;
+    }
+
+    /* ============================================
+       功能卡片网格（搬自 fre-step1.html）
+       ============================================ */
+    .preview-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 56px 64px;
+      width: 100%;
+      max-width: 1100px;
+    }
+
+    .static-feature-card {
+      background: transparent;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      cursor: pointer;
+      position: relative;
+    }
+
+    .static-feature-card::after {
+      content: attr(data-tooltip);
+      position: absolute;
+      bottom: calc(100% + 16px);
+      left: 50%;
+      transform: translateX(-50%) translateY(8px);
+      width: max-content;
+      max-width: 240px;
+      padding: 14px 18px;
+      background: rgba(30, 30, 35, 0.95);
+      color: #fff;
+      font-size: 14px;
+      line-height: 1.6;
+      border-radius: 10px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.25s ease;
+      z-index: 100;
+      pointer-events: none;
+      text-align: left;
+    }
+
+    .static-feature-card::before {
+      content: '';
+      position: absolute;
+      bottom: calc(100% + 8px);
+      left: 50%;
+      transform: translateX(-50%) translateY(8px);
+      border: 8px solid transparent;
+      border-top-color: rgba(30, 30, 35, 0.95);
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.25s ease;
+      z-index: 101;
+    }
+
+    .static-feature-card:hover::after,
+    .static-feature-card:hover::before {
+      opacity: 1;
+      visibility: visible;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    .feature-icon-box {
+      width: 96px;
+      height: 96px;
+      border-radius: 24px;
+      background: linear-gradient(135deg, rgba(255,255,255,0.9), rgba(255,255,255,0.4));
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255,255,255,0.6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow:
+        0 10px 40px rgba(0,0,0,0.1),
+        0 4px 8px rgba(0,0,0,0.12),
+        inset 0 2px 4px rgba(255,255,255,1);
+      transition: all 0.3s ease;
+    }
+
+    .feature-icon-box svg {
+      width: 52px;
+      height: 52px;
+      stroke-width: 2;
+      transition: all 0.3s ease;
+      filter: drop-shadow(0 1px 2px rgba(0,0,0,0.18));
+    }
+    .feature-icon-box svg path,
+    .feature-icon-box svg rect,
+    .feature-icon-box svg circle,
+    .feature-icon-box svg ellipse,
+    .feature-icon-box svg line,
+    .feature-icon-box svg polyline,
+    .feature-icon-box svg text {
+      stroke: #4a4a4a;
+      fill: none;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    .feature-icon-box svg path[fill]:not([fill="none"]),
+    .feature-icon-box svg rect[fill]:not([fill="none"]),
+    .feature-icon-box svg circle[fill]:not([fill="none"]),
+    .feature-icon-box svg ellipse[fill]:not([fill="none"]),
+    .feature-icon-box svg text {
+      fill: #4a4a4a;
+      stroke: none;
+    }
+
+    .static-feature-card:hover .feature-icon-box {
+      background: linear-gradient(135deg, #fff, #f0f8ff);
+      box-shadow:
+        0 18px 40px rgba(30, 98, 150, 0.3),
+        0 8px 20px rgba(30, 98, 150, 0.15),
+        inset 0 2px 4px rgba(255,255,255,1);
+      border-color: #fff;
+    }
+    .static-feature-card:hover .feature-icon-box svg {
+      filter: none;
+    }
+    .static-feature-card:hover .feature-icon-box svg path,
+    .static-feature-card:hover .feature-icon-box svg rect,
+    .static-feature-card:hover .feature-icon-box svg circle,
+    .static-feature-card:hover .feature-icon-box svg ellipse,
+    .static-feature-card:hover .feature-icon-box svg line,
+    .static-feature-card:hover .feature-icon-box svg polyline,
+    .static-feature-card:hover .feature-icon-box svg text {
+      stroke: #3B82F6;
+    }
+    .static-feature-card:hover .feature-icon-box svg path[fill]:not([fill="none"]),
+    .static-feature-card:hover .feature-icon-box svg rect[fill]:not([fill="none"]),
+    .static-feature-card:hover .feature-icon-box svg circle[fill]:not([fill="none"]),
+    .static-feature-card:hover .feature-icon-box svg ellipse[fill]:not([fill="none"]),
+    .static-feature-card:hover .feature-icon-box svg text {
+      fill: #3B82F6;
+      stroke: none;
+    }
+
+    .feature-title {
+      font-size: 17px;
+      font-weight: 500;
+      color: rgba(0,0,0,0.85);
+      text-align: center;
+    }
+
+    /* ============================================
+       Section 6: 信任承诺 — 开关矩阵（浅色版）
+       搬自 store-assets-combined.html D5
+       ============================================ */
+    .toggle-matrix-section .ss-title {
+      position: relative;
+      z-index: 10;
+      margin-top: 36px;
+    }
+    .toggle-matrix-section .ss-subtitle {
+      position: relative;
+      z-index: 10;
+    }
+
+    .toggle-matrix-wrapper {
+      flex: 1;
+      width: calc(100% + 200px);
+      margin-left: -100px;
+      margin-right: -100px;
+      position: relative;
+      overflow: hidden;
+      perspective: 900px;
+    }
+
+    .toggle-matrix-scaler {
+      position: absolute;
+      top: -40px;
+      left: 50%;
+      width: 2800px;
+      height: 100%;
+      transform: translateX(-50%) scale(0.5);
+      transform-origin: center top;
+      transform-style: preserve-3d;
+    }
+
+    .toggle-matrix {
+      transform: rotateX(28deg) translateZ(-20px);
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 28px;
+      width: 2800px;
+      transform-origin: center 40%;
+      transform-style: preserve-3d;
+      -webkit-mask-image: radial-gradient(ellipse 55% 55% at 50% 45%, rgba(0,0,0,1) 30%, rgba(0,0,0,0) 100%);
+      mask-image: radial-gradient(ellipse 55% 55% at 50% 45%, rgba(0,0,0,1) 30%, rgba(0,0,0,0) 100%);
+    }
+
+    .tm-card {
+      border-radius: 24px;
+      padding: 28px 32px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      transition: transform 0.4s cubic-bezier(0.23,1,0.32,1), box-shadow 0.4s ease, opacity 0.3s ease;
+      position: relative;
+      min-height: 160px;
+      will-change: transform;
+      backface-visibility: hidden;
+      -webkit-backface-visibility: hidden;
+      overflow: hidden;
+    }
+
+    .tm-card.tm-far {
+      opacity: 0.3;
+      min-height: 112px;
+      padding: 24px;
+    }
+    .tm-card.tm-far .tm-label { display: none; }
+
+    .tm-card.tm-mid { opacity: 0.6; }
+
+    .tm-card.tm-hero {
+      opacity: 1;
+      transform: translateY(-32px) translateZ(60px) scale(1.3);
+      z-index: 5;
+      padding: 36px 40px;
+      min-height: 200px;
+    }
+
+    .screenshot.light .tm-card {
+      background: rgba(255,255,255,0.55);
+      border: 2px solid rgba(255,255,255,0.5);
+      box-shadow: 0 4px 24px rgba(0,0,0,0.06);
+    }
+    .screenshot.light .tm-card.tm-hero {
+      background: rgba(255,255,255,0.88);
+      border-color: rgba(26,95,180,0.2);
+      box-shadow: 0 24px 80px rgba(0,0,0,0.12), 0 0 0 2px rgba(26,95,180,0.15), 0 0 60px rgba(26,95,180,0.04);
+    }
+    .screenshot.light .tm-card .tm-label { color: rgba(0,0,0,0.5); }
+    .screenshot.light .tm-card.tm-hero .tm-label { color: rgba(0,0,0,0.85); }
+
+    .tm-label {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      font-size: 26px;
+      font-weight: 500;
+      white-space: nowrap;
+    }
+    .tm-card.tm-hero .tm-label {
+      font-size: 36px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+    }
+    .tm-icon { font-size: 32px; flex-shrink: 0; }
+    .tm-card.tm-hero .tm-icon { font-size: 48px; }
+
+    .tm-toggle {
+      width: 72px;
+      height: 40px;
+      border-radius: 20px;
+      position: relative;
+      flex-shrink: 0;
+      transition: background 0.3s ease;
+      align-self: flex-end;
+    }
+    .tm-card.tm-far .tm-toggle { width: 56px; height: 32px; border-radius: 16px; align-self: center; }
+    .tm-card.tm-hero .tm-toggle { width: 84px; height: 48px; border-radius: 24px; }
+    .tm-toggle::after {
+      content: '';
+      position: absolute;
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      top: 4px; left: 4px;
+      transition: transform 0.3s ease;
+      background: #fff;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    }
+    .tm-card.tm-far .tm-toggle::after { width: 24px; height: 24px; }
+    .tm-card.tm-hero .tm-toggle::after { width: 40px; height: 40px; }
+
+    .tm-toggle.on { background: #2ec27e; }
+    .tm-toggle.on::after { transform: translateX(32px); }
+    .tm-card.tm-far .tm-toggle.on::after { transform: translateX(24px); }
+    .tm-card.tm-hero .tm-toggle.on::after { transform: translateX(36px); }
+    .screenshot.light .tm-toggle.on { box-shadow: 0 0 16px rgba(46,194,126,0.2); }
+    .screenshot.light .tm-toggle.off { background: rgba(0,0,0,0.12); }
+    .tm-toggle.off::after { transform: translateX(0); }
+
+    .tm-card::after {
+      content: '';
+      position: absolute;
+      inset: -12px;
+      filter: blur(12px);
+      pointer-events: none;
+      border-radius: inherit;
+      z-index: -1;
+      background: rgba(240,244,255,0.5);
+    }
+    .tm-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(155deg, rgba(255,255,255,0.08) 0%, transparent 50%);
+      pointer-events: none;
+      border-radius: inherit;
+    }
+    .tm-card.tm-far::before { opacity: 0.3; }
+
+    .tm-card.tm-ghost {
+      opacity: 1 !important;
+      min-height: 112px;
+      padding: 24px;
+    }
+    .tm-card.tm-ghost::before { display: none; }
+    .tm-card.tm-ghost .tm-label { display: none; }
+    .screenshot.light .tm-card.tm-ghost {
+      background: rgba(255,255,255,0.2);
+      border: 2px solid rgba(0,0,0,0.04);
+      box-shadow: none;
+    }
+    .tm-card.tm-ghost .tm-toggle {
+      width: 48px; height: 28px; border-radius: 14px;
+      align-self: center; margin: auto; opacity: 0.5;
+    }
+    .tm-card.tm-ghost .tm-toggle::after { width: 20px; height: 20px; }
+    .tm-card.tm-ghost .tm-toggle.on::after { transform: translateX(20px); }
+
+    /* ============================================
+       Section 7: 品牌故事 + FAQ 左右布局
+       ============================================ */
+    .story-faq-section {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 100px 0;
+      display: flex;
+      gap: 80px;
+      align-items: flex-start;
+      min-height: 0;
+    }
+
+    .story-side {
+      flex: 1.4;
+    }
+
+    .story-side .story-title {
+      font-size: 32px;
+      font-weight: 700;
+      line-height: 1.4;
+      margin-bottom: 28px;
+      background: linear-gradient(90deg, #1a5fb4, #3584e4, #00b7c3, #2ec27e);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .story-side p {
+      font-size: 16px;
+      line-height: 2;
+      color: rgba(0,0,0,0.6);
+      margin-bottom: 14px;
+    }
+
+    .story-side .story-highlight {
+      color: #1a1a2e;
+      font-weight: 600;
+    }
+
+    .faq-side {
+      flex: 0.8;
+      min-height: 560px;
+    }
+
+    .faq-side .faq-title {
+      font-size: 32px;
+      font-weight: 700;
+      line-height: 1.4;
+      margin-bottom: 14px;
+      background: linear-gradient(90deg, #1a5fb4, #3584e4, #00b7c3, #2ec27e);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    /* ============================================
+       Section 8: CTA 下载
+       ============================================ */
+    .cta-section {
+      text-align: center;
+      padding: 80px 40px 100px;
+    }
+
+    .cta-section .cta-title {
+      font-size: 42px;
+      font-weight: 700;
+      margin-bottom: 16px;
+      background: linear-gradient(90deg, #1a5fb4, #3584e4, #00b7c3, #2ec27e);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .cta-section .cta-subtitle {
+      font-size: 18px;
+      color: rgba(0,0,0,0.5);
+      margin-bottom: 40px;
+    }
+
+    .cta-buttons {
+      display: flex;
+      gap: 16px;
+      justify-content: center;
+      align-items: center;
+    }
+
+    /* ============================================
+       Footer（搬自 fre-step1.html）
+       ============================================ */
+    .site-footer {
+      text-align: center;
+      padding: 24px 40px;
+      border-top: 1px solid rgba(0,0,0,0.06);
+    }
+
+    .site-footer .footer-text {
+      font-size: 12px;
+      color: rgba(0,0,0,0.35);
+    }
+
+    .site-footer a {
+      color: #0078d4;
+      text-decoration: none;
+    }
+
+    .site-footer a:hover {
+      text-decoration: underline;
+    }
+
+    /* FAQ 样式 */
+
+    .faq-item {
+      border-bottom: 1px solid rgba(0,0,0,0.08);
+    }
+
+    .faq-question {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 0;
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 16px;
+      font-weight: 600;
+      color: rgba(0,0,0,0.8);
+      text-align: left;
+      font-family: inherit;
+    }
+
+    .faq-question:hover {
+      color: #3584e4;
+    }
+
+    .faq-arrow {
+      width: 20px;
+      height: 20px;
+      flex-shrink: 0;
+      transition: transform 0.3s;
+      color: rgba(0,0,0,0.3);
+    }
+
+    .faq-item.open .faq-arrow {
+      transform: rotate(180deg);
+    }
+
+    .faq-answer {
+      display: grid;
+      grid-template-rows: 0fr;
+      overflow: hidden;
+      transition: grid-template-rows 0.3s ease;
+    }
+
+    .faq-answer-inner {
+      min-height: 0;
+      padding: 0;
+      font-size: 16px;
+      line-height: 1.8;
+      color: rgba(0,0,0,0.55);
+      overflow: hidden;
+    }
+
+    .faq-item.open .faq-answer {
+      grid-template-rows: 1fr;
+    }
+
+    .faq-item.open .faq-answer-inner {
+      padding: 0 0 20px;
+    }
+
+    /* ============================================
+       Footer 分栏
+       ============================================ */
+    .site-footer {
+      background: #1a1a2e;
+      color: rgba(255,255,255,0.5);
+      padding: 48px 40px 36px;
+    }
+
+    .footer-inner {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .footer-links-row {
+      display: flex;
+      justify-content: center;
+      gap: 28px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .footer-links-row .footer-group-label {
+      font-size: 18px;
+      font-weight: 600;
+      color: rgba(255,255,255,0.7);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .footer-links-row a {
+      font-size: 18px;
+      color: rgba(255,255,255,0.4);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    .footer-links-row a:hover {
+      color: #58a6ff;
+    }
+
+    .footer-sep {
+      color: rgba(255,255,255,0.15);
+      margin: 0 4px;
+    }
+
+    .footer-divider {
+      border: none;
+      border-top: 1px solid rgba(255,255,255,0.08);
+      margin: 32px 0 24px;
+    }
+
+    .footer-brand-row {
+      text-align: center;
+    }
+
+    .footer-brand-name {
+      font-size: 18px;
+      font-weight: 700;
+      color: #ffffff;
+    }
+
+    .footer-brand-name .footer-slogan {
+      font-weight: 400;
+      color: rgba(255,255,255,0.4);
+      margin-left: 8px;
+    }
+
+    .footer-brand-sub {
+      font-size: 14px;
+      color: rgba(255,255,255,0.3);
+      margin-top: 8px;
+    }
+
+
+
+    /* ============================================
+       返回顶部按钮
+       ============================================ */
+    .back-to-top {
+      position: fixed;
+      right: 32px;
+      bottom: 32px;
+      width: 56px;
+      height: 56px;
+      border-radius: 16px;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(255,255,255,0.85);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.12), 0 1px 4px rgba(0,0,0,0.08);
+      border: 1px solid rgba(0,0,0,0.06);
+      z-index: 999;
+      opacity: 0;
+      transform: translateY(20px);
+      transition: opacity 0.3s, transform 0.3s, background 0.2s;
+      pointer-events: none;
+    }
+
+    .back-to-top.visible {
+      opacity: 1;
+      transform: translateY(0);
+      pointer-events: auto;
+    }
+
+    .back-to-top:hover {
+      background: rgba(255,255,255,0.95);
+      box-shadow: 0 6px 28px rgba(0,0,0,0.16), 0 2px 6px rgba(0,0,0,0.1);
+      transform: translateY(-2px);
+    }
+
+    .back-to-top:active {
+      transform: translateY(0);
+    }
+
+    .back-to-top svg {
+      width: 26px;
+      height: 26px;
+      color: #3584e4;
+    }
+
+    /* ============================================
+       响应式：≤1024px
+       ============================================ */
+    @media (max-width: 1024px) {
+      .tile-large.dark .tl-name { font-size: 48px; }
+      .tl-subtitle { font-size: 22px; white-space: normal; }
+      .screenshot.light .ss-title { font-size: 40px; }
+      .screenshot.light .ss-subtitle { font-size: 24px; }
+      .ss-features-row { flex-wrap: wrap; gap: 20px; }
+      .story-faq-section { flex-direction: column; gap: 48px; padding: 60px 24px; }
+      .faq-side { min-height: 0; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 顶部固定导航 -->
+  <nav class="site-nav transparent" id="siteNav">
+    <a class="nav-brand" href="#hero" onclick="window.scrollTo({top:0,behavior:'smooth'}); return false;" title="返回顶部">
+      <img src="icon300.png" alt="ECHO 易可浏览器扩展 Logo">
+      <span class="nav-brand-name">ECHO 易可</span>
+    </a>
+    <div class="nav-links">
+      <a href="https://microsoftedge.microsoft.com/addons/detail/echo-%E6%98%93%E5%8F%AF-%E8%AE%A9-edge-%E6%9B%B4%E6%87%82%E4%B8%AD%E5%9B%BD%E7%94%A8%E6%88%B7/fdjnafbimkhnjfnlgpmbbinmginclgck" target="_blank" class="nav-cta">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+        Edge 扩展商店安装
+      </a>
+      <a href="https://github.com/echoextension/echo" target="_blank">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path></svg>
+        GitHub 源码
+      </a>
+    </div>
+  </nav>
+
+  <main>
+  <!-- ============================================
+       Section 1: Hero — 品牌主视觉
+       ============================================ -->
+  <section id="hero">
+    <div class="tile-large dark" style="position: relative; overflow: hidden;">
+      <!-- 环境光晕装饰 -->
+      <div class="hero-glow-1"></div>
+      <div class="hero-glow-2"></div>
+
+      <div class="tl-left" style="z-index: 2;">
+        <div class="tl-name">让 Edge 更懂中国用户</div>
+        <div class="tl-subtitle">
+          <span class="tl-subtitle-line"></span>
+          把十几年沉淀的
+          <span class="rotator-wrap">
+            <span class="rotator-item active">超级拖拽</span>
+            <span class="rotator-item">鼠标手势</span>
+            <span class="rotator-item">精细缩放</span>
+            <span class="rotator-item">老板键</span>
+            <span class="rotator-item">一键存图</span>
+            <span class="rotator-item">边看边搜</span>
+            <span class="rotator-item">标签顺序</span>
+            <span class="rotator-item">快捷键</span>
+            <span class="rotator-item">一键静音</span>
+          </span>
+          习惯，用一个扩展补齐
+          <span class="tl-subtitle-line"></span>
+        </div>
+
+        <!-- 最新版本更新信息 -->
+        <div class="hero-quote" style="cursor: pointer;">
+          <a href="https://github.com/echoextension/echo/blob/main/CHANGELOG.md" target="_blank" style="color: inherit; text-decoration: none; transition: color 0.2s; display: inline-flex; align-items: center;" onmouseover="this.style.color='rgba(255,255,255,0.8)'" onmouseout="this.style.color='rgba(255,255,255,0.45)'">
+            <span style="font-family: Consolas, 'Segoe UI Mono', 'Courier New', monospace; letter-spacing: 1.5px; color: rgba(255, 255, 255, 0.85); font-weight: 600; font-size: 17px; margin-right: 12px;">v1.1.1</span>
+            <span>新增 B 站视频工具，提供颜色变换、旋转镜像、超级变速功能</span>
+          </a>
+        </div>
+      </div>
+      <div class="trust-badges" style="z-index: 2;">
+        <span class="trust-badge"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="12" fill="#2ec27e"/><polyline points="16.5 9.5 10.5 15.5 7.5 12.5" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>微软官方商店上架</span>
+        <span class="trust-badge"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="12" fill="#2ec27e"/><polyline points="16.5 9.5 10.5 15.5 7.5 12.5" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>完全免费</span>
+        <span class="trust-badge"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="12" fill="#2ec27e"/><polyline points="16.5 9.5 10.5 15.5 7.5 12.5" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>无广告无弹窗</span>
+        <span class="trust-badge"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="12" fill="#2ec27e"/><polyline points="16.5 9.5 10.5 15.5 7.5 12.5" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>不收集任何数据</span>
+        <span class="trust-badge"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="12" fill="#2ec27e"/><polyline points="16.5 9.5 10.5 15.5 7.5 12.5" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>完全开源 GPL-3.0</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Section 2-8: 占位 -->
+  <section id="ntp" style="position:relative; z-index:2;">
+    <div class="screenshot light ntp-section">
+      <div class="ss-title">打开新标签，每次都喜欢</div>
+      <div class="ss-subtitle">同步 Bing 每日壁纸 · 1000+ 张精选壁纸库 · 支持自定义和纯空白页</div>
+      <div class="ntp-gallery-wrapper">
+        <div class="ntp-gallery-scaler">
+        <div class="ntp-gallery">
+          <!-- 远景：上边渐隐、下边可见 -->
+          <div class="ntp-card ghost g2 fadein"></div>
+          <div class="ntp-card ghost g2 fadein"></div>
+          <div class="ntp-card ghost g2 fadein"></div>
+          <div class="ntp-card ghost g2 fadein"></div>
+          <div class="ntp-card ghost g2 fadein"></div>
+          <div class="ntp-card ghost g2 fadein"></div>
+          <!-- 远景：透明框体 -->
+          <div class="ntp-card ghost g2"></div>
+          <div class="ntp-card ghost g2"></div>
+          <div class="ntp-card ghost g2"></div>
+          <div class="ntp-card ghost g2"></div>
+          <div class="ntp-card ghost g2"></div>
+          <div class="ntp-card ghost g2"></div>
+          <!-- 实体卡片 -->
+          <div class="ntp-card"><img src="ntp01.webp" alt="新标签页壁纸预览" loading="lazy"></div>
+          <div class="ntp-card"><img src="ntp02.webp" alt="新标签页壁纸预览" loading="lazy"></div>
+          <div class="ntp-card"><img src="ntp03.webp" alt="新标签页壁纸预览" loading="lazy"></div>
+          <div class="ntp-card"><img src="ntp04.webp" alt="新标签页壁纸预览" loading="lazy"></div>
+          <div class="ntp-card"><img src="ntp05.webp" alt="新标签页壁纸预览" loading="lazy"></div>
+          <div class="ntp-card"><img src="ntp06.webp" alt="新标签页壁纸预览" loading="lazy"></div>
+          <div class="ntp-card"><img src="ntp07.webp" alt="新标签页壁纸预览" loading="lazy"></div>
+          <div class="ntp-card"><img src="ntp08.webp" alt="新标签页壁纸预览" loading="lazy"></div>
+          <div class="ntp-card"><img src="ntp09.webp" alt="新标签页壁纸预览" loading="lazy"></div>
+          <div class="ntp-card"><img src="ntp10.webp" alt="新标签页壁纸预览" loading="lazy"></div>
+          <div class="ntp-card"><img src="ntp11.webp" alt="新标签页壁纸预览" loading="lazy"></div>
+          <div class="ntp-card"><img src="ntp12.webp" alt="新标签页壁纸预览" loading="lazy"></div>
+          <!-- 近景：上边可见、下边渐隐 -->
+          <div class="ntp-card ghost fadeout"></div>
+          <div class="ntp-card ghost fadeout"></div>
+          <div class="ntp-card ghost fadeout"></div>
+          <div class="ntp-card ghost fadeout"></div>
+          <div class="ntp-card ghost fadeout"></div>
+          <div class="ntp-card ghost fadeout"></div>
+        </div>
+        </div>
+      </div>
+    </div>
+  </section>
+  <section id="search-box" style="margin-top: 260px; position:relative; z-index:1;">
+    <div class="screenshot light">
+      <div class="ss-title">呼之即出，以快速搜索</div>
+      <div class="ss-subtitle"><span class="ss-key">Ctrl + B</span> 一键唤起搜索框 · 边看边输入 · 回车直接搜</div>
+      <div class="sb-stage">
+        <div class="sb-grid">
+          <!-- col1 -->
+          <div class="sb-mock mc1 t-far">
+            <div class="m-nav"><span class="m-dot"></span><span class="m-dot"></span><span class="m-dot"></span></div>
+            <div class="m-body"><div class="m-line" style="width:70%"></div><div class="m-line" style="width:50%"></div></div>
+          </div>
+          <!-- col2 -->
+          <div class="sb-mock mc2 t-mid span-2r">
+            <div class="m-nav"><span class="m-dot"></span><span class="m-dot"></span><span class="m-dot"></span></div>
+            <div class="m-body"><div class="m-line" style="width:80%"></div><div class="m-line" style="width:55%"></div><div class="m-line" style="width:68%"></div><div class="m-block"></div></div>
+          </div>
+          <!-- col3 -->
+          <div class="sb-mock mc3 t-mid">
+            <div class="m-nav"><span class="m-dot"></span><span class="m-dot"></span><span class="m-dot"></span></div>
+            <div class="m-body"><div class="m-line" style="width:65%"></div><div class="m-line" style="width:48%"></div></div>
+          </div>
+          <!-- col4 -->
+          <div class="sb-mock mc4 t-near span-2r">
+            <div class="m-nav"><span class="m-dot"></span><span class="m-dot"></span><span class="m-dot"></span></div>
+            <div class="m-body"><div class="m-line" style="width:85%"></div><div class="m-line" style="width:60%"></div><div class="m-line" style="width:72%"></div><div class="m-block" style="width:50%"></div></div>
+          </div>
+          <!-- col5 -->
+          <div class="sb-mock mc5 t-mid">
+            <div class="m-nav"><span class="m-dot"></span><span class="m-dot"></span><span class="m-dot"></span></div>
+            <div class="m-body"><div class="m-line" style="width:72%"></div><div class="m-line" style="width:55%"></div></div>
+          </div>
+          <!-- col6 -->
+          <div class="sb-mock mc6 t-mid span-2r">
+            <div class="m-nav"><span class="m-dot"></span><span class="m-dot"></span><span class="m-dot"></span></div>
+            <div class="m-body"><div class="m-line" style="width:78%"></div><div class="m-line" style="width:52%"></div><div class="m-line" style="width:66%"></div><div class="m-block" style="width:45%"></div></div>
+          </div>
+          <!-- col7 -->
+          <div class="sb-mock mc7 t-far">
+            <div class="m-nav"><span class="m-dot"></span><span class="m-dot"></span><span class="m-dot"></span></div>
+            <div class="m-body"><div class="m-line" style="width:60%"></div><div class="m-line" style="width:45%"></div></div>
+          </div>
+          <!-- row 2 -->
+          <div class="sb-mock mc8 t-far">
+            <div class="m-nav"><span class="m-dot"></span><span class="m-dot"></span><span class="m-dot"></span></div>
+            <div class="m-body"><div class="m-line" style="width:58%"></div><div class="m-line" style="width:72%"></div></div>
+          </div>
+          <div class="sb-mock mc9 t-mid">
+            <div class="m-nav"><span class="m-dot"></span><span class="m-dot"></span><span class="m-dot"></span></div>
+            <div class="m-body"><div class="m-line" style="width:74%"></div><div class="m-line" style="width:52%"></div></div>
+          </div>
+          <div class="sb-mock mc10 t-mid">
+            <div class="m-nav"><span class="m-dot"></span><span class="m-dot"></span><span class="m-dot"></span></div>
+            <div class="m-body"><div class="m-line" style="width:66%"></div><div class="m-line" style="width:48%"></div></div>
+          </div>
+          <div class="sb-mock mc1 t-far">
+            <div class="m-nav"><span class="m-dot"></span><span class="m-dot"></span><span class="m-dot"></span></div>
+            <div class="m-body"><div class="m-line" style="width:55%"></div><div class="m-line" style="width:68%"></div></div>
+          </div>
+        </div>
+          <!-- B站工具条 + 搜索框 -->
+        <div class="sb-hero">
+          <!-- B站工具条标注 -->
+          <div class="toolbar-annotation">
+            <span class="toolbar-annotation-text">在B站视频页还提供专属优化工具哦</span>
+            <svg class="toolbar-annotation-arrow" viewBox="0 0 20 24" fill="none" stroke="#FB7299" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M10 2 C8 10, 6 14, 8 20"/>
+              <path d="M4 17 L8 21 L12 17"/>
+            </svg>
+          </div>
+          <!-- B站工具条 -->
+          <div class="demo-toolbar">
+            <div class="toolbar-capsule">
+              <span class="capsule-label">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="2" y="5" width="20" height="14" rx="3"/>
+                  <path d="M8 2L10 5"/><path d="M16 2L14 5"/>
+                  <ellipse class="bili-eye" cx="9" cy="12" rx="1.5" ry="1.5" fill="currentColor" stroke="none"/>
+                  <ellipse class="bili-eye" cx="15" cy="12" rx="1.5" ry="1.5" fill="currentColor" stroke="none"/>
+                </svg>
+                <span>B站助手</span>
+              </span>
+            </div>
+            <div class="toolbar-capsule">
+              <span class="capsule-btn"><svg width="14" height="14" viewBox="0 0 24 24" style="flex-shrink:0"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 3a9 9 0 0 1 0 18V3z" fill="currentColor"/></svg><span>全部颜色反转</span></span>
+              <div class="capsule-sep"></div>
+              <span class="capsule-btn"><svg width="14" height="14" viewBox="0 0 24 24" style="flex-shrink:0"><path d="M12 3a9 9 0 0 0 0 18V3z" fill="#e74c3c"/><path d="M12 3a9 9 0 0 1 0 18V3z" fill="#2ecc71"/><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.3"/></svg><span>红↔绿</span></span>
+              <div class="capsule-sep"></div>
+              <span class="capsule-btn"><svg width="14" height="14" viewBox="0 0 24 24" style="flex-shrink:0"><path d="M12 3a9 9 0 0 0 0 18V3z" fill="#2ecc71"/><path d="M12 3a9 9 0 0 1 0 18V3z" fill="#3498db"/><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.3"/></svg><span>绿↔蓝</span></span>
+              <div class="capsule-sep"></div>
+              <span class="capsule-btn"><svg width="14" height="14" viewBox="0 0 24 24" style="flex-shrink:0"><path d="M12 3a9 9 0 0 0 0 18V3z" fill="#3498db"/><path d="M12 3a9 9 0 0 1 0 18V3z" fill="#e74c3c"/><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.3"/></svg><span>蓝↔红</span></span>
+            </div>
+            <div class="toolbar-capsule">
+              <span class="capsule-btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg><span>旋转</span></span>
+              <div class="capsule-sep"></div>
+              <span class="capsule-btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18"/><path d="M8 7H4l4 5-4 5h4"/><path d="M16 7h4l-4 5 4 5h-4"/></svg><span>镜像</span></span>
+              <div class="capsule-sep"></div>
+              <span class="capsule-btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/><path d="M15 3v18"/></svg><span>适应</span></span>
+            </div>
+            <div class="toolbar-capsule">
+              <span class="capsule-btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9 8v8"/><path d="M15 8v8"/></svg><span>0.25×</span></span>
+              <div class="capsule-sep"></div>
+              <span class="capsule-btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg><span>3×</span></span>
+            </div>
+          </div>
+          <!-- 搜索框 -->
+          <div style="display:flex;align-items:center;">
+            <div class="sb-search">
+              <div class="sb-icon"></div>
+              <span class="sb-placeholder"><span id="typingText"></span><span class="sb-typing-cursor">&nbsp;</span></span>
+              <div class="sb-keyhints">
+                <span class="sb-kbd">Enter</span> 搜索 · <span class="sb-kbd">Esc</span> 关闭
+                <span class="sb-close">×</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+  <section id="efficiency">
+    <div class="screenshot light">
+      <div class="ss-title" style="margin-top: 60px;">更多便捷，延续你的操作直觉</div>
+      <div class="ss-subtitle" style="margin-bottom: 40px;">从傲游、360、搜狗时代沉淀的肌肉记忆，无缝引入 Edge</div>
+      <div class="preview-grid" id="efficiencyGrid" style="margin-top: 40px;">
+        <!-- 第一行 -->
+        <div class="static-feature-card" data-tooltip="拖拽链接直接在新标签打开，拖拽选中的文字直接 Bing 搜索">
+          <div class="feature-icon-box" style="background: linear-gradient(135deg, rgba(63,169,245,0.06), rgba(255,255,255,0.4));">
+            <svg viewBox="0 0 48 48" fill="none" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M6 12v28l8-8h12L6 12z" fill="#4a4a4a" stroke="#4a4a4a" stroke-width="2"/>
+              <polyline points="10,14 18,10 28,10 38,18" stroke="#4a4a4a" stroke-width="3" stroke-dasharray="5 4" fill="none"/>
+              <ellipse cx="40" cy="20" rx="5" ry="5" fill="#4a4a4a"/>
+            </svg>
+          </div>
+          <div class="feature-title">超级拖拽搜索/打开</div>
+        </div>
+        <div class="static-feature-card" data-tooltip="按住右键滚动滚轮：向上滚切到左侧标签，向下滚切到右侧标签">
+          <div class="feature-icon-box" style="background: linear-gradient(135deg, rgba(76,224,176,0.05), rgba(255,255,255,0.4));">
+            <svg viewBox="0 0 48 48" fill="none" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="12" y="10" width="24" height="28" rx="12" stroke="#4a4a4a" stroke-width="3.5" fill="none"/>
+              <rect x="21" y="14" width="6" height="8" rx="3" fill="#4a4a4a"/>
+              <polyline points="19,4 24,1 29,4" stroke="#4a4a4a" stroke-width="2.5" fill="none"/>
+              <polyline points="19,44 24,47 29,44" stroke="#4a4a4a" stroke-width="2.5" fill="none"/>
+            </svg>
+          </div>
+          <div class="feature-title">鼠标手势滚轮切换标签</div>
+        </div>
+        <div class="static-feature-card" data-tooltip="按住 Alt 点击图片直接保存，自动归类到「ECHO快速保存图片」文件夹">
+          <div class="feature-icon-box" style="background: linear-gradient(135deg, rgba(80,210,244,0.05), rgba(255,255,255,0.4));">
+            <svg viewBox="0 0 48 48" fill="none" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="6" y="5" width="36" height="26" rx="3" stroke="#4a4a4a" stroke-width="3"/>
+              <circle cx="16" cy="14" r="3" fill="#4a4a4a"/>
+              <path d="M40 25l-9-8-6 5-5-4-12 9" stroke="#4a4a4a" stroke-width="2.5"/>
+              <path d="M24,35 L24,45 M19,39 L24,45 L29,39 M16,47 L32,47" stroke="#4a4a4a" stroke-width="3" fill="none"/>
+            </svg>
+          </div>
+          <div class="feature-title">Alt 一键存图</div>
+        </div>
+        <div class="static-feature-card" data-tooltip="Ctrl+滚轮缩放步进从 Edge 默认的大跳改为 5% 微调，超过 175% 后自动加速">
+          <div class="feature-icon-box" style="background: linear-gradient(135deg, rgba(30,98,150,0.05), rgba(255,255,255,0.4));">
+            <svg viewBox="0 0 48 48" fill="none" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="18" cy="14" r="11" stroke="#4a4a4a" stroke-width="3.5"/>
+              <path d="M26 22l12 12" stroke="#4a4a4a" stroke-width="4"/>
+              <path d="M18 8v12M12 14h12" stroke="#4a4a4a" stroke-width="2.5"/>
+              <path d="M10 46h28M10 46v-5M17 46v-3M24 46v-5M31 46v-3M38 46v-5" stroke="#4a4a4a" stroke-width="2"/>
+            </svg>
+          </div>
+          <div class="feature-title">5% 精细缩放步进</div>
+        </div>
+        <!-- 第二行 -->
+        <div class="static-feature-card" data-tooltip="F2 切到左侧标签，F3 切到右侧标签（浏览器内置页面除外）">
+          <div class="feature-icon-box" style="background: linear-gradient(135deg, rgba(63,169,245,0.04), rgba(255,255,255,0.4));">
+            <svg viewBox="0 0 48 48" fill="none" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2" y="10" width="19" height="16" rx="3" stroke="#4a4a4a" stroke-width="2.5"/>
+              <text x="11.5" y="22" font-family="Arial" font-size="11" font-weight="bold" text-anchor="middle" fill="#4a4a4a" stroke="none">F2</text>
+              <rect x="27" y="10" width="19" height="16" rx="3" stroke="#4a4a4a" stroke-width="2.5"/>
+              <text x="36.5" y="22" font-family="Arial" font-size="11" font-weight="bold" text-anchor="middle" fill="#4a4a4a" stroke="none">F3</text>
+              <path d="M8 34l-4 4 4 4M40 34l4 4-4 4" stroke="#4a4a4a" stroke-width="2.5"/>
+            </svg>
+          </div>
+          <div class="feature-title">F2/F3 切标签</div>
+        </div>
+        <div class="static-feature-card" data-tooltip="老板键：一键最小化所有窗口；一键静音：静音所有发声标签。均可设为全局快捷键">
+          <div class="feature-icon-box" style="background: linear-gradient(135deg, rgba(76,200,220,0.05), rgba(255,255,255,0.4));">
+            <svg viewBox="0 0 48 48" fill="none" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 24c4-9 11-14 20-14s16 5 20 14c-4 9-11 14-20 14s-16-5-20-14zM8 40L40 8" stroke="#4a4a4a" stroke-width="3"/>
+              <circle cx="24" cy="24" r="6" stroke="#4a4a4a" stroke-width="3"/>
+            </svg>
+          </div>
+          <div class="feature-title">老板键/一键静音</div>
+        </div>
+        <div class="static-feature-card" data-tooltip="自定义新标签打开位置、关闭标签后激活左侧还是右侧、收藏夹链接打开方式">
+          <div class="feature-icon-box" style="background: linear-gradient(135deg, rgba(76,224,176,0.04), rgba(255,255,255,0.4));">
+            <svg viewBox="0 0 48 48" fill="none" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2" y="6" width="13" height="11" rx="2" stroke="#4a4a4a" stroke-width="2.5"/>
+              <rect x="17" y="6" width="14" height="11" rx="2" stroke="#4a4a4a" stroke-width="2.5"/>
+              <rect x="33" y="6" width="13" height="11" rx="2" stroke="#4a4a4a" stroke-width="2.5"/>
+              <path d="M2 17v24h44V17" stroke="#4a4a4a" stroke-width="2.5"/>
+              <path d="M15 32l-5 0M10 29l-3 3 3 3M33 32l5 0M38 29l3 3-3 3" stroke="#4a4a4a" stroke-width="2.5"/>
+            </svg>
+          </div>
+          <div class="feature-title">标签页行为高级控制</div>
+        </div>
+        <div class="static-feature-card" data-tooltip="Ctrl+B 在页面底部弹出搜索框，带热搜推荐词轮播，回车直接 Bing 搜索">
+          <div class="feature-icon-box" style="background: linear-gradient(135deg, rgba(30,98,150,0.04), rgba(255,255,255,0.4));">
+            <svg viewBox="0 0 48 48" fill="none" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2" y="28" width="44" height="18" rx="9" stroke="#4a4a4a" stroke-width="3.5"/>
+              <path d="M14 32.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7M17 39l3 3" stroke="#4a4a4a" stroke-width="2"/>
+              <path d="M24 4v14M16 12l8-8 8 8" stroke="#4a4a4a" stroke-width="3"/>
+            </svg>
+          </div>
+          <div class="feature-title">Ctrl+B 悬浮搜索</div>
+        </div>
+      </div>
+    </div>
+  </section>
+  <section id="story-faq" style="margin-top: 80px; background: linear-gradient(to bottom, transparent 0%, transparent 15%, #f2f4ff 45%, #eaeefc 70%, #e4e9fa 100%);">
+    <div class="story-faq-section">
+      <div class="story-side">
+        <div class="story-title">为什么做这个扩展？</div>
+        <p>Edge 在中国是市场占有率第一的浏览器，它拥有 Chromium 的先进内核、难得的体面与克制，以及微软持续投入的 AI 能力。</p>
+        <p>但全球化的体面也带来了一个缺憾：<span class="story-highlight">它很难完全俯身去适配每一个区域的肌肉记忆。</span>从傲游开创多标签浏览开始，鼠标手势、超级拖拽、快捷存图、标签顺序……这些功能在十几年的国产浏览器竞争中被反复打磨，最终沉淀为数以亿计用户的本能反应。</p>
+        <p>我们不能要求一个国际化产品为每个区域逐一适配，也不应该要求用户放弃使用直觉去"重新学习"。最好的方式是双向奔赴——让浏览器更懂用户，也让用户更容易拥抱更好的浏览器。ECHO 试图解决的正是这个问题。这或许是一种小小的<span class="story-highlight">心系天下</span>：不是抱怨"为什么不给我们做"，而是自己动手——<span class="story-highlight">为理解者建桥，为探索者点灯。</span></p>
+        <p>而 ECHO 本身也是一次<span class="story-highlight">碳硅融合</span>的实践。这是一个几乎完全由 AI 编写代码、由人类定义方向的项目。作者是一个没写过生产级代码的 PM，但对中国浏览器市场有超过十年的行业经验。AI 负责穷尽实现的可能，人负责收敛选择的边界——用最前沿的生产力，去修复最朴素的体验摩擦。</p>
+      </div>
+      <div class="faq-side">
+        <div class="faq-title">常见问题</div>
+        <div class="faq-item">
+          <button class="faq-question" onclick="document.querySelectorAll('.faq-item.open').forEach(i=>{if(i!==this.parentElement)i.classList.remove('open')});this.parentElement.classList.toggle('open')">
+            ECHO 是微软官方出品的吗？
+            <svg class="faq-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <div class="faq-answer"><div class="faq-answer-inner">不是。ECHO 是一款用爱发电的个人饭制作品，与 Microsoft 或 Edge 团队无关。完全开源，所有代码可在 GitHub 上查看和审计。GitHub 版本发布通常略微早于扩展商店版本（商店审核周期约一周）。</div></div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-question" onclick="document.querySelectorAll('.faq-item.open').forEach(i=>{if(i!==this.parentElement)i.classList.remove('open')});this.parentElement.classList.toggle('open')">
+            有没有广告？弹窗？收费么？
+            <svg class="faq-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <div class="faq-answer"><div class="faq-answer-inner">ECHO 完全免费，没有任何广告、没有弹窗、没有赞助推荐或付费功能。现在不会有，以后也不会有。Again，ECHO 是一款用爱发电的个人饭制作品。</div></div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-question" onclick="document.querySelectorAll('.faq-item.open').forEach(i=>{if(i!==this.parentElement)i.classList.remove('open')});this.parentElement.classList.toggle('open')">
+            会不会收集隐私？为什么提示读取网页数据？
+            <svg class="faq-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <div class="faq-answer"><div class="faq-answer-inner">绝对不会。要实现全局的超级拖拽和手势，扩展必须在网页里注入运行脚本，所以需要网页读取权限。但所有核心功能完全基于本地运行，不上传任何浏览历史或数据。唯一的网络功能（AI 关联搜索）默认关闭，开启也是完全匿名调用，无用户标识。代码开源，欢迎随时审计。</div></div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-question" onclick="document.querySelectorAll('.faq-item.open').forEach(i=>{if(i!==this.parentElement)i.classList.remove('open')});this.parentElement.classList.toggle('open')">
+            和其他类似扩展有什么区别？
+            <svg class="faq-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <div class="faq-answer"><div class="faq-answer-inner">市面上不缺单一功能的扩展——做手势的、做新标签页的各有几个。但把鼠标手势、超级拖拽、精细缩放等十几项交互完整组装且全部能独立开关，ECHO 第一个这样做。更重要的是，这不是简单的功能堆砌，而是完全按照国内老网民在傲游、360时代沉淀的“肌肉记忆”去精心调校的。</div></div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-question" onclick="document.querySelectorAll('.faq-item.open').forEach(i=>{if(i!==this.parentElement)i.classList.remove('open')});this.parentElement.classList.toggle('open')">
+            有些功能我不需要怎么办？
+            <svg class="faq-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <div class="faq-answer"><div class="faq-answer-inner">所有功能都支持独立开关。点击工具栏中的 ECHO 图标打开设置页，只启用你需要的功能即可。不开的功能绝对不会在后台加载，做到真正的零额外资源占用。</div></div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-question" onclick="document.querySelectorAll('.faq-item.open').forEach(i=>{if(i!==this.parentElement)i.classList.remove('open')});this.parentElement.classList.toggle('open')">
+            为什么有些页面里鼠标手势和拖拽没反应？
+            <svg class="faq-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <div class="faq-answer"><div class="faq-answer-inner">出于 Edge 浏览器的官方安全机制，所有扩展都无法在内部设置页（edge:// 开头）、微软扩展商店以及受保护的空白页上运行。这是浏览器的底层限制，并非扩展失效。另外，如果您同时开启了别的同类手势扩展，可能会引起冲突，建议只保留一个生效。</div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+  </main>
+
+  <footer id="footer" class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-links-row">
+        <span class="footer-group-label">产品</span>
+        <a href="https://microsoftedge.microsoft.com/addons/detail/echo-%E6%98%93%E5%8F%AF-%E8%AE%A9-edge-%E6%9B%B4%E6%87%82%E4%B8%AD%E5%9B%BD%E7%94%A8%E6%88%B7/fdjnafbimkhnjfnlgpmbbinmginclgck" target="_blank">Edge 商店</a>
+        <a href="https://github.com/echoextension/echo" target="_blank">GitHub 源码</a>
+        <a href="https://github.com/echoextension/echo/blob/main/CHANGELOG.md" target="_blank">更新日志</a>
+        <span class="footer-sep">·</span>
+        <span class="footer-group-label">支持</span>
+        <a href="https://github.com/echoextension/echo/issues" target="_blank">问题反馈</a>
+        <a href="https://github.com/echoextension/echo/blob/main/PRIVACY_POLICY.md" target="_blank">隐私政策</a>
+        <a href="https://github.com/echoextension/echo/blob/main/LICENSE" target="_blank">开源协议</a>
+      </div>
+      <hr class="footer-divider">
+      <div class="footer-brand-row">
+        <div class="footer-brand-name">ECHO 易可 - 让 Edge 更懂中国用户</div>
+        <div class="footer-brand-sub">Made with ❤️ for Chinese Edge users <span style="margin: 0 8px; opacity: 0.5;">·</span> <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle;"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M22 4L12 13 2 4"/></svg> echoextension [at] hotmail [dot] com <span style="margin: 0 8px; opacity: 0.5;">·</span> <a href="https://claw.echoextension.com/" target="_blank" style="color: rgba(255,255,255,0.3); text-decoration: none; transition: color 0.2s;" onmouseover="this.style.color='#58a6ff'" onmouseout="this.style.color='rgba(255,255,255,0.3)'">ClawBridge</a></div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- 返回顶部 -->
+  <button class="back-to-top" id="backToTop" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="返回顶部">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 19V5"/>
+      <polyline points="5 12 12 5 19 12"/>
+    </svg>
+  </button>
+
+  <!-- 导航滚动切换：透明 ↔ 白底 -->
+  <script>
+    (function() {
+      const nav = document.getElementById('siteNav');
+      const hero = document.getElementById('hero');
+      const backBtn = document.getElementById('backToTop');
+      
+      // 优化1：导航栏变色逻辑使用 IntersectionObserver 替代实时 scroll 监听
+      if ('IntersectionObserver' in window) {
+        const navObserver = new IntersectionObserver((entries) => {
+          entries.forEach(entry => {
+            // 当 hero 区域完全离开顶部视口 (-70px 的 rootMargin 提前触发)时，导航变白底
+            if (!entry.isIntersecting) {
+              nav.classList.remove('transparent');
+              nav.classList.add('solid');
+            } else {
+              nav.classList.remove('solid');
+              nav.classList.add('transparent');
+            }
+          });
+        }, { rootMargin: '-70px 0px 0px 0px', threshold: 0 });
+        navObserver.observe(hero);
+
+        // 优化2：回到顶部按钮使用一个隐藏的标志位监听替代 scroll
+        // 在 hero 处放置一个假锚点，离开视口显示
+        const scrollObserver = new IntersectionObserver((entries) => {
+          entries.forEach(entry => {
+            if (!entry.isIntersecting && entry.boundingClientRect.top < 0) {
+              backBtn.classList.add('visible');
+            } else {
+              backBtn.classList.remove('visible');
+            }
+          });
+        }, { threshold: 0 });
+        scrollObserver.observe(hero);
+      } else {
+      // Fallback 给非常老的浏览器
+      function updateNav() {
+        const heroBottom = hero.getBoundingClientRect().bottom;
+        if (heroBottom <= 70) {
+          nav.classList.remove('transparent');
+          nav.classList.add('solid');
+        } else {
+          nav.classList.remove('solid');
+          nav.classList.add('transparent');
+        }
+        if (window.scrollY > window.innerHeight * 0.5) {
+          backBtn.classList.add('visible');
+        } else {
+          backBtn.classList.remove('visible');
+        }
+      }
+      window.addEventListener('scroll', updateNav, { passive: true });
+      updateNav();
+    }
+  })();
+
+  // 英雄区副标题文字轮播
+  (function() {
+    const items = document.querySelectorAll('.rotator-item');
+    if (!items.length) return;
+    let cur = 0;
+    setInterval(() => {
+      items[cur].classList.remove('active');
+      items[cur].classList.add('exit');
+      const prev = cur;
+      setTimeout(() => {
+         items[prev].classList.remove('exit');
+      }, 500); // 等退场动画跑完清理 class
+      cur = (cur + 1) % items.length;
+      items[cur].classList.add('active');
+    }, 2500);
+  })();
+
+  // 搜索框打字动画
+    (function() {
+      const el = document.getElementById('typingText');
+      if (!el) return;
+      const texts = [
+        '今天下班吃什么',
+        'GitHub Copilot',
+        '如何让 Edge 更好用',
+        'JavaScript Promise 详解',
+        '北京天气',
+        '2026 假期还剩几天',
+        'React vs Vue 2026',
+        'Steam 夏季特卖',
+      ];
+      let t = 0, i = 0;
+      function type() {
+        const text = texts[t];
+        if (i <= text.length) {
+          el.textContent = text.slice(0, i);
+          i++;
+          setTimeout(type, 100);
+        } else {
+          setTimeout(() => {
+            i = 0;
+            el.textContent = '';
+            t = (t + 1) % texts.length;
+            type();
+          }, 2000);
+        }
+      }
+      setTimeout(type, 1500);
+    })();
+    // 小电视随机眨眼
+    (function() {
+      const eyes = document.querySelectorAll('.bili-eye');
+      if (!eyes.length) return;
+      function blink() {
+        eyes.forEach(e => e.setAttribute('ry', '0.1'));
+        setTimeout(() => {
+          eyes.forEach(e => e.setAttribute('ry', '1.5'));
+          if (Math.random() < 0.5) {
+            setTimeout(() => {
+              eyes.forEach(e => e.setAttribute('ry', '0.1'));
+              setTimeout(() => eyes.forEach(e => e.setAttribute('ry', '1.5')), 100);
+            }, 200);
+          }
+        }, 100);
+      }
+      function schedule() {
+        const delay = 2000 + Math.random() * 2000;
+        setTimeout(() => { blink(); schedule(); }, delay);
+      }
+      schedule();
+    })();
+
+    // 功能卡片弹跳动效（搬自 fre-step1.js）
+    (function() {
+      const cards = document.querySelectorAll('.static-feature-card');
+      const iconBoxes = document.querySelectorAll('.feature-icon-box');
+      if (iconBoxes.length === 0) return;
+
+      let currentIndex = 0;
+      let intervalId = null;
+      let isHovering = false;
+      let currentAnimation = null;
+      const bounceInterval = 3500;
+
+      const keyframes = [
+        [0, 0, 1, 1],
+        [0.03, 2, 1.05, 0.95],
+        [0.10, -18, 0.95, 1.08],
+        [0.20, 0, 1.08, 0.92],
+        [0.25, 0, 1, 1],
+        [0.28, 1, 1.03, 0.97],
+        [0.38, -10, 0.97, 1.05],
+        [0.50, 0, 1.05, 0.95],
+        [0.55, 0, 1, 1],
+        [0.60, -5, 0.98, 1.02],
+        [0.70, 0, 1.02, 0.98],
+        [0.80, 0, 1, 1],
+        [1, 0, 1, 1]
+      ];
+
+      const hoverKeyframes = [
+        [0, 0, 1, 1],
+        [0.03, 3, 1.08, 0.92],
+        [0.12, -24, 0.92, 1.12],
+        [0.25, 0, 1.1, 0.9],
+        [0.32, 0, 1, 1],
+        [0.36, 2, 1.05, 0.95],
+        [0.48, -14, 0.95, 1.08],
+        [0.62, 0, 1.06, 0.94],
+        [0.70, 0, 1, 1],
+        [0.76, -6, 0.98, 1.03],
+        [0.88, 0, 1.02, 0.98],
+        [1, 0, 1, 1]
+      ];
+
+      function interpolate(kf, progress) {
+        let i = 0;
+        while (i < kf.length - 1 && kf[i + 1][0] <= progress) i++;
+        if (i >= kf.length - 1) {
+          const last = kf[kf.length - 1];
+          return { y: last[1], sx: last[2], sy: last[3] };
+        }
+        const from = kf[i], to = kf[i + 1];
+        const t = (progress - from[0]) / (to[0] - from[0]);
+        return {
+          y: from[1] + (to[1] - from[1]) * t,
+          sx: from[2] + (to[2] - from[2]) * t,
+          sy: from[3] + (to[3] - from[3]) * t
+        };
+      }
+
+      function bounceIcon(iconBox, useHoverKeyframes) {
+        const kf = useHoverKeyframes ? hoverKeyframes : keyframes;
+        const duration = useHoverKeyframes ? 1400 : 1200;
+        let startTime = null;
+        let animationId = {};
+
+        function animate(timestamp) {
+          if (!startTime) startTime = timestamp;
+          const progress = Math.min((timestamp - startTime) / duration, 1);
+          const { y, sx, sy } = interpolate(kf, progress);
+          iconBox.style.transform = 'translateY(' + y + 'px) scaleX(' + sx + ') scaleY(' + sy + ')';
+
+          if (progress < 1) {
+            animationId.id = requestAnimationFrame(animate);
+          } else {
+            iconBox.style.transform = '';
+          }
+        }
+
+        animationId.id = requestAnimationFrame(animate);
+        return animationId;
+      }
+
+      cards.forEach(function(card, index) {
+        card.addEventListener('mouseenter', function() {
+          isHovering = true;
+          iconBoxes.forEach(function(box) { box.style.transform = ''; });
+          bounceIcon(iconBoxes[index], false);
+        });
+
+        card.addEventListener('mouseleave', function() {
+          isHovering = false;
+        });
+      });
+
+      setTimeout(function() {
+        iconBoxes.forEach(function(box, index) {
+          setTimeout(function() {
+            bounceIcon(box, true);
+          }, index * 30);
+        });
+      }, 500);
+    })();
+  </script>
+
+</body>
+</html>
