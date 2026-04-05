@@ -20,7 +20,6 @@ package-lock.json
 
 # Local tools / scripts (not for distribution)
 crawler/
-*.py
 
 # Edge sideload cache
 _metadata/
