@@ -1613,9 +1613,106 @@
       .story-faq-section { flex-direction: column; gap: 48px; padding: 60px 24px; }
       .faq-side { min-height: 0; }
     }
+    @media (max-width: 768px) {
+      .site-nav, main, .site-footer, .back-to-top { display: none !important; }
+      .mobile-hint { display: flex !important; }
+    }
+
+    .mobile-hint {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 40px 24px;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+      color: #fff;
+      text-align: center;
+      gap: 24px;
+    }
+
+    .mobile-hint img {
+      width: 80px;
+      height: 80px;
+      border-radius: 16px;
+    }
+
+    .mobile-hint .mh-title {
+      font-size: 28px;
+      font-weight: 700;
+      line-height: 1.3;
+    }
+
+    .mobile-hint .mh-subtitle {
+      font-size: 16px;
+      color: rgba(255,255,255,0.6);
+      line-height: 1.8;
+      max-width: 320px;
+    }
+
+    .mobile-hint .mh-links {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      width: 100%;
+      max-width: 280px;
+      margin-top: 8px;
+    }
+
+    .mobile-hint .mh-links a {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 14px 20px;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 600;
+      text-decoration: none;
+      transition: opacity 0.2s;
+    }
+
+    .mobile-hint .mh-links a:hover {
+      opacity: 0.85;
+    }
+
+    .mobile-hint .mh-links .mh-primary {
+      background: linear-gradient(90deg, #3584e4, #00b7c3);
+      color: #fff;
+    }
+
+    .mobile-hint .mh-links .mh-secondary {
+      background: rgba(255,255,255,0.1);
+      color: rgba(255,255,255,0.85);
+      border: 1px solid rgba(255,255,255,0.15);
+    }
+
+    .mobile-hint .mh-tip {
+      font-size: 13px;
+      color: rgba(255,255,255,0.35);
+      margin-top: 16px;
+    }
   </style>
 </head>
 <body>
+
+  <!-- 移动端简洁提示 -->
+  <div class="mobile-hint">
+    <img src="icon300.png" alt="ECHO 易可 Logo">
+    <div class="mh-title">ECHO 易可</div>
+    <div class="mh-subtitle">让 Edge 更懂中国用户<br>一个扩展补齐鼠标手势、超级拖拽、新标签页、悬浮搜索等十余项本土化功能。<br>免费开源、无广告、不收集数据。</div>
+    <div class="mh-links">
+      <a class="mh-primary" href="https://microsoftedge.microsoft.com/addons/detail/echo-%E6%98%93%E5%8F%AF-%E8%AE%A9-edge-%E6%9B%B4%E6%87%82%E4%B8%AD%E5%9B%BD%E7%94%A8%E6%88%B7/fdjnafbimkhnjfnlgpmbbinmginclgck" target="_blank">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+        Edge 扩展商店安装
+      </a>
+      <a class="mh-secondary" href="https://github.com/echoextension/echo" target="_blank">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path></svg>
+        GitHub 源码
+      </a>
+    </div>
+    <div class="mh-tip">请在桌面端访问查看完整体验</div>
+  </div>
 
   <!-- 顶部固定导航 -->
   <nav class="site-nav transparent" id="siteNav">
