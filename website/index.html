@@ -8,7 +8,7 @@
   <meta property="og:title" content="ECHO 易可 — 让 Edge 更懂中国用户">
   <meta property="og:description" content="免费开源的 Edge 扩展，一键补齐鼠标手势、超级拖拽、新标签页壁纸等中国用户最需要的功能。">
   <meta property="og:type" content="website">
-  <meta property="og:image" content="icon300.png">
+  <meta property="og:image" content="https://www.echoextension.com/icon300.png">
   <meta property="og:url" content="https://www.echoextension.com/">
   <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
   <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
@@ -68,7 +68,7 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 0 32px;
+      padding: 0 20px;
       transition: background 0.3s, box-shadow 0.3s;
     }
 
@@ -114,6 +114,41 @@
 
     .site-nav.solid .nav-brand-name {
       color: #1a1a2e;
+    }
+
+    .nav-menu {
+      display: flex;
+      align-items: center;
+      gap: 28px;
+      margin-left: 32px;
+      margin-right: auto;
+    }
+
+    .nav-menu a {
+      font-size: 16px;
+      font-weight: 500;
+      text-decoration: none;
+      transition: color 0.3s;
+      letter-spacing: 0.02em;
+    }
+
+    .site-nav.transparent .nav-menu a {
+      color: rgba(255,255,255,0.65);
+    }
+    .site-nav.transparent .nav-menu a:hover,
+    .site-nav.transparent .nav-menu a.active {
+      color: #ffffff;
+    }
+    .site-nav.solid .nav-menu a {
+      color: #666;
+    }
+    .site-nav.solid .nav-menu a:hover,
+    .site-nav.solid .nav-menu a.active {
+      color: #0078d4;
+    }
+
+    .nav-menu a {
+      transition: color 0.3s, box-shadow 0.3s;
     }
 
     .nav-links {
@@ -320,11 +355,6 @@
       margin-top: 16px;
     }
 
-    /* 透视画廊 */
-    /* 实体卡片透明度层级 */
-    /* ghost 卡片 */
-    /* 实体卡片深色版 */
-    /* 微光反射 */
     /* Hero CTA 按钮组 */
     .hero-cta {
       display: flex;
@@ -383,7 +413,7 @@
 
     /* Hero 副标题 */
     .tl-subtitle {
-      font-size: 30px;
+      font-size: 34px;
       font-weight: 500;
       color: rgba(255,255,255,0.75);
       line-height: 1.6;
@@ -408,7 +438,7 @@
     .trust-badges {
       display: flex;
       gap: 14px;
-      margin-top: 40px;
+      margin-top: 20px;
       flex-wrap: wrap;
       justify-content: center;
     }
@@ -442,6 +472,7 @@
       align-items: center;
       color: #00b7c3;
       font-weight: 700;
+      font-size: 38px;
       margin: 0 6px;
     }
     .rotator-item {
@@ -574,7 +605,7 @@
 
     .ntp-gallery-scaler {
       position: absolute;
-      top: -320px;
+      top: -260px;
       left: 50%;
       transform: translateX(-50%) scale(0.5);
       transform-origin: center top;
@@ -655,6 +686,7 @@
       opacity: 1 !important;
       filter: none !important;
       box-shadow: none !important;
+      pointer-events: none;
     }
     .ntp-gallery .ntp-card.ghost::after { display: none; }
     .ntp-gallery .ntp-card.ghost img { display: none; }
@@ -670,8 +702,8 @@
       box-shadow: inset 0 2px 0 rgba(255,255,255,0.25) !important;
     }
     .ntp-gallery .ntp-card.ghost.fadeout {
-      -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,0) 100%);
-      mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,0) 100%);
+      -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,0) 40%);
+      mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,0) 40%);
     }
     .ntp-gallery .ntp-card.ghost.fadein {
       -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,1) 100%);
@@ -1302,6 +1334,16 @@
       font-weight: 600;
     }
 
+    .story-side .story-link {
+      color: #1a5fb4;
+      text-decoration: none;
+      transition: opacity 0.2s ease;
+    }
+    .story-side .story-link:hover {
+      opacity: 0.7;
+      text-decoration: underline;
+    }
+
     .faq-side {
       flex: 0.8;
       min-height: 560px;
@@ -1581,6 +1623,13 @@
       <img src="icon300.png" alt="ECHO 易可浏览器扩展 Logo">
       <span class="nav-brand-name">ECHO 易可</span>
     </a>
+    <div class="nav-menu">
+      <a href="#ntp" onclick="document.getElementById('ntp').scrollIntoView({behavior:'smooth'}); return false;">新标签页</a>
+      <a href="#search-box" onclick="document.getElementById('search-box').scrollIntoView({behavior:'smooth'}); return false;">悬浮搜索</a>
+      <a href="#efficiency" onclick="document.getElementById('efficiency').scrollIntoView({behavior:'smooth'}); return false;">功能特性</a>
+      <a href="#story-faq" onclick="document.getElementById('story-faq').scrollIntoView({behavior:'smooth'}); return false;">产品哲学</a>
+      <a href="https://github.com/echoextension/echo/blob/main/CHANGELOG.md" target="_blank" rel="noopener">更新日志 <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: -1px;"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></a>
+    </div>
     <div class="nav-links">
       <a href="https://microsoftedge.microsoft.com/addons/detail/echo-%E6%98%93%E5%8F%AF-%E8%AE%A9-edge-%E6%9B%B4%E6%87%82%E4%B8%AD%E5%9B%BD%E7%94%A8%E6%88%B7/fdjnafbimkhnjfnlgpmbbinmginclgck" target="_blank" class="nav-cta">
         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
@@ -1664,18 +1713,18 @@
           <div class="ntp-card ghost g2"></div>
           <div class="ntp-card ghost g2"></div>
           <!-- 实体卡片 -->
-          <div class="ntp-card"><img src="ntp01.webp" alt="新标签页壁纸预览" loading="lazy"></div>
-          <div class="ntp-card"><img src="ntp02.webp" alt="新标签页壁纸预览" loading="lazy"></div>
-          <div class="ntp-card"><img src="ntp03.webp" alt="新标签页壁纸预览" loading="lazy"></div>
-          <div class="ntp-card"><img src="ntp04.webp" alt="新标签页壁纸预览" loading="lazy"></div>
-          <div class="ntp-card"><img src="ntp05.webp" alt="新标签页壁纸预览" loading="lazy"></div>
-          <div class="ntp-card"><img src="ntp06.webp" alt="新标签页壁纸预览" loading="lazy"></div>
-          <div class="ntp-card"><img src="ntp07.webp" alt="新标签页壁纸预览" loading="lazy"></div>
-          <div class="ntp-card"><img src="ntp08.webp" alt="新标签页壁纸预览" loading="lazy"></div>
-          <div class="ntp-card"><img src="ntp09.webp" alt="新标签页壁纸预览" loading="lazy"></div>
-          <div class="ntp-card"><img src="ntp10.webp" alt="新标签页壁纸预览" loading="lazy"></div>
-          <div class="ntp-card"><img src="ntp11.webp" alt="新标签页壁纸预览" loading="lazy"></div>
-          <div class="ntp-card"><img src="ntp12.webp" alt="新标签页壁纸预览" loading="lazy"></div>
+          <div class="ntp-card"><img src="images/ntp01.webp" alt="新标签页壁纸预览" loading="lazy"></div>
+          <div class="ntp-card"><img src="images/ntp02.webp" alt="新标签页壁纸预览" loading="lazy"></div>
+          <div class="ntp-card"><img src="images/ntp03.webp" alt="新标签页壁纸预览" loading="lazy"></div>
+          <div class="ntp-card"><img src="images/ntp04.webp" alt="新标签页壁纸预览" loading="lazy"></div>
+          <div class="ntp-card"><img src="images/ntp05.webp" alt="新标签页壁纸预览" loading="lazy"></div>
+          <div class="ntp-card"><img src="images/ntp06.webp" alt="新标签页壁纸预览" loading="lazy"></div>
+          <div class="ntp-card"><img src="images/ntp07.webp" alt="新标签页壁纸预览" loading="lazy"></div>
+          <div class="ntp-card"><img src="images/ntp08.webp" alt="新标签页壁纸预览" loading="lazy"></div>
+          <div class="ntp-card"><img src="images/ntp09.webp" alt="新标签页壁纸预览" loading="lazy"></div>
+          <div class="ntp-card"><img src="images/ntp10.webp" alt="新标签页壁纸预览" loading="lazy"></div>
+          <div class="ntp-card"><img src="images/ntp11.webp" alt="新标签页壁纸预览" loading="lazy"></div>
+          <div class="ntp-card"><img src="images/ntp12.webp" alt="新标签页壁纸预览" loading="lazy"></div>
           <!-- 近景：上边可见、下边渐隐 -->
           <div class="ntp-card ghost fadeout"></div>
           <div class="ntp-card ghost fadeout"></div>
@@ -1911,6 +1960,7 @@
         <p>但全球化的体面也带来了一个缺憾：<span class="story-highlight">它很难完全俯身去适配每一个区域的肌肉记忆。</span>从傲游开创多标签浏览开始，鼠标手势、超级拖拽、快捷存图、标签顺序……这些功能在十几年的国产浏览器竞争中被反复打磨，最终沉淀为数以亿计用户的本能反应。</p>
         <p>我们不能要求一个国际化产品为每个区域逐一适配，也不应该要求用户放弃使用直觉去"重新学习"。最好的方式是双向奔赴——让浏览器更懂用户，也让用户更容易拥抱更好的浏览器。ECHO 试图解决的正是这个问题。这或许是一种小小的<span class="story-highlight">心系天下</span>：不是抱怨"为什么不给我们做"，而是自己动手——<span class="story-highlight">为理解者建桥，为探索者点灯。</span></p>
         <p>而 ECHO 本身也是一次<span class="story-highlight">碳硅融合</span>的实践。这是一个几乎完全由 AI 编写代码、由人类定义方向的项目。作者是一个没写过生产级代码的 PM，但对中国浏览器市场有超过十年的行业经验。AI 负责穷尽实现的可能，人负责收敛选择的边界——用最前沿的生产力，去修复最朴素的体验摩擦。</p>
+        <p style="margin-top: 16px;"><a href="https://github.com/echoextension/echo/blob/main/ARCHITECTURE.md" target="_blank" rel="noopener" class="story-link">作者碎碎念：ECHO 的架构、设计笔记与产品哲学 →</a></p>
       </div>
       <div class="faq-side">
         <div class="faq-title">常见问题</div>
@@ -2220,6 +2270,31 @@
           }, index * 30);
         });
       }, 500);
+    })();
+  </script>
+
+
+  <script>
+    // 导航栏滚动定位高亮
+    (function() {
+      const navLinks = document.querySelectorAll('.nav-menu a[href^="#"]');
+      const sectionIds = Array.from(navLinks).map(a => a.getAttribute('href').slice(1));
+      const sections = sectionIds.map(id => document.getElementById(id)).filter(Boolean);
+      if (!sections.length) return;
+
+      const observer = new IntersectionObserver(function(entries) {
+        entries.forEach(function(entry) {
+          const id = entry.target.id;
+          const link = document.querySelector('.nav-menu a[href="#' + id + '"]');
+          if (!link) return;
+          if (entry.isIntersecting) {
+            navLinks.forEach(a => a.classList.remove('active'));
+            link.classList.add('active');
+          }
+        });
+      }, { rootMargin: '-70px 0px -50% 0px', threshold: 0 });
+
+      sections.forEach(function(section) { observer.observe(section); });
     })();
   </script>
 
