@@ -1011,10 +1011,6 @@
     return div.innerHTML;
   }
 
-  // ============================================
-  // B站视频颜色反转功能
-  // ============================================
-
   function bindEvents() {
     const isAlwaysShowMode = settings.floatingSearchBoxAlwaysShow;
 
