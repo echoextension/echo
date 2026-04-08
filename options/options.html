@@ -460,17 +460,7 @@
           </label>
         </div>
         
-        <!-- 悬浮搜索框子选项：B站视频优化工具 -->
-        <div class="option sub-option" id="floatingSearchBoxBiliToolOption">
-          <div class="option-info">
-            <h3>B站视频优化工具</h3>
-            <p>在 Bilibili 视频播放页的搜索框上方显示工具条，支持颜色反转、通道交换、旋转、镜像和极速/慢速播放（0.25× / 3×），用于还原经过特殊处理的视频画面</p>
-          </div>
-          <label class="switch">
-            <input type="checkbox" id="floatingSearchBoxBiliTool">
-            <span class="slider"></span>
-          </label>
-        </div>
+
         
         <!-- 悬浮搜索框子选项：显示热搜推荐 -->
         <div class="option sub-option" id="floatingSearchBoxTrendingOption">
@@ -504,6 +494,28 @@
           </div>
           <label class="switch">
             <input type="checkbox" id="floatingSearchBoxFollowZoom">
+            <span class="slider"></span>
+          </label>
+        </div>
+      </section>
+
+      <!-- B站视频画面工具 -->
+      <section class="card" id="biliToolCard">
+        <div class="card-header">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="2" y="5" width="20" height="14" rx="3"/>
+            <path d="M8 2L10 5"/>
+            <path d="M16 2L14 5"/>
+          </svg>
+          <h2>B站视频画面工具</h2>
+        </div>
+        <div class="option">
+          <div class="option-info">
+            <h3>启用B站视频画面工具</h3>
+            <p>在 Bilibili 视频播放页显示画面调整工具，支持颜色还原（反转、通道交换）、旋转、镜像和扩展倍速（0.25× / 3×），用于还原经过特殊处理的视频画面</p>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="biliTool">
             <span class="slider"></span>
           </label>
         </div>

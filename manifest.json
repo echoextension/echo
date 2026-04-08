@@ -39,6 +39,11 @@
       ],
       "run_at": "document_start",
       "all_frames": true
+    },
+    {
+      "matches": ["*://*.bilibili.com/*"],
+      "js": ["bili-tool/bili-tool.js"],
+      "run_at": "document_idle"
     }
   ],
   "options_page": "options/options.html",

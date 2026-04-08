@@ -31,8 +31,8 @@ const SETTING_IDS_OFF = [
 // 开关类设置 - 默认开启（实验室功能）
 const SETTING_IDS_ON_LAB = [
   'floatingSearchBox',        // 悬浮搜索框（默认开启）
-  'floatingSearchBoxBiliTool', // B站视频优化工具（默认开启）
-  'floatingSearchBoxTrending' // 悬浮搜索框热搜榜（默认关闭）
+  'floatingSearchBoxTrending', // 悬浮搜索框热搜榜（默认关闭）
+  'biliTool'                   // B站视频画面工具（默认开启）
 ];
 
 // 单选设置
@@ -58,7 +58,7 @@ const DEFAULT_SETTINGS = {
   floatingSearchBox: true,     // 悬浮搜索框（默认开启）
   floatingSearchBoxAlwaysShow: false,  // 悬浮搜索框常驻显示（默认关闭）
   floatingSearchBoxFollowZoom: false,  // 悬浮搜索框跟随页面缩放（默认关闭）
-  floatingSearchBoxBiliTool: true,      // B站视频优化工具（默认开启）
+  biliTool: true,                        // B站视频画面工具（默认开启）
   floatingSearchBoxTrending: false,    // 悬浮搜索框热搜榜（默认关闭）
   relatedSearchRecommend: false, // 网页关联搜索推荐（实验室，默认关闭）
   relatedSearchFollowZoom: false,  // 关联搜索推荐跟随页面缩放（默认关闭）
@@ -162,18 +162,15 @@ function updateSuperDragOptionState(superDrag) {
  * 更新悬浮搜索框子选项的可用状态（显示/隐藏）
  */
 function updateFloatingSearchBoxOptionState(floatingSearchBox) {
-  const biliToolOption = document.getElementById('floatingSearchBoxBiliToolOption');
   const alwaysShowOption = document.getElementById('floatingSearchBoxAlwaysShowOption');
   const trendingOption = document.getElementById('floatingSearchBoxTrendingOption');
   const followZoomOption = document.getElementById('floatingSearchBoxFollowZoomOption');
   
   if (floatingSearchBox) {
-    if (biliToolOption) biliToolOption.style.display = 'flex';
     if (alwaysShowOption) alwaysShowOption.style.display = 'flex';
     if (trendingOption) trendingOption.style.display = 'flex';
     if (followZoomOption) followZoomOption.style.display = 'flex';
   } else {
-    if (biliToolOption) biliToolOption.style.display = 'none';
     if (alwaysShowOption) alwaysShowOption.style.display = 'none';
     if (trendingOption) trendingOption.style.display = 'none';
     if (followZoomOption) followZoomOption.style.display = 'none';
