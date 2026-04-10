@@ -362,6 +362,17 @@
       background: linear-gradient(145deg, #1a1a2e 0%, #16213e 40%, #0f3460 100%);
     }
 
+    .tile-large.dark #lowpolyCanvas {
+      position: absolute !important;
+      top: 0 !important;
+      left: 0 !important;
+      width: 100% !important;
+      height: 100% !important;
+      z-index: 1 !important;
+      pointer-events: none;
+      opacity: 0.25;
+    }
+
     .tile-large .tl-inner {
       display: flex;
       align-items: center;
@@ -2095,6 +2106,8 @@
        ============================================ -->
   <section id="hero" aria-label="品牌主视觉">
     <div class="tile-large dark" style="position: relative; overflow: hidden;">
+      <!-- Low Poly 背景 -->
+      <canvas id="lowpolyCanvas"></canvas>
       <!-- 环境光晕装饰 -->
       <div class="hero-glow-1"></div>
       <div class="hero-glow-2"></div>
@@ -2810,6 +2823,126 @@
       });
       btn.parentElement.classList.toggle('open');
     }
+  </script>
+  <script>
+  // Hero Low Poly 背景（基于 lowpoly-bg.js 算法，配色适配 hero 区域）
+  (function() {
+    var canvas = document.getElementById('lowpolyCanvas');
+    if (!canvas) return;
+    var ctx = canvas.getContext('2d');
+    var container = canvas.parentElement;
+    var w, h, triangles = [];
+    var mouseX, mouseY, targetX, targetY;
+    var gradientAngle = Math.random() * 360;
+    var cellSize = 900, jitter = cellSize * 0.7;
+
+    function resize() {
+      w = canvas.width = container.offsetWidth;
+      h = canvas.height = container.offsetHeight;
+      mouseX = targetX = w / 2;
+      mouseY = targetY = h / 2;
+      generate();
+    }
+
+    // Hero 配色：#1a1a2e → #16213e → #0f3460，点缀 #3584e4 #00b7c3 #2ec27e
+    function colorAt(x, y) {
+      var rad = gradientAngle * Math.PI / 180;
+      var pos = ((x / w) * Math.cos(rad) + (y / h) * Math.sin(rad) + 1) / 2;
+      var v = Math.random();
+      var r, g, b;
+      if (v < 0.35) {
+        // 深蓝底 #1a1a2e 变体
+        r = 22 + Math.random() * 12;
+        g = 24 + Math.random() * 14;
+        b = 42 + Math.random() * 16;
+      } else if (v < 0.6) {
+        // 中蓝 #16213e 变体
+        r = 18 + Math.random() * 14;
+        g = 28 + Math.random() * 16;
+        b = 52 + Math.random() * 20;
+      } else if (v < 0.82) {
+        // 亮蓝 #0f3460 变体
+        r = 12 + Math.random() * 12;
+        g = 42 + Math.random() * 18;
+        b = 76 + Math.random() * 24;
+      } else if (v < 0.91) {
+        // 点缀蓝 #3584e4
+        r = 40 + Math.random() * 20;
+        g = 100 + Math.random() * 40;
+        b = 180 + Math.random() * 48;
+      } else if (v < 0.96) {
+        // 点缀青 #00b7c3
+        r = 0 + Math.random() * 15;
+        g = 140 + Math.random() * 50;
+        b = 155 + Math.random() * 50;
+      } else {
+        // 点缀绿 #2ec27e
+        r = 30 + Math.random() * 25;
+        g = 150 + Math.random() * 55;
+        b = 90 + Math.random() * 50;
+      }
+      var baseAlpha = 0.45 + pos * 0.2;
+      var alpha = Math.max(0.35, Math.min(0.75, baseAlpha + (Math.random() - 0.5) * 0.2));
+      return 'rgba(' + Math.round(r) + ',' + Math.round(g) + ',' + Math.round(b) + ',' + alpha + ')';
+    }
+
+    function generate() {
+      triangles = [];
+      var cols = Math.ceil(w / cellSize) + 2;
+      var rows = Math.ceil(h / cellSize) + 2;
+      var pts = [];
+      for (var row = -1; row <= rows; row++) {
+        for (var col = -1; col <= cols; col++) {
+          pts.push({ x: col * cellSize + (Math.random() - 0.5) * jitter, y: row * cellSize + (Math.random() - 0.5) * jitter });
+        }
+      }
+      var cc = cols + 2;
+      for (var r = 0; r < rows + 1; r++) {
+        for (var c = 0; c < cols + 1; c++) {
+          var i = r * cc + c;
+          var p1 = pts[i], p2 = pts[i+1], p3 = pts[i+cc], p4 = pts[i+cc+1];
+          if (p1 && p2 && p3) triangles.push({ p: [p1, p2, p3], color: colorAt((p1.x+p2.x+p3.x)/3, (p1.y+p2.y+p3.y)/3) });
+          if (p2 && p3 && p4) triangles.push({ p: [p2, p4, p3], color: colorAt((p2.x+p3.x+p4.x)/3, (p2.y+p3.y+p4.y)/3) });
+        }
+      }
+    }
+
+    function drawBg() {
+      var rad = (gradientAngle - 90) * Math.PI / 180;
+      var cx = w/2, cy = h/2, len = Math.max(w, h);
+      var g = ctx.createLinearGradient(cx - Math.cos(rad)*len, cy - Math.sin(rad)*len, cx + Math.cos(rad)*len, cy + Math.sin(rad)*len);
+      g.addColorStop(0, '#1a1a2e');
+      g.addColorStop(0.4, '#16213e');
+      g.addColorStop(1, '#0f3460');
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, w, h);
+    }
+
+    function draw() {
+      drawBg();
+      mouseX += (targetX - mouseX) * 0.08;
+      mouseY += (targetY - mouseY) * 0.08;
+      var px = (mouseX - w/2) / w * 30;
+      var py = (mouseY - h/2) / h * 20;
+      for (var i = 0; i < triangles.length; i++) {
+        var t = triangles[i];
+        ctx.beginPath();
+        ctx.moveTo(t.p[0].x + px, t.p[0].y + py);
+        ctx.lineTo(t.p[1].x + px, t.p[1].y + py);
+        ctx.lineTo(t.p[2].x + px, t.p[2].y + py);
+        ctx.closePath();
+        ctx.fillStyle = t.color;
+        ctx.fill();
+      }
+      requestAnimationFrame(draw);
+    }
+
+    document.addEventListener('mousemove', function(e) { targetX = e.clientX; targetY = e.clientY; });
+    document.addEventListener('mouseleave', function() { targetX = w/2; targetY = h/2; });
+    window.addEventListener('resize', resize);
+    resize();
+    draw();
+  })();
   </script>
 </body>
 </html>
