@@ -984,10 +984,13 @@
     chrome.runtime.sendMessage({ action: 'getZoom' }, (response) => {
       const zoom = (response && response.zoom) ? response.zoom : 1;
       currentZoomLevel = zoom;
-      if (host._logicalTop) {
+      if (host._logicalTop != null) {
         applyLogicalTop(host._logicalTop);
+      } else if (zoom !== 1) {
+        // 无保存位置但 zoom != 1：从当前渲染位置推算逻辑坐标并应用缩放补偿
+        const cssTop = host.getBoundingClientRect().top;
+        applyLogicalTop(cssTop * zoom);
       }
-      // 没有保存位置时不做任何事，让 CSS 默认的 top:50% + translateY(-50%) 生效
     });
     let localZoomInterval = setInterval(checkAndApplyZoom, 500);
 
