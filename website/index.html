@@ -836,14 +836,48 @@
 
     /* B站工具演示区 */
     .web-bili-demo {
+      position: relative;
+      width: 100%;
+      max-width: 1100px;
+      margin: 100px auto 0;
+      padding: 0;
+      background: #ffffff;
+      border-radius: 12px;
+      box-shadow: 0 4px 32px rgba(0,0,0,0.10);
+      overflow: hidden;
+    }
+    .web-bili-topbar {
       display: flex;
       align-items: center;
-      justify-content: center;
-      gap: 50px;
-      margin-top: 100px;
-      padding-bottom: 120px;
+      height: 36px;
+      padding: 0 14px;
+      gap: 8px;
+      background: #e8e9eb;
+    }
+    .web-bili-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: rgba(0,0,0,0.12);
+    }
+    .web-bili-addr {
+      flex: 1;
+      max-width: 340px;
+      height: 18px;
+      margin-left: 12px;
+      border-radius: 9px;
+      background: rgba(0,0,0,0.06);
+    }
+    .web-bili-page {
+      position: relative;
+      padding: 40px 0;
     }
     .web-bili-capsule {
+      position: absolute;
+      left: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      z-index: 2;
       display: flex;
       flex-direction: column;
       gap: 7px;
@@ -861,6 +895,7 @@
     }
     .web-bili-player-shell {
       width: 750px;
+      margin: 0 auto;
       background: #1a1a2e;
       border-radius: 12px;
       padding: 12px;
@@ -2112,9 +2147,18 @@
       <div class="ss-title">看小姐姐，再也不用歪脖子了</div>
       <div class="ss-subtitle">B站视频优化工具，颜色反转、旋转镜像、超级变速，网页悬浮随时使用</div>
 
-      <!-- 演示区：胶囊在左，播放器在右 -->
+      <!-- 演示区：模拟浏览器窗口 -->
       <div class="web-bili-demo">
-        <!-- 左侧胶囊工具条 -->
+        <!-- 浏览器顶栏 -->
+        <div class="web-bili-topbar">
+          <span class="web-bili-dot"></span>
+          <span class="web-bili-dot"></span>
+          <span class="web-bili-dot"></span>
+          <div class="web-bili-addr"></div>
+        </div>
+        <!-- 网页内容区 -->
+        <div class="web-bili-page">
+        <!-- 胶囊工具条（浮在网页左壁） -->
         <div class="web-bili-capsule">
           <div class="web-bili-seg"></div>
           <div class="web-bili-seg web-bili-seg-rotate"></div>
@@ -2148,11 +2192,12 @@
             <div class="web-bili-skel" style="width: 20px; opacity: 0.5;"></div>
           </div>
         </div>
+        </div>
       </div>
     </div>
   </section>
 
-  <section id="search-box" aria-label="悬浮搜索框" style="margin-top:-20px; position:relative; z-index:1;">
+  <section id="search-box" aria-label="悬浮搜索框" style="margin-top:40px; position:relative; z-index:1;">
     <div class="screenshot light">
       <div class="ss-title">呼之即出，以快速搜索</div>
       <div class="ss-subtitle"><span class="ss-key">Ctrl + B</span> 一键唤起搜索框 · 边看边输入 · 回车直接搜</div>
