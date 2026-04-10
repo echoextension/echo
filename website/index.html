@@ -352,12 +352,12 @@
        ============================================ */
     .tile-large.dark {
       width: 100%;
-      min-height: 600px;
+      min-height: 660px;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: space-between;
-      padding: 100px 40px 40px;
+      padding: 100px 40px 100px;
       gap: 0;
       background: linear-gradient(145deg, #1a1a2e 0%, #16213e 40%, #0f3460 100%);
     }
@@ -818,6 +818,117 @@
       z-index: 5;
     }
 
+    /* B站工具 section 标题粉色系 */
+    .bili-tool-section .ss-title {
+      background: linear-gradient(90deg, #f30c5f, #fb7299, #f30c5f);
+      background-size: 200% auto;
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-position: var(--gp) center;
+    }
+    .bili-tool-section .ss-subtitle {
+      color: rgba(0, 0, 0, 0.6);
+    }
+    .bili-tool-section {
+      background: linear-gradient(180deg, transparent 0%, rgba(255,245,248,0.6) 15%, rgba(252,232,239,0.8) 50%, rgba(255,245,248,0.6) 85%, transparent 100%) !important;
+    }
+
+    /* B站工具演示区 */
+    .web-bili-demo {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 50px;
+      margin-top: 100px;
+      padding-bottom: 120px;
+    }
+    .web-bili-capsule {
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+      background: rgba(255,255,255,0.92);
+      border-radius: 0 19px 19px 0;
+      padding: 14px 12px;
+      box-shadow: 2px 0 12px rgba(0,0,0,0.06);
+    }
+    .web-bili-seg {
+      width: 43px;
+      height: 67px;
+      border-radius: 10px;
+      background: rgba(243,12,95,0.12);
+      transition: background 0.3s;
+    }
+    .web-bili-player-shell {
+      width: 750px;
+      background: #1a1a2e;
+      border-radius: 12px;
+      padding: 12px;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.15);
+    }
+    .web-bili-titlebar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    .web-bili-skel {
+      height: 8px;
+      border-radius: 4px;
+      background: rgba(255,255,255,0.12);
+    }
+    .web-bili-screen {
+      position: relative;
+      border-radius: 6px;
+      overflow: hidden;
+      aspect-ratio: 16/9;
+      background: #0d0d1a;
+    }
+    .web-bili-content {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      animation: webBiliRotate 4.5s ease-in-out infinite;
+    }
+    .web-bili-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    .web-bili-progress {
+      position: absolute;
+      bottom: 6px;
+      left: 10px;
+      right: 10px;
+      height: 4px;
+      border-radius: 2px;
+      background: rgba(255,255,255,0.15);
+      z-index: 3;
+    }
+    .web-bili-progress-bar {
+      width: 35%;
+      height: 100%;
+      border-radius: 2px;
+      background: #fb7299;
+    }
+    .web-bili-controls {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-top: 10px;
+    }
+    .web-bili-play-icon {
+      width: 0;
+      height: 0;
+      border-style: solid;
+      border-width: 6px 0 6px 10px;
+      border-color: transparent transparent transparent rgba(255,255,255,0.5);
+    }
+
     /* NTP 透视画廊 */
     .ntp-gallery-wrapper {
       flex: 1;
@@ -1068,7 +1179,7 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      bottom: 60px;
+      bottom: 160px;
     }
 
     /* 工具条标注 */
@@ -1163,6 +1274,83 @@
       height: 14px;
       background: rgba(0, 0, 0, 0.1);
       flex-shrink: 0;
+    }
+
+    /* ---- B站视频优化工具演示动画 ---- */
+    .web-bili-content {
+      animation: webBiliRotate 4.5s ease-in-out infinite;
+    }
+    .web-bili-seg-rotate {
+      position: relative;
+      overflow: visible;
+      animation: webBiliSeg2 4.5s ease-in-out infinite;
+    }
+    .web-bili-seg-rotate::after {
+      content: '';
+      position: absolute;
+      top: 50%; left: 50%;
+      width: 60px; height: 60px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(243,12,95,0.5) 0%, transparent 70%);
+      transform: translate(-50%, -50%) scale(0);
+      opacity: 0;
+      animation: webBiliPulse2 4.5s ease-in-out infinite;
+    }
+    .web-bili-seg-fill {
+      position: relative;
+      overflow: visible;
+      animation: webBiliSeg4 4.5s ease-in-out infinite;
+    }
+    .web-bili-seg-fill::after {
+      content: '';
+      position: absolute;
+      top: 50%; left: 50%;
+      width: 60px; height: 60px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(243,12,95,0.5) 0%, transparent 70%);
+      transform: translate(-50%, -50%) scale(0);
+      opacity: 0;
+      animation: webBiliPulse4 4.5s ease-in-out infinite;
+    }
+    @keyframes webBiliRotate {
+      0%   { transform: rotate(0deg) scale(1); }
+      15%  { transform: rotate(0deg) scale(1); }
+      25%  { transform: rotate(90deg) scale(0.5625); }
+      40%  { transform: rotate(90deg) scale(0.5625); }
+      50%  { transform: rotate(90deg) translateX(58%) scale(1.78); }
+      75%  { transform: rotate(90deg) translateX(58%) scale(1.78); }
+      90%  { transform: rotate(0deg) scale(1); }
+      100% { transform: rotate(0deg) scale(1); }
+    }
+    @keyframes webBiliSeg2 {
+      0%   { background: rgba(243,12,95,0.12); }
+      15%  { background: rgba(243,12,95,0.12); }
+      20%  { background: #f30c5f; }
+      75%  { background: #f30c5f; }
+      85%  { background: rgba(243,12,95,0.12); }
+      100% { background: rgba(243,12,95,0.12); }
+    }
+    @keyframes webBiliSeg4 {
+      0%   { background: rgba(243,12,95,0.12); }
+      40%  { background: rgba(243,12,95,0.12); }
+      45%  { background: #f30c5f; }
+      75%  { background: #f30c5f; }
+      85%  { background: rgba(243,12,95,0.12); }
+      100% { background: rgba(243,12,95,0.12); }
+    }
+    @keyframes webBiliPulse2 {
+      0%   { transform: translate(-50%,-50%) scale(0); opacity: 0; }
+      15%  { transform: translate(-50%,-50%) scale(0); opacity: 0; }
+      20%  { transform: translate(-50%,-50%) scale(1.8); opacity: 0.8; }
+      28%  { transform: translate(-50%,-50%) scale(2.5); opacity: 0; }
+      100% { transform: translate(-50%,-50%) scale(0); opacity: 0; }
+    }
+    @keyframes webBiliPulse4 {
+      0%   { transform: translate(-50%,-50%) scale(0); opacity: 0; }
+      40%  { transform: translate(-50%,-50%) scale(0); opacity: 0; }
+      45%  { transform: translate(-50%,-50%) scale(1.8); opacity: 0.8; }
+      53%  { transform: translate(-50%,-50%) scale(2.5); opacity: 0; }
+      100% { transform: translate(-50%,-50%) scale(0); opacity: 0; }
     }
 
     /* ---- 搜索框胶囊（搬自 store 资产 D2 浅色版） ---- */
@@ -1894,9 +2082,10 @@
     </a>
     <div class="nav-menu">
       <a href="#ntp" onclick="document.getElementById('ntp').scrollIntoView({behavior:'smooth'}); return false;">新标签页</a>
+      <a href="#bili-tool" onclick="document.getElementById('bili-tool').scrollIntoView({behavior:'smooth'}); return false;">B站工具</a>
       <a href="#search-box" onclick="document.getElementById('search-box').scrollIntoView({behavior:'smooth'}); return false;">悬浮搜索</a>
-      <a href="#efficiency" onclick="document.getElementById('efficiency').scrollIntoView({behavior:'smooth'}); return false;">功能特性</a>
-      <a href="#story-faq" onclick="document.getElementById('story-faq').scrollIntoView({behavior:'smooth'}); return false;">产品哲学</a>
+      <a href="#efficiency" onclick="document.getElementById('efficiency').scrollIntoView({behavior:'smooth'}); return false;">功能</a>
+      <a href="#story-faq" onclick="document.getElementById('story-faq').scrollIntoView({behavior:'smooth'}); return false;">故事</a>
       <a href="https://github.com/echoextension/echo/blob/main/CHANGELOG.md" target="_blank" rel="noopener">更新日志 <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: -1px;"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></a>
     </div>
     <div class="nav-links">
@@ -2010,7 +2199,54 @@
       </div>
     </div>
   </section>
-  <section id="search-box" aria-label="悬浮搜索框" style="margin-top: 260px; position:relative; z-index:1;">
+
+  <!-- B站视频优化工具 -->
+  <section id="bili-tool" aria-label="B站视频优化工具" style="margin-top: 260px; position:relative; z-index:1;">
+    <div class="screenshot light bili-tool-section">
+      <div class="ss-title">看小姐姐，再也不用歪脖子了</div>
+      <div class="ss-subtitle">B站视频优化工具，颜色反转、旋转镜像、超级变速，网页悬浮随时使用</div>
+
+      <!-- 演示区：胶囊在左，播放器在右 -->
+      <div class="web-bili-demo">
+        <!-- 左侧胶囊工具条 -->
+        <div class="web-bili-capsule">
+          <div class="web-bili-seg"></div>
+          <div class="web-bili-seg web-bili-seg-rotate"></div>
+          <div class="web-bili-seg"></div>
+          <div class="web-bili-seg web-bili-seg-fill"></div>
+        </div>
+        <!-- 右侧播放器外壳 -->
+        <div class="web-bili-player-shell">
+          <!-- 顶部标题骨架 -->
+          <div class="web-bili-titlebar">
+            <div class="web-bili-skel" style="width: 80px;"></div>
+            <div class="web-bili-skel" style="width: 120px; opacity: 0.6;"></div>
+          </div>
+          <!-- 视频区域（固定外壳） -->
+          <div class="web-bili-screen">
+            <!-- 画面内容（旋转动画） -->
+            <div class="web-bili-content">
+              <img src="images/bili.webp" alt="" class="web-bili-img">
+            </div>
+            <!-- 进度条 -->
+            <div class="web-bili-progress">
+              <div class="web-bili-progress-bar"></div>
+            </div>
+          </div>
+          <!-- 底部控件骨架 -->
+          <div class="web-bili-controls">
+            <div class="web-bili-play-icon"></div>
+            <div class="web-bili-skel" style="width: 60px;"></div>
+            <div style="flex:1;"></div>
+            <div class="web-bili-skel" style="width: 20px; opacity: 0.5;"></div>
+            <div class="web-bili-skel" style="width: 20px; opacity: 0.5;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="search-box" aria-label="悬浮搜索框" style="margin-top:-20px; position:relative; z-index:1;">
     <div class="screenshot light">
       <div class="ss-title">呼之即出，以快速搜索</div>
       <div class="ss-subtitle"><span class="ss-key">Ctrl + B</span> 一键唤起搜索框 · 边看边输入 · 回车直接搜</div>
