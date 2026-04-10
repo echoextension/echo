@@ -514,6 +514,31 @@
             <h3>颜色变化、旋转镜像、超级变速</h3>
             <p>在 Bilibili 视频播放页左侧悬浮显示画面工具，支持颜色反转与通道交换、旋转与镜像、0.25× 超慢速和 3.0× 极速播放，可自由组合</p>
             <p class="note">💡 右键拖拽手柄可打开设置或暂时隐藏工具</p>
+
+            <!-- 功能示意动画 -->
+            <div class="bili-demo-stage">
+              <!-- 迷你胶囊工具条 -->
+              <div class="bili-demo-capsule">
+                <div class="bili-demo-seg"></div>
+                <div class="bili-demo-seg bili-demo-seg-anim"></div>
+                <div class="bili-demo-seg"></div>
+                <div class="bili-demo-seg"></div>
+              </div>
+              <!-- 模拟视频播放器 -->
+              <div class="bili-demo-player">
+                <!-- 播放器外壳（固定不动） -->
+                <div class="bili-demo-screen">
+                  <!-- 内部画面内容（会旋转） -->
+                  <div class="bili-demo-content">
+                    <img src="../website/images/bili.png" alt="" class="bili-demo-img">
+                  </div>
+                  <!-- 进度条（固定在底部） -->
+                  <div class="bili-demo-progress">
+                    <div class="bili-demo-progress-bar"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
           <label class="switch">
             <input type="checkbox" id="biliTool">

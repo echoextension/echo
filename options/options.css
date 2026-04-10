@@ -2420,3 +2420,165 @@ input:disabled + .slider {
   transform: translateX(-50%) translateY(0);
 }
 
+/* ============================================
+ * B站视频优化工具 - 功能示意动画
+ * ============================================ */
+
+.bili-demo-stage {
+  position: relative;
+  width: 320px;
+  height: 160px;
+  margin-top: 14px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #fff5f8, #fce8ef);
+  border: 1px solid rgba(243, 12, 95, 0.12);
+  overflow: hidden;
+  user-select: none;
+  display: flex;
+  align-items: center;
+}
+
+/* 左侧迷你胶囊 */
+.bili-demo-capsule {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: rgba(255,255,255,0.9);
+  border-radius: 0 6px 6px 0;
+  padding: 4px 3px;
+  box-shadow: 1px 0 4px rgba(0,0,0,0.06);
+  z-index: 2;
+}
+
+.bili-demo-seg {
+  width: 12px;
+  height: 18px;
+  border-radius: 2px;
+  background: rgba(243, 12, 95, 0.12);
+  position: relative;
+  overflow: visible;
+}
+
+.bili-demo-seg-active {
+  background: #f30c5f;
+}
+
+/* 模拟视频播放器 */
+.bili-demo-player {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px 20px 16px 36px;
+}
+
+/* 播放器外壳（固定不动） */
+.bili-demo-screen {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: #1a1a2e;
+  border-radius: 4px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+
+/* 内部画面（旋转动画） */
+.bili-demo-content {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: biliDemoRotate 6s ease-in-out infinite;
+  overflow: hidden;
+}
+
+.bili-demo-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* 进度条（固定在底部） */
+.bili-demo-progress {
+  position: absolute;
+  bottom: 4px;
+  left: 6px;
+  right: 6px;
+  height: 3px;
+  border-radius: 2px;
+  background: rgba(255,255,255,0.15);
+}
+
+.bili-demo-progress-bar {
+  width: 35%;
+  height: 100%;
+  border-radius: 2px;
+  background: #fb7299;
+}
+
+/* 默认头朝左(0deg) → 顺时针90°头朝上(90deg)+缩小适应 → 停留 → 循环 */
+@keyframes biliDemoRotate {
+  0%   { transform: rotate(0deg) scale(1); }
+  20%  { transform: rotate(0deg) scale(1); }
+  35%  { transform: rotate(90deg) scale(0.5625); }
+  80%  { transform: rotate(90deg) scale(0.5625); }
+  95%  { transform: rotate(0deg) scale(1); }
+  100% { transform: rotate(0deg) scale(1); }
+}
+
+/* 段激活动画：与旋转同步，含放射线脉冲 */
+.bili-demo-seg-anim {
+  animation: biliDemoSegActivate 6s ease-in-out infinite;
+}
+
+.bili-demo-seg-anim::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(243,12,95,0.5) 0%, transparent 70%);
+  transform: translate(-50%, -50%) scale(0);
+  opacity: 0;
+  animation: biliDemoPulse 6s ease-in-out infinite;
+}
+
+@keyframes biliDemoSegActivate {
+  0%   { background: rgba(243, 12, 95, 0.12); }
+  20%  { background: rgba(243, 12, 95, 0.12); }
+  25%  { background: #f30c5f; }
+  80%  { background: #f30c5f; }
+  85%  { background: rgba(243, 12, 95, 0.12); }
+  100% { background: rgba(243, 12, 95, 0.12); }
+}
+
+@keyframes biliDemoPulse {
+  0%   { transform: translate(-50%, -50%) scale(0); opacity: 0; }
+  20%  { transform: translate(-50%, -50%) scale(0); opacity: 0; }
+  25%  { transform: translate(-50%, -50%) scale(1.8); opacity: 0.8; }
+  35%  { transform: translate(-50%, -50%) scale(2.5); opacity: 0; }
+  100% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
+}
+
+@media (prefers-color-scheme: dark) {
+  .bili-demo-stage {
+    background: linear-gradient(135deg, #1e1418, #251820);
+    border-color: rgba(243, 12, 95, 0.08);
+  }
+  .bili-demo-capsule {
+    background: rgba(40, 30, 35, 0.9);
+  }
+  .bili-demo-seg {
+    background: rgba(243, 12, 95, 0.15);
+  }
+}
+
