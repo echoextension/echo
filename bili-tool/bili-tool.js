@@ -115,6 +115,8 @@
   let isDragging = false;
   let currentVideoEl = null;
   let ratechangeHandler = null;
+  let rawVideoEl = null;
+  let videoSourceHandler = null;
 
   // 通道交换定义
   const CHANNEL_SWAPS = [
@@ -523,12 +525,17 @@
     updateWrapOverflow();
     updatePanelState();
     if (shadowRef && shadowRef.closePanel) shadowRef.closePanel();
-    // 解绑旧 video 的 ratechange 监听器
+    // 解绑旧 video 的监听器
     if (currentVideoEl && ratechangeHandler) {
       currentVideoEl.removeEventListener('ratechange', ratechangeHandler);
     }
+    if (rawVideoEl && videoSourceHandler) {
+      rawVideoEl.removeEventListener('loadstart', videoSourceHandler);
+    }
     currentVideoEl = null;
     ratechangeHandler = null;
+    rawVideoEl = null;
+    videoSourceHandler = null;
   }
 
   function updatePanelState() {
@@ -536,19 +543,37 @@
   }
 
   /**
-   * 绑定/重绑 video 元素的 ratechange 监听器
-   * SPA 导航后 video 元素可能被替换，需重新绑定
+   * 绑定/重绑 video 元素的 ratechange 和 loadstart 监听器
+   * ratechange: 同步倍速按钮状态
+   * loadstart: 检测视频源更换，立即重置所有效果（比 URL 变化更早触发）
    */
   function bindVideoRateChange() {
     const video = document.querySelector('bwp-video, video');
     if (video === currentVideoEl) return;
+    // 清理旧监听器
     if (currentVideoEl && ratechangeHandler) {
       currentVideoEl.removeEventListener('ratechange', ratechangeHandler);
     }
+    if (rawVideoEl && videoSourceHandler) {
+      rawVideoEl.removeEventListener('loadstart', videoSourceHandler);
+    }
     currentVideoEl = video;
+    ratechangeHandler = null;
+    rawVideoEl = null;
+    videoSourceHandler = null;
     if (!video) return;
+    // ratechange 绑到 bwp-video/video（bwp-video 代理了此事件）
     ratechangeHandler = () => updatePanelState();
     video.addEventListener('ratechange', ratechangeHandler);
+    // loadstart 绑到原生 <video> 元素（bwp-video 不触发媒体加载事件）
+    rawVideoEl = document.querySelector('video');
+    if (rawVideoEl) {
+      videoSourceHandler = () => {
+        clearAllEffects();
+        bindVideoRateChange();
+      };
+      rawVideoEl.addEventListener('loadstart', videoSourceHandler);
+    }
   }
 
   function createCapsuleUI() {
