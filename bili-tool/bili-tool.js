@@ -841,6 +841,7 @@
 
     function togglePanel(segmentName) {
       if (isDragging) return;
+      ctxMenu.classList.remove('show');
       if (currentPanel === segmentName) {
         panels[segmentName].classList.remove('show');
         segments[segmentName].classList.remove('active');
@@ -977,10 +978,14 @@
 
     // 恢复位置
     if (settings.biliToolPosition && settings.biliToolPosition.top) {
-      const savedTop = parseInt(settings.biliToolPosition.top);
-      if (!isNaN(savedTop)) {
-        applyLogicalTop(savedTop);
+      const topStr = settings.biliToolPosition.top;
+      if (!topStr.includes('%')) {
+        const savedTop = parseInt(topStr);
+        if (!isNaN(savedTop)) {
+          applyLogicalTop(savedTop);
+        }
       }
+      // 百分比值（默认 '50%'）不调用 applyLogicalTop，让 CSS 默认的 top:50% + translateY(-50%) 生效
     }
 
     // 监听倍速变化（绑定到当前 video 元素）
@@ -1090,13 +1095,18 @@
       titleObserver.observe(titleEl, { childList: true, characterData: true, subtree: true });
     }
 
+    let routeChangeTimer = null;
+
     function onRouteChange() {
       if (location.href === lastUrl) return;
       lastUrl = location.href;
+      // 取消前一次延迟检测，避免快速导航竞态
+      if (routeChangeTimer) clearTimeout(routeChangeTimer);
       // 离开视频页时清除效果
       clearAllEffects();
       // 延迟检测新页面是否有播放器（SPA 动态加载）
-      setTimeout(() => {
+      routeChangeTimer = setTimeout(() => {
+        routeChangeTimer = null;
         if (isBilibiliVideoPage()) {
           if (!shadowHost) createCapsuleUI();
           else showCapsule();
