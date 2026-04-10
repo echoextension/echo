@@ -913,7 +913,7 @@
         e.preventDefault();
         e.stopPropagation();
         startY = e.clientY;
-        dragStartLogicalTop = host._logicalTop != null ? host._logicalTop : host.getBoundingClientRect().top;
+        dragStartLogicalTop = host._logicalTop != null ? host._logicalTop : host.getBoundingClientRect().top * currentZoomLevel;
         isDragging = false;
 
         const onMove = (e2) => {
