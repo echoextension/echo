@@ -905,10 +905,18 @@ document.addEventListener('DOMContentLoaded', async () => {
   // 初始化备份与恢复
   initBackupRestore();
   
-  // 如果 URL hash 指向 backupSection，滚动到对应位置
-  if (window.location.hash === '#backupSection') {
+  // 如果 URL hash 指向某个 section，滚动到对应位置
+  if (window.location.hash) {
+    const targetId = window.location.hash.slice(1);
     setTimeout(() => {
-      document.getElementById('backupSection')?.scrollIntoView({ behavior: 'smooth' });
+      const el = document.getElementById(targetId);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth' });
+        // 短暂高亮提示
+        el.style.transition = 'box-shadow 0.3s';
+        el.style.boxShadow = '0 0 0 2px #fb7299';
+        setTimeout(() => { el.style.boxShadow = ''; }, 2000);
+      }
     }, 300);
   }
 });

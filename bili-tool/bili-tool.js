@@ -517,6 +517,51 @@
         pointer-events: none;
       }
 
+      /* ---- 右键菜单 ---- */
+      .context-menu {
+        display: none;
+        position: absolute;
+        left: 38px;
+        top: 0;
+        flex-direction: column;
+        background: rgba(255,245,248,0.96);
+        border: 0.5px solid rgba(251,114,153,0.35);
+        border-radius: 8px;
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+        padding: 4px;
+        z-index: 10;
+        min-width: 110px;
+        animation: slideRight 0.12s ease-out;
+      }
+      .context-menu.show {
+        display: flex;
+      }
+      .context-menu-item {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 7px 12px;
+        font-size: 12px;
+        color: #f30c5f;
+        cursor: pointer;
+        border-radius: 6px;
+        white-space: nowrap;
+        transition: background 0.12s;
+        border: none;
+        background: none;
+        font-family: inherit;
+      }
+      .context-menu-item:hover {
+        background: rgba(251,114,153,0.12);
+      }
+      .context-menu-item svg {
+        width: 14px;
+        height: 14px;
+        flex-shrink: 0;
+      }
+
       /* ---- 深色模式 ---- */
       @media (prefers-color-scheme: dark) {
         .capsule-rail {
@@ -762,6 +807,30 @@
     container.appendChild(panelColor);
     container.appendChild(panelRotate);
     container.appendChild(panelSpeed);
+
+    // ---- 右键菜单 ----
+    const ctxMenu = document.createElement('div');
+    ctxMenu.className = 'context-menu';
+    const menuSettings = document.createElement('button');
+    menuSettings.className = 'context-menu-item';
+    menuSettings.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><span>打开设置</span>';
+    menuSettings.addEventListener('click', () => {
+      ctxMenu.classList.remove('show');
+      const optionsUrl = chrome.runtime.getURL('options/options.html#biliToolCard');
+      chrome.runtime.sendMessage({ action: 'openInNewTab', url: optionsUrl, active: true });
+    });
+    const menuHide = document.createElement('button');
+    menuHide.className = 'context-menu-item';
+    menuHide.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg><span>暂时隐藏</span>';
+    menuHide.addEventListener('click', () => {
+      ctxMenu.classList.remove('show');
+      clearAllEffects();
+      hideCapsule();
+    });
+    ctxMenu.appendChild(menuSettings);
+    ctxMenu.appendChild(menuHide);
+    container.appendChild(ctxMenu);
+
     shadow.appendChild(container);
     document.body.appendChild(host);
 
@@ -798,11 +867,27 @@
 
     // 点击外部收起
     document.addEventListener('click', (e) => {
-      if (!host.contains(e.target) && currentPanel) {
+      if (!host.contains(e.target)) {
+        if (currentPanel) {
+          panels[currentPanel].classList.remove('show');
+          segments[currentPanel].classList.remove('active');
+          currentPanel = null;
+        }
+        ctxMenu.classList.remove('show');
+      }
+    });
+
+    // 右键菜单（拖拽手柄）
+    dragHandle.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      // 关闭已打开的面板
+      if (currentPanel) {
         panels[currentPanel].classList.remove('show');
         segments[currentPanel].classList.remove('active');
         currentPanel = null;
       }
+      ctxMenu.classList.toggle('show');
     });
 
     // 拖拽（拖整个 rail）
