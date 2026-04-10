@@ -2427,8 +2427,8 @@ input:disabled + .slider {
 .bili-demo-stage {
   position: relative;
   width: 320px;
-  height: 160px;
-  margin-top: 14px;
+  min-width: 320px;
+  min-height: 160px;
   border-radius: 10px;
   background: linear-gradient(135deg, #fff5f8, #fce8ef);
   border: 1px solid rgba(243, 12, 95, 0.12);

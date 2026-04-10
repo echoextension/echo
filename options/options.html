@@ -512,8 +512,9 @@
         <div class="option">
           <div class="option-info">
             <h3>颜色变化、旋转镜像、超级变速</h3>
-            <p>在 Bilibili 视频播放页左侧悬浮显示画面工具，支持颜色反转与通道交换、旋转与镜像、0.25× 超慢速和 3.0× 极速播放，可自由组合</p>
-            <p class="note">💡 右键拖拽手柄可打开设置或暂时隐藏工具</p>
+
+            <!-- 演示动画 + 功能说明 并排 -->
+            <div style="display: flex; gap: 14px; margin-top: 14px; align-items: stretch;">
 
             <!-- 功能示意动画 -->
             <div class="bili-demo-stage">
@@ -538,6 +539,27 @@
                   </div>
                 </div>
               </div>
+            </div>
+
+            <!-- 功能说明 -->
+            <div style="flex: 1; min-width: 0; padding: 12px; background: rgba(128, 128, 128, 0.05); border-radius: 6px; border: 1px solid rgba(128, 128, 128, 0.1);">
+              <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+                <span style="flex-shrink: 0;">📺</span>
+                <div style="font-size: 13px; color: var(--text); line-height: 1.5;">
+                  在 Bilibili 视频播放页左侧悬浮显示优化工具
+                </div>
+              </div>
+              
+              <div style="margin-left: 24px; padding-top: 8px; border-top: 1px dashed rgba(128, 128, 128, 0.2);">
+                <ul style="margin: 0; padding-left: 16px; font-size: 12px; color: var(--text-secondary); line-height: 1.8; opacity: 0.9;">
+                  <li>颜色反转与通道交换（全色以及分通道调整）</li>
+                  <li>旋转镜像（以及缩放、适配，特别适合看小姐姐，避免歪脖子）</li>
+                  <li>超级变速（0.25× 超慢速和 3.0× 极速播放）</li>
+                </ul>
+                <div style="font-size: 12px; font-weight: 600; color: var(--text-secondary); margin-top: 6px;">完全自由组合，也可以随时关闭或暂时隐藏</div>
+              </div>
+            </div>
+
             </div>
           </div>
           <label class="switch">
