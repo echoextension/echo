@@ -2494,7 +2494,7 @@ input:disabled + .slider {
   display: flex;
   align-items: center;
   justify-content: center;
-  animation: biliDemoRotate 6s ease-in-out infinite;
+  animation: biliDemoRotate 9s ease-in-out infinite;
   overflow: hidden;
 }
 
@@ -2523,22 +2523,26 @@ input:disabled + .slider {
   background: #fb7299;
 }
 
-/* 默认头朝左(0deg) → 顺时针90°头朝上(90deg)+缩小适应 → 停留 → 循环 */
+/* 默认头朝左(0deg) → 旋转90°+缩小适应 → 填充裁切 → 循环 */
 @keyframes biliDemoRotate {
   0%   { transform: rotate(0deg) scale(1); }
-  20%  { transform: rotate(0deg) scale(1); }
-  35%  { transform: rotate(90deg) scale(0.5625); }
-  80%  { transform: rotate(90deg) scale(0.5625); }
-  95%  { transform: rotate(0deg) scale(1); }
+  15%  { transform: rotate(0deg) scale(1); }
+  25%  { transform: rotate(90deg) scale(0.5625); }
+  40%  { transform: rotate(90deg) scale(0.5625); }
+  50%  { transform: rotate(90deg) translateX(58%) scale(1.78); }
+  75%  { transform: rotate(90deg) translateX(58%) scale(1.78); }
+  90%  { transform: rotate(0deg) scale(1); }
   100% { transform: rotate(0deg) scale(1); }
 }
 
-/* 段激活动画：与旋转同步，含放射线脉冲 */
-.bili-demo-seg-anim {
-  animation: biliDemoSegActivate 6s ease-in-out infinite;
+/* 段2激活：旋转阶段亮起 */
+.bili-demo-seg-rotate {
+  position: relative;
+  overflow: visible;
+  animation: biliDemoSeg2 9s ease-in-out infinite;
 }
 
-.bili-demo-seg-anim::after {
+.bili-demo-seg-rotate::after {
   content: '';
   position: absolute;
   top: 50%;
@@ -2549,23 +2553,61 @@ input:disabled + .slider {
   background: radial-gradient(circle, rgba(243,12,95,0.5) 0%, transparent 70%);
   transform: translate(-50%, -50%) scale(0);
   opacity: 0;
-  animation: biliDemoPulse 6s ease-in-out infinite;
+  animation: biliDemoPulse2 9s ease-in-out infinite;
 }
 
-@keyframes biliDemoSegActivate {
+@keyframes biliDemoSeg2 {
   0%   { background: rgba(243, 12, 95, 0.12); }
-  20%  { background: rgba(243, 12, 95, 0.12); }
-  25%  { background: #f30c5f; }
-  80%  { background: #f30c5f; }
+  15%  { background: rgba(243, 12, 95, 0.12); }
+  20%  { background: #f30c5f; }
+  75%  { background: #f30c5f; }
   85%  { background: rgba(243, 12, 95, 0.12); }
   100% { background: rgba(243, 12, 95, 0.12); }
 }
 
-@keyframes biliDemoPulse {
+@keyframes biliDemoPulse2 {
   0%   { transform: translate(-50%, -50%) scale(0); opacity: 0; }
-  20%  { transform: translate(-50%, -50%) scale(0); opacity: 0; }
-  25%  { transform: translate(-50%, -50%) scale(1.8); opacity: 0.8; }
-  35%  { transform: translate(-50%, -50%) scale(2.5); opacity: 0; }
+  15%  { transform: translate(-50%, -50%) scale(0); opacity: 0; }
+  20%  { transform: translate(-50%, -50%) scale(1.8); opacity: 0.8; }
+  28%  { transform: translate(-50%, -50%) scale(2.5); opacity: 0; }
+  100% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
+}
+
+/* 段4激活：填充阶段亮起 */
+.bili-demo-seg-fill {
+  position: relative;
+  overflow: visible;
+  animation: biliDemoSeg4 9s ease-in-out infinite;
+}
+
+.bili-demo-seg-fill::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(243,12,95,0.5) 0%, transparent 70%);
+  transform: translate(-50%, -50%) scale(0);
+  opacity: 0;
+  animation: biliDemoPulse4 9s ease-in-out infinite;
+}
+
+@keyframes biliDemoSeg4 {
+  0%   { background: rgba(243, 12, 95, 0.12); }
+  40%  { background: rgba(243, 12, 95, 0.12); }
+  45%  { background: #f30c5f; }
+  75%  { background: #f30c5f; }
+  85%  { background: rgba(243, 12, 95, 0.12); }
+  100% { background: rgba(243, 12, 95, 0.12); }
+}
+
+@keyframes biliDemoPulse4 {
+  0%   { transform: translate(-50%, -50%) scale(0); opacity: 0; }
+  40%  { transform: translate(-50%, -50%) scale(0); opacity: 0; }
+  45%  { transform: translate(-50%, -50%) scale(1.8); opacity: 0.8; }
+  53%  { transform: translate(-50%, -50%) scale(2.5); opacity: 0; }
   100% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
 }
 
