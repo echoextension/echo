@@ -27,6 +27,21 @@
   let settings = await chrome.storage.sync.get(DEFAULT_SETTINGS);
   if (!settings.biliTool) return;
 
+  // 监听设置变化（用户在设置页关闭时立即生效）
+  chrome.storage.onChanged.addListener((changes, areaName) => {
+    if (areaName === 'sync' && changes.biliTool) {
+      settings.biliTool = changes.biliTool.newValue;
+      if (!settings.biliTool) {
+        clearAllEffects();
+        hideCapsule();
+      } else if (isBilibiliVideoPage()) {
+        if (!shadowHost) createCapsuleUI();
+        else showCapsule();
+        bindVideoRateChange();
+      }
+    }
+  });
+
   // ============ SVG 资产 ============
 
   // ====== 1. 颜色段图标：双矩形交替填充动画 ======
@@ -97,8 +112,9 @@
   let invertStyleElement = null;
   let invertSvgElement = null;
   let rotateStyleElement = null;
-  let isExpanded = false;
   let isDragging = false;
+  let currentVideoEl = null;
+  let ratechangeHandler = null;
 
   // 通道交换定义
   const CHANNEL_SWAPS = [
@@ -210,6 +226,7 @@
       rotateStyleElement = null;
     }
     if (rotateAngle === 0 && !mirrorActive) {
+      updateWrapOverflow();
       updatePanelState();
       return;
     }
@@ -480,19 +497,19 @@
 
   // 缩放补偿相关变量
   let currentZoomLevel = 1;
-  const TOP_OFFSET_DEFAULT = '50%'; // 默认位置（屏幕中点）
 
   // ============ Shadow DOM + 胶囊 UI ============
   let shadowHost = null;
-  let shadowPanel = null;
   let shadowRef = null;
 
   function showCapsule() {
     if (shadowHost) shadowHost.style.display = '';
+    if (shadowRef && shadowRef.startZoomCheck) shadowRef.startZoomCheck();
   }
 
   function hideCapsule() {
     if (shadowHost) shadowHost.style.display = 'none';
+    if (shadowRef && shadowRef.stopZoomCheck) shadowRef.stopZoomCheck();
   }
 
   function clearAllEffects() {
@@ -506,10 +523,32 @@
     updateWrapOverflow();
     updatePanelState();
     if (shadowRef && shadowRef.closePanel) shadowRef.closePanel();
+    // 解绑旧 video 的 ratechange 监听器
+    if (currentVideoEl && ratechangeHandler) {
+      currentVideoEl.removeEventListener('ratechange', ratechangeHandler);
+    }
+    currentVideoEl = null;
+    ratechangeHandler = null;
   }
 
   function updatePanelState() {
     if (shadowRef && shadowRef.updateBtnStates) shadowRef.updateBtnStates();
+  }
+
+  /**
+   * 绑定/重绑 video 元素的 ratechange 监听器
+   * SPA 导航后 video 元素可能被替换，需重新绑定
+   */
+  function bindVideoRateChange() {
+    const video = document.querySelector('bwp-video, video');
+    if (video === currentVideoEl) return;
+    if (currentVideoEl && ratechangeHandler) {
+      currentVideoEl.removeEventListener('ratechange', ratechangeHandler);
+    }
+    currentVideoEl = video;
+    if (!video) return;
+    ratechangeHandler = () => updatePanelState();
+    video.addEventListener('ratechange', ratechangeHandler);
   }
 
   function createCapsuleUI() {
@@ -738,7 +777,7 @@
       }
       // 没有保存位置时不做任何事，让 CSS 默认的 top:50% + translateY(-50%) 生效
     });
-    const zoomCheckInterval = setInterval(checkAndApplyZoom, 500);
+    let localZoomInterval = setInterval(checkAndApplyZoom, 500);
 
     // 恢复位置
     if (settings.biliToolPosition && settings.biliToolPosition.top) {
@@ -748,11 +787,8 @@
       }
     }
 
-    // 监听倍速变化
-    const video = document.querySelector('bwp-video, video');
-    if (video) {
-      video.addEventListener('ratechange', () => updateBtnStates());
-    }
+    // 监听倍速变化（绑定到当前 video 元素）
+    bindVideoRateChange();
 
     function updateBtnStates() {
       const btns = shadow.querySelectorAll('.tool-btn');
@@ -798,6 +834,15 @@
         panels[currentPanel].classList.remove('show');
         segments[currentPanel].classList.remove('active');
         currentPanel = null;
+      }
+    }, startZoomCheck: () => {
+      if (!localZoomInterval) {
+        localZoomInterval = setInterval(checkAndApplyZoom, 500);
+      }
+    }, stopZoomCheck: () => {
+      if (localZoomInterval) {
+        clearInterval(localZoomInterval);
+        localZoomInterval = null;
       }
     }};
   }
@@ -859,6 +904,7 @@
         if (isBilibiliVideoPage()) {
           if (!shadowHost) createCapsuleUI();
           else showCapsule();
+          bindVideoRateChange();
         } else {
           hideCapsule();
         }
