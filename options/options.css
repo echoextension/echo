@@ -2494,7 +2494,7 @@ input:disabled + .slider {
   display: flex;
   align-items: center;
   justify-content: center;
-  animation: biliDemoRotate 9s ease-in-out infinite;
+  animation: biliDemoRotate 4.5s ease-in-out infinite;
   overflow: hidden;
 }
 
@@ -2539,7 +2539,7 @@ input:disabled + .slider {
 .bili-demo-seg-rotate {
   position: relative;
   overflow: visible;
-  animation: biliDemoSeg2 9s ease-in-out infinite;
+  animation: biliDemoSeg2 4.5s ease-in-out infinite;
 }
 
 .bili-demo-seg-rotate::after {
@@ -2553,7 +2553,7 @@ input:disabled + .slider {
   background: radial-gradient(circle, rgba(243,12,95,0.5) 0%, transparent 70%);
   transform: translate(-50%, -50%) scale(0);
   opacity: 0;
-  animation: biliDemoPulse2 9s ease-in-out infinite;
+  animation: biliDemoPulse2 4.5s ease-in-out infinite;
 }
 
 @keyframes biliDemoSeg2 {
@@ -2577,7 +2577,7 @@ input:disabled + .slider {
 .bili-demo-seg-fill {
   position: relative;
   overflow: visible;
-  animation: biliDemoSeg4 9s ease-in-out infinite;
+  animation: biliDemoSeg4 4.5s ease-in-out infinite;
 }
 
 .bili-demo-seg-fill::after {
@@ -2591,7 +2591,7 @@ input:disabled + .slider {
   background: radial-gradient(circle, rgba(243,12,95,0.5) 0%, transparent 70%);
   transform: translate(-50%, -50%) scale(0);
   opacity: 0;
-  animation: biliDemoPulse4 9s ease-in-out infinite;
+  animation: biliDemoPulse4 4.5s ease-in-out infinite;
 }
 
 @keyframes biliDemoSeg4 {
