@@ -838,8 +838,8 @@
     .web-bili-demo {
       position: relative;
       width: 100%;
-      max-width: 1100px;
-      margin: 100px auto 0;
+      max-width: 1347px;
+      margin: 72px auto 0;
       padding: 0;
       background: #ffffff;
       border-radius: 12px;
@@ -883,19 +883,34 @@
       gap: 7px;
       background: rgba(255,255,255,0.92);
       border-radius: 0 19px 19px 0;
-      padding: 14px 12px;
+      padding: 14px 14px 14px 12px;
       box-shadow: 2px 0 12px rgba(0,0,0,0.06);
     }
     .web-bili-seg {
-      width: 43px;
+      width: 140px;
       height: 67px;
       border-radius: 10px;
       background: rgba(243,12,95,0.12);
       transition: background 0.3s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      white-space: nowrap;
+      overflow: hidden;
+    }
+    .web-bili-seg-rotate,
+    .web-bili-seg-fill {
+    }
+    .web-bili-seg-label {
+      font-size: 24px;
+      font-weight: 600;
+      color: #fff;
+      letter-spacing: 6px;
     }
     .web-bili-player-shell {
-      width: 750px;
-      margin: 0 auto;
+      width: 786px;
+      margin: 0 auto 0 350px;
       background: #1a1a2e;
       border-radius: 12px;
       padding: 12px;
@@ -2144,7 +2159,7 @@
   <!-- B站视频优化工具 -->
   <section id="bili-tool" aria-label="B站视频优化工具" style="margin-top: 260px; position:relative; z-index:1;">
     <div class="screenshot light bili-tool-section">
-      <div class="ss-title">看小姐姐，再也不用歪脖子了</div>
+      <div class="ss-title">看小姐姐，不用歪脖子</div>
       <div class="ss-subtitle">B站视频优化工具，颜色反转、旋转镜像、超级变速，网页悬浮随时使用</div>
 
       <!-- 演示区：模拟浏览器窗口 -->
@@ -2161,9 +2176,9 @@
         <!-- 胶囊工具条（浮在网页左壁） -->
         <div class="web-bili-capsule">
           <div class="web-bili-seg"></div>
-          <div class="web-bili-seg web-bili-seg-rotate"></div>
+          <div class="web-bili-seg web-bili-seg-rotate"><span class="web-bili-seg-label">旋转</span></div>
           <div class="web-bili-seg"></div>
-          <div class="web-bili-seg web-bili-seg-fill"></div>
+          <div class="web-bili-seg web-bili-seg-fill"><span class="web-bili-seg-label">适配</span></div>
         </div>
         <!-- 右侧播放器外壳 -->
         <div class="web-bili-player-shell">
@@ -2197,7 +2212,7 @@
     </div>
   </section>
 
-  <section id="search-box" aria-label="悬浮搜索框" style="margin-top:40px; position:relative; z-index:1;">
+  <section id="search-box" aria-label="悬浮搜索框" style="margin-top:60px; position:relative; z-index:1;">
     <div class="screenshot light">
       <div class="ss-title">呼之即出，以快速搜索</div>
       <div class="ss-subtitle"><span class="ss-key">Ctrl + B</span> 一键唤起搜索框 · 边看边输入 · 回车直接搜</div>
