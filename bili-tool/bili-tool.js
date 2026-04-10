@@ -47,17 +47,17 @@
   // ====== 1. 颜色段图标：双矩形交替填充动画 ======
   const SVG_COLOR = `
 <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-  <rect x="1" y="3" width="10" height="18" rx="2" stroke="#fb7299" stroke-width="0.7">
-    <animate attributeName="fill" values="#fb7299;white;#fb7299" keyTimes="0;0.5;1" dur="4s" repeatCount="indefinite"/>
+  <rect x="1" y="3" width="10" height="18" rx="2" stroke="#f30c5f" stroke-width="1.2">
+    <animate attributeName="fill" values="#f30c5f;white;#f30c5f" keyTimes="0;0.5;1" dur="4s" repeatCount="indefinite"/>
   </rect>
-  <rect x="13" y="3" width="10" height="18" rx="2" stroke="#fb7299" stroke-width="0.7">
-    <animate attributeName="fill" values="white;#fb7299;white" keyTimes="0;0.5;1" dur="4s" repeatCount="indefinite"/>
+  <rect x="13" y="3" width="10" height="18" rx="2" stroke="#f30c5f" stroke-width="1.2">
+    <animate attributeName="fill" values="white;#f30c5f;white" keyTimes="0;0.5;1" dur="4s" repeatCount="indefinite"/>
   </rect>
 </svg>`;
 
   // ====== 2. 旋转段图标：文档框旋转动画 ======
   const SVG_ROTATE = `
-<svg width="20" height="20" viewBox="0 0 24 24" fill="white" stroke="#fb7299" stroke-width="0.8" stroke-linecap="round" stroke-linejoin="round">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="white" stroke="#f30c5f" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
   <g>
     <animateTransform attributeName="transform" type="rotate" values="0 12 12;0 12 12;90 12 12;90 12 12;0 12 12" keyTimes="0;0.35;0.5;0.85;1" dur="3s" repeatCount="indefinite"/>
     <rect x="4" y="5" width="16" height="14" rx="2"/>
@@ -68,7 +68,7 @@
 
   // ====== 3. 倍速段图标：双三角闪烁动画 ======
   const SVG_SPEED = `
-<svg width="20" height="20" viewBox="0 0 24 24" fill="#fb7299" stroke="none">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="#f30c5f" stroke="none">
   <polygon points="4,3 14,12 4,21">
     <animate attributeName="opacity" values="1;0.3;1" dur="3s" repeatCount="indefinite"/>
   </polygon>
@@ -79,13 +79,13 @@
 
   // ====== 4. 重置段图标：B站小电视眨眼 ======
   const SVG_RESET = `
-<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fb7299" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f30c5f" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
   <rect x="2" y="5" width="20" height="14" rx="3" fill="white"/>
   <path d="M8 2L10 5"/><path d="M16 2L14 5"/>
-  <ellipse cx="9" cy="11" rx="1.5" ry="1.5" fill="#fb7299" stroke="none">
+  <ellipse cx="9" cy="11" rx="1.5" ry="1.5" fill="#f30c5f" stroke="none">
     <animate attributeName="ry" values="1.5;0.2;1.5" keyTimes="0;0.5;1" dur="3s" repeatCount="indefinite"/>
   </ellipse>
-  <ellipse cx="15" cy="11" rx="1.5" ry="1.5" fill="#fb7299" stroke="none">
+  <ellipse cx="15" cy="11" rx="1.5" ry="1.5" fill="#f30c5f" stroke="none">
     <animate attributeName="ry" values="1.5;0.2;1.5" keyTimes="0;0.5;1" dur="3s" repeatCount="indefinite"/>
   </ellipse>
 </svg>`;
@@ -333,24 +333,36 @@
       /* ---- 拖拽手柄 ---- */
       .drag-handle {
         width: 36px;
-        height: 14px;
-        display: flex;
-        align-items: center;
+        height: 16px;
+        display: grid;
+        grid-template-columns: repeat(3, 4px);
+        grid-template-rows: repeat(2, 4px);
+        gap: 2px;
         justify-content: center;
-        font-size: 8px;
-        color: rgba(251,114,153,0.35);
+        align-content: center;
         cursor: grab;
         user-select: none;
-        background: rgba(251,114,153,0.04);
-        transition: color 0.15s, background 0.15s;
+        background: rgba(251,114,153,0.03);
+        transition: background 0.15s;
+      }
+      .drag-handle span {
+        width: 4px;
+        height: 4px;
+        border-radius: 50%;
+        background: rgba(251,114,153,0.25);
+        transition: background 0.15s;
       }
       .drag-handle:hover {
-        color: rgba(251,114,153,0.6);
-        background: rgba(251,114,153,0.08);
+        background: rgba(251,114,153,0.06);
+      }
+      .drag-handle:hover span {
+        background: rgba(251,114,153,0.5);
       }
       .drag-handle:active {
         cursor: grabbing;
-        color: rgba(251,114,153,0.8);
+      }
+      .drag-handle:active span {
+        background: rgba(251,114,153,0.7);
       }
 
       /* ---- 四段胶囊 ---- */
@@ -387,8 +399,9 @@
       }
 
       .capsule-segment .seg-label {
-        font-size: 8px;
-        color: rgba(251,114,153,0.7);
+        font-size: 11px;
+        color: #f30c5f;
+        font-weight: 400;
         letter-spacing: 1px;
         line-height: 1;
       }
@@ -404,26 +417,25 @@
       .panel {
         display: none;
         position: absolute;
-        left: 36px;
+        left: 42px;
         flex-direction: column;
-        gap: 6px;
-        padding: 12px;
-        background: rgba(255,255,255,0.95);
-        border: 0.5px solid rgba(251,114,153,0.15);
-        border-left: none;
-        border-radius: 0 12px 12px 0;
+        gap: 8px;
+        padding: 14px;
+        background: rgba(255,245,248,0.96);
+        border: 0.5px solid rgba(251,114,153,0.18);
+        border-radius: 12px;
         backdrop-filter: blur(16px);
         -webkit-backdrop-filter: blur(16px);
         width: fit-content;
-        box-shadow: 4px 2px 20px rgba(0,0,0,0.10);
+        box-shadow: 0 4px 24px rgba(0,0,0,0.10), 0 1px 4px rgba(0,0,0,0.06);
         animation: slideRight 0.15s ease-out;
       }
 
       .panel-title {
-        font-size: 11px;
-        font-weight: 500;
+        font-size: 12px;
+        font-weight: 600;
         color: #fb7299;
-        margin-bottom: 2px;
+        margin-bottom: 4px;
       }
 
       .panel.show {
@@ -444,25 +456,25 @@
       }
 
       .tool-btn {
-        height: 30px;
-        padding: 0 10px;
+        height: 32px;
+        padding: 0 12px;
         border: none;
         border-radius: 8px;
-        background: rgba(251,114,153,0.06);
-        color: #d4506b;
-        font-size: 11px;
+        background: rgba(251,114,153,0.10);
+        color: #f30c5f;
+        font-size: 12px;
         font-family: inherit;
         cursor: pointer;
         display: flex;
         align-items: center;
         justify-content: center;
-        gap: 4px;
+        gap: 5px;
         white-space: nowrap;
         transition: background 0.15s, color 0.15s;
       }
 
       .tool-btn:hover {
-        background: rgba(251,114,153,0.12);
+        background: rgba(251,114,153,0.18);
       }
 
       .tool-btn.active {
@@ -495,12 +507,16 @@
           box-shadow: 2px 0 12px rgba(0, 0, 0, 0.3);
         }
         .drag-handle {
-          color: rgba(251,114,153,0.3);
-          background: rgba(251,114,153,0.03);
+          background: rgba(251,114,153,0.02);
+        }
+        .drag-handle span {
+          background: rgba(251,114,153,0.2);
         }
         .drag-handle:hover {
-          color: rgba(251,114,153,0.5);
-          background: rgba(251,114,153,0.06);
+          background: rgba(251,114,153,0.05);
+        }
+        .drag-handle:hover span {
+          background: rgba(251,114,153,0.4);
         }
         .capsule-segment {
           background: rgba(251,114,153,0.06);
@@ -514,13 +530,16 @@
         .capsule-segment .seg-label {
           color: rgba(251,114,153,0.6);
         }
+        .capsule-segment .seg-label {
+          color: rgba(251,114,153,0.85);
+        }
         .segment-divider {
           background: rgba(251,114,153,0.08);
         }
         .panel {
           background: rgba(30, 20, 25, 0.95);
-          border-color: rgba(251,114,153,0.10);
-          box-shadow: 4px 2px 20px rgba(0, 0, 0, 0.3);
+          border-color: rgba(251,114,153,0.12);
+          box-shadow: 0 4px 24px rgba(0, 0, 0, 0.35), 0 1px 4px rgba(0, 0, 0, 0.15);
         }
         .tool-btn {
           background: rgba(251,114,153,0.06);
@@ -659,7 +678,7 @@
 
     const dragHandle = document.createElement('div');
     dragHandle.className = 'drag-handle';
-    dragHandle.innerHTML = '═══';
+    dragHandle.innerHTML = '<span></span><span></span><span></span><span></span><span></span><span></span>';
     capsuleRail.appendChild(dragHandle);
     capsuleRail.appendChild(segColor);
     capsuleRail.appendChild(createDivider());
