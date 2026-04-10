@@ -326,28 +326,32 @@
         backdrop-filter: blur(12px);
         -webkit-backdrop-filter: blur(12px);
         border-radius: 0 14px 14px 0;
+        border: 0.5px solid rgba(251,114,153,0.35);
+        border-left: none;
         box-shadow: 2px 0 12px rgba(0, 0, 0, 0.08), 0 2px 8px rgba(0, 0, 0, 0.04);
         overflow: hidden;
       }
 
       /* ---- 拖拽手柄 ---- */
       .drag-handle {
-        width: 36px;
-        height: 16px;
+        width: 40px;
+        height: 12px;
         display: grid;
-        grid-template-columns: repeat(3, 4px);
-        grid-template-rows: repeat(2, 4px);
+        grid-template-columns: repeat(3, 3px);
+        grid-template-rows: repeat(2, 3px);
         gap: 2px;
         justify-content: center;
         align-content: center;
+        padding-right: 4px;
+        box-sizing: border-box;
         cursor: grab;
         user-select: none;
         background: rgba(251,114,153,0.03);
         transition: background 0.15s;
       }
       .drag-handle span {
-        width: 4px;
-        height: 4px;
+        width: 3px;
+        height: 3px;
         border-radius: 50%;
         background: rgba(251,114,153,0.25);
         transition: background 0.15s;
@@ -367,7 +371,7 @@
 
       /* ---- 四段胶囊 ---- */
       .capsule-segment {
-        width: 36px;
+        width: 40px;
         height: 60px;
         background: rgba(251,114,153,0.08);
         display: flex;
@@ -377,7 +381,7 @@
         gap: 2px;
         cursor: pointer;
         user-select: none;
-        transition: background 0.2s;
+        transition: background 0.2s, color 0.2s;
       }
 
       .capsule-segment:hover {
@@ -388,8 +392,17 @@
         background: rgba(251,114,153,0.30);
       }
 
+      .capsule-segment.has-effect {
+        background: #df497f;
+      }
+      .capsule-segment.has-effect .seg-label {
+        color: #fff;
+      }
       .capsule-segment.has-effect svg {
-        filter: drop-shadow(0 0 4px rgba(251,114,153,0.7));
+        filter: brightness(0) invert(1);
+      }
+      .capsule-segment.has-effect:hover {
+        background: #c93d6e;
       }
 
       .capsule-segment .seg-icon {
@@ -409,7 +422,7 @@
       .segment-divider {
         width: 20px;
         height: 1px;
-        background: rgba(251,114,153,0.12);
+        background: rgba(251,114,153,0.35);
         margin: 0 auto;
       }
 
@@ -422,12 +435,13 @@
         gap: 8px;
         padding: 14px;
         background: rgba(255,245,248,0.96);
-        border: 0.5px solid rgba(251,114,153,0.18);
-        border-radius: 12px;
+        border: 0.5px solid rgba(251,114,153,0.35);
+        border-left: none;
+        border-radius: 0 12px 12px 0;
         backdrop-filter: blur(16px);
         -webkit-backdrop-filter: blur(16px);
         width: fit-content;
-        box-shadow: 0 4px 24px rgba(0,0,0,0.10), 0 1px 4px rgba(0,0,0,0.06);
+        box-shadow: 4px 2px 20px rgba(0,0,0,0.08);
         animation: slideRight 0.15s ease-out;
       }
 
@@ -452,16 +466,16 @@
         display: flex;
         flex-direction: row;
         flex-wrap: wrap;
-        gap: 6px;
+        gap: 8px;
       }
 
       .tool-btn {
-        height: 32px;
-        padding: 0 12px;
+        height: 34px;
+        padding: 0 14px;
         border: none;
         border-radius: 8px;
-        background: rgba(251,114,153,0.10);
-        color: #f30c5f;
+        background: rgba(251,114,153,0.15);
+        color: #ff3c82;
         font-size: 12px;
         font-family: inherit;
         cursor: pointer;
@@ -474,16 +488,16 @@
       }
 
       .tool-btn:hover {
-        background: rgba(251,114,153,0.18);
+        background: rgba(251,114,153,0.25);
       }
 
       .tool-btn.active {
-        background: #fb7299;
+        background: #df497f;
         color: #fff;
       }
 
       .tool-btn.active:hover {
-        background: #e5637f;
+        background: #c93d6e;
       }
 
       .tool-btn.active svg {
@@ -694,11 +708,11 @@
     panelColor.style.top = '14px';
     const colorTitle = document.createElement('div');
     colorTitle.className = 'panel-title';
-    colorTitle.textContent = '颜色滤镜';
+    colorTitle.textContent = '颜色变换';
     panelColor.appendChild(colorTitle);
     const colorGrid = document.createElement('div');
     colorGrid.className = 'btn-grid';
-    colorGrid.appendChild(createToolBtn('<svg width="14" height="14" viewBox="0 0 24 24" style="flex-shrink:0"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 3a9 9 0 0 1 0 18V3z" fill="currentColor"/></svg><span>反转</span>', 'invert', () => { toggleInvert(); updateBtnStates(); }));
+    colorGrid.appendChild(createToolBtn('<svg width="14" height="14" viewBox="0 0 24 24" style="flex-shrink:0"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 3a9 9 0 0 1 0 18V3z" fill="currentColor"/></svg><span>颜色反转</span>', 'invert', () => { toggleInvert(); updateBtnStates(); }));
     CHANNEL_SWAPS.forEach(swap => {
       const svgIcon = `<svg width="14" height="14" viewBox="0 0 24 24" style="flex-shrink:0"><path d="M12 3a9 9 0 0 0 0 18V3z" fill="${swap.colors[0]}"/><path d="M12 3a9 9 0 0 1 0 18V3z" fill="${swap.colors[1]}"/><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.3"/></svg>`;
       colorGrid.appendChild(createToolBtn(svgIcon + '<span>' + swap.label + '</span>', 'channel-' + swap.id, () => { toggleChannelSwap(swap.id); updateBtnStates(); }));
@@ -711,7 +725,7 @@
     panelRotate.style.top = '75px';
     const rotateTitle = document.createElement('div');
     rotateTitle.className = 'panel-title';
-    rotateTitle.textContent = '变换';
+    rotateTitle.textContent = '旋转镜像';
     panelRotate.appendChild(rotateTitle);
     const rotateGrid = document.createElement('div');
     rotateGrid.className = 'btn-grid';
@@ -728,12 +742,16 @@
     panelSpeed.style.top = '136px';
     const speedTitle = document.createElement('div');
     speedTitle.className = 'panel-title';
-    speedTitle.textContent = '倍速';
+    speedTitle.textContent = '超级变速';
     panelSpeed.appendChild(speedTitle);
     const speedGrid = document.createElement('div');
     speedGrid.className = 'btn-grid';
-    speedGrid.appendChild(createToolBtn('<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9 8v8"/><path d="M15 8v8"/></svg><span>0.25×</span>', 'slow', () => { setSpeed(0.25); updateBtnStates(); }));
-    speedGrid.appendChild(createToolBtn('<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg><span>3×</span>', 'fast', () => { setSpeed(3.0); updateBtnStates(); }));
+    const slowBtn = createToolBtn('<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9 8v8"/><path d="M15 8v8"/></svg><span>0.25×</span>', 'slow', () => { setSpeed(0.25); updateBtnStates(); });
+    slowBtn.style.minWidth = '80px';
+    speedGrid.appendChild(slowBtn);
+    const fastBtn2 = createToolBtn('<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg><span>3.0×</span>', 'fast', () => { setSpeed(3.0); updateBtnStates(); });
+    fastBtn2.style.minWidth = '80px';
+    speedGrid.appendChild(fastBtn2);
     panelSpeed.appendChild(speedGrid);
 
     // ---- 组装 ----
