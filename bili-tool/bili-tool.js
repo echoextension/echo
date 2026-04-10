@@ -240,10 +240,15 @@
       if (container && video) {
         const cw = container.clientWidth;
         const ch = container.clientHeight;
-        const scaleX = cw / ch;
-        const scaleY = ch / cw;
-        const scale = rotateFillMode ? Math.max(scaleX, scaleY) : Math.min(scaleX, scaleY);
-        scaleCSS = ` scale(${scale.toFixed(4)})`;
+        if (cw > 0 && ch > 0) {
+          const scaleX = cw / ch;
+          const scaleY = ch / cw;
+          const scale = rotateFillMode ? Math.max(scaleX, scaleY) : Math.min(scaleX, scaleY);
+          scaleCSS = ` scale(${scale.toFixed(4)})`;
+        } else {
+          const defaultScale = rotateFillMode ? 1.78 : 0.5625;
+          scaleCSS = ` scale(${defaultScale})`;
+        }
       } else {
         const defaultScale = rotateFillMode ? 1.78 : 0.5625;
         scaleCSS = ` scale(${defaultScale})`;
@@ -256,7 +261,8 @@
     rotateStyleElement = document.createElement('style');
     rotateStyleElement.id = 'echo-video-rotate-style';
     rotateStyleElement.textContent = `
-      .bpx-player-video-wrap video {
+      .bpx-player-video-wrap video,
+      #bilibili-player video {
         transform: ${transforms.join(' ')} !important;
       }
     `;
@@ -433,7 +439,7 @@
       .panel {
         display: none;
         position: absolute;
-        left: 42px;
+        left: 39px;
         flex-direction: column;
         gap: 8px;
         padding: 14px;
@@ -590,9 +596,6 @@
           background: rgba(251,114,153,0.25);
         }
         .capsule-segment .seg-label {
-          color: rgba(251,114,153,0.6);
-        }
-        .capsule-segment .seg-label {
           color: rgba(251,114,153,0.85);
         }
         .segment-divider {
@@ -649,9 +652,13 @@
     updateWrapOverflow();
     updatePanelState();
     if (shadowRef && shadowRef.closePanel) shadowRef.closePanel();
+    if (shadowRef && shadowRef.closeContextMenu) shadowRef.closeContextMenu();
     // 解绑旧 video 的监听器
     if (currentVideoEl && ratechangeHandler) {
       currentVideoEl.removeEventListener('ratechange', ratechangeHandler);
+    }
+    if (rawVideoEl && ratechangeHandler) {
+      rawVideoEl.removeEventListener('ratechange', ratechangeHandler);
     }
     if (rawVideoEl && videoSourceHandler) {
       rawVideoEl.removeEventListener('loadstart', videoSourceHandler);
@@ -678,6 +685,9 @@
     if (currentVideoEl && ratechangeHandler) {
       currentVideoEl.removeEventListener('ratechange', ratechangeHandler);
     }
+    if (rawVideoEl && ratechangeHandler) {
+      rawVideoEl.removeEventListener('ratechange', ratechangeHandler);
+    }
     if (rawVideoEl && videoSourceHandler) {
       rawVideoEl.removeEventListener('loadstart', videoSourceHandler);
     }
@@ -689,6 +699,11 @@
     // ratechange 绑到 bwp-video/video（bwp-video 代理了此事件）
     ratechangeHandler = () => updatePanelState();
     video.addEventListener('ratechange', ratechangeHandler);
+    // 同时绑到原生 video（B站原生倍速控件可能直接操作原生元素）
+    rawVideoEl = document.querySelector('video');
+    if (rawVideoEl && rawVideoEl !== video) {
+      rawVideoEl.addEventListener('ratechange', ratechangeHandler);
+    }
     // loadstart 绑到原生 <video> 元素（bwp-video 不触发媒体加载事件）
     rawVideoEl = document.querySelector('video');
     if (rawVideoEl) {
@@ -1036,6 +1051,8 @@
         segments[currentPanel].classList.remove('active');
         currentPanel = null;
       }
+    }, closeContextMenu: () => {
+      ctxMenu.classList.remove('show');
     }, startZoomCheck: () => {
       if (!localZoomInterval) {
         localZoomInterval = setInterval(checkAndApplyZoom, 500);
