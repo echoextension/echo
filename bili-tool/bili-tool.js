@@ -318,11 +318,46 @@
         position: relative;
       }
 
+      /* ---- 胶囊轨道 ---- */
+      .capsule-rail {
+        display: flex;
+        flex-direction: column;
+        background: rgba(255, 255, 255, 0.92);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border-radius: 0 14px 14px 0;
+        box-shadow: 2px 0 12px rgba(0, 0, 0, 0.08), 0 2px 8px rgba(0, 0, 0, 0.04);
+        overflow: hidden;
+      }
+
+      /* ---- 拖拽手柄 ---- */
+      .drag-handle {
+        width: 36px;
+        height: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 8px;
+        color: rgba(251,114,153,0.35);
+        cursor: grab;
+        user-select: none;
+        background: rgba(251,114,153,0.04);
+        transition: color 0.15s, background 0.15s;
+      }
+      .drag-handle:hover {
+        color: rgba(251,114,153,0.6);
+        background: rgba(251,114,153,0.08);
+      }
+      .drag-handle:active {
+        cursor: grabbing;
+        color: rgba(251,114,153,0.8);
+      }
+
       /* ---- 四段胶囊 ---- */
       .capsule-segment {
         width: 36px;
         height: 60px;
-        background: rgba(251,114,153,0.12);
+        background: rgba(251,114,153,0.08);
         display: flex;
         flex-direction: column;
         align-items: center;
@@ -333,37 +368,12 @@
         transition: background 0.2s;
       }
 
-      .capsule-segment:first-child {
-        border-radius: 0;
-      }
-
-      .drag-handle {
-        width: 36px;
-        height: 14px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 8px;
-        color: rgba(251,114,153,0.4);
-        cursor: grab;
-        user-select: none;
-        border-radius: 0 14px 0 0;
-      }
-      .drag-handle:active {
-        cursor: grabbing;
-        color: rgba(251,114,153,0.7);
-      }
-
-      .capsule-segment:last-child {
-        border-radius: 0 0 18px 0;
-      }
-
       .capsule-segment:hover {
-        background: rgba(251,114,153,0.20);
+        background: rgba(251,114,153,0.18);
       }
 
       .capsule-segment.active {
-        background: rgba(251,114,153,0.35);
+        background: rgba(251,114,153,0.30);
       }
 
       .capsule-segment.has-effect svg {
@@ -378,7 +388,7 @@
 
       .capsule-segment .seg-label {
         font-size: 8px;
-        color: rgba(251,114,153,0.8);
+        color: rgba(251,114,153,0.7);
         letter-spacing: 1px;
         line-height: 1;
       }
@@ -386,7 +396,7 @@
       .segment-divider {
         width: 20px;
         height: 1px;
-        background: rgba(251,114,153,0.15);
+        background: rgba(251,114,153,0.12);
         margin: 0 auto;
       }
 
@@ -394,17 +404,19 @@
       .panel {
         display: none;
         position: absolute;
-        left: 40px;
+        left: 36px;
         flex-direction: column;
         gap: 6px;
         padding: 12px;
         background: rgba(255,255,255,0.95);
         border: 0.5px solid rgba(251,114,153,0.15);
+        border-left: none;
         border-radius: 0 12px 12px 0;
         backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
         width: fit-content;
-        box-shadow: 4px 4px 24px rgba(0,0,0,0.12);
-        animation: slideRight 0.2s ease-out;
+        box-shadow: 4px 2px 20px rgba(0,0,0,0.10);
+        animation: slideRight 0.15s ease-out;
       }
 
       .panel-title {
@@ -424,7 +436,7 @@
       }
 
       /* ---- 按钮组 ---- */
-      .btn-group {
+      .btn-grid {
         display: flex;
         flex-direction: row;
         flex-wrap: wrap;
@@ -478,20 +490,51 @@
 
       /* ---- 深色模式 ---- */
       @media (prefers-color-scheme: dark) {
+        .capsule-rail {
+          background: rgba(30, 20, 25, 0.92);
+          box-shadow: 2px 0 12px rgba(0, 0, 0, 0.3);
+        }
+        .drag-handle {
+          color: rgba(251,114,153,0.3);
+          background: rgba(251,114,153,0.03);
+        }
+        .drag-handle:hover {
+          color: rgba(251,114,153,0.5);
+          background: rgba(251,114,153,0.06);
+        }
         .capsule-segment {
-          background: rgba(251,114,153,0.08);
+          background: rgba(251,114,153,0.06);
         }
         .capsule-segment:hover {
-          background: rgba(251,114,153,0.15);
+          background: rgba(251,114,153,0.14);
         }
         .capsule-segment.active {
-          background: rgba(251,114,153,0.30);
+          background: rgba(251,114,153,0.25);
+        }
+        .capsule-segment .seg-label {
+          color: rgba(251,114,153,0.6);
+        }
+        .segment-divider {
+          background: rgba(251,114,153,0.08);
         }
         .panel {
-          background: rgba(30,20,25,0.95);
+          background: rgba(30, 20, 25, 0.95);
+          border-color: rgba(251,114,153,0.10);
+          box-shadow: 4px 2px 20px rgba(0, 0, 0, 0.3);
         }
         .tool-btn {
           background: rgba(251,114,153,0.06);
+          color: #e8829e;
+        }
+        .tool-btn:hover {
+          background: rgba(251,114,153,0.12);
+        }
+        .tool-btn.active {
+          background: #fb7299;
+          color: #fff;
+        }
+        .tool-btn.active:hover {
+          background: #e5637f;
         }
       }
     `;
@@ -629,6 +672,7 @@
     // ---- 颜色面板 ----
     const panelColor = document.createElement('div');
     panelColor.className = 'panel';
+    panelColor.style.top = '14px';
     const colorTitle = document.createElement('div');
     colorTitle.className = 'panel-title';
     colorTitle.textContent = '颜色滤镜';
@@ -645,6 +689,7 @@
     // ---- 旋转面板 ----
     const panelRotate = document.createElement('div');
     panelRotate.className = 'panel';
+    panelRotate.style.top = '75px';
     const rotateTitle = document.createElement('div');
     rotateTitle.className = 'panel-title';
     rotateTitle.textContent = '变换';
@@ -661,6 +706,7 @@
     // ---- 倍速面板 ----
     const panelSpeed = document.createElement('div');
     panelSpeed.className = 'panel';
+    panelSpeed.style.top = '136px';
     const speedTitle = document.createElement('div');
     speedTitle.className = 'panel-title';
     speedTitle.textContent = '倍速';
@@ -734,7 +780,7 @@
           if (Math.abs(dy) > 3) isDragging = true;
           let newLogicalTop = dragStartLogicalTop + dy * currentZoomLevel;
           const logicalViewH = window.innerHeight * currentZoomLevel;
-          newLogicalTop = Math.max(30, Math.min(logicalViewH - 100, newLogicalTop));
+          newLogicalTop = Math.max(30, Math.min(logicalViewH - 260, newLogicalTop));
           applyLogicalTop(newLogicalTop);
         };
 
