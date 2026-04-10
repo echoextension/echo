@@ -334,7 +334,7 @@
 
       /* ---- 拖拽手柄 ---- */
       .drag-handle {
-        width: 40px;
+        width: 36px;
         height: 12px;
         display: grid;
         grid-template-columns: repeat(3, 3px);
@@ -371,7 +371,7 @@
 
       /* ---- 四段胶囊 ---- */
       .capsule-segment {
-        width: 40px;
+        width: 36px;
         height: 60px;
         background: rgba(251,114,153,0.08);
         display: flex;
@@ -379,6 +379,9 @@
         align-items: center;
         justify-content: center;
         gap: 2px;
+        padding-left: 0;
+        padding-right: 4px;
+        box-sizing: border-box;
         cursor: pointer;
         user-select: none;
         transition: background 0.2s, color 0.2s;
