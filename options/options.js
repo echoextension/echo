@@ -9,13 +9,13 @@ const SETTING_IDS = [
   'quickMute',
   'fineZoom',
   'fineZoomLargeStep',    // 大比例时加速步进
-  'superDrag',
   'tabSwitchKey',         // F2/F3 切换标签
   'quickSaveImage'        // Alt+点击快速保存图片
 ];
 
 // 开关类设置 - 默认关闭（非实验室）
 const SETTING_IDS_DEFAULT_OFF = [
+  'superDrag',                   // 超级拖拽（默认关闭，避免与 Edge 内置拖拽冲突）
   'superDragActivate',         // 拖拽产生的标签立即激活（默认关闭，即后台打开）
   'quickSaveImageDateFolder',  // 按日期创建子文件夹
   'applyToPlusButton'          // 同时应用于「+」新建标签页
@@ -50,7 +50,7 @@ const DEFAULT_SETTINGS = {
   quickMute: true,
   fineZoom: true,
   fineZoomLargeStep: true,     // 大比例时加速步进
-  superDrag: true,
+  superDrag: false,
   superDragActivate: false,    // 拖拽产生的标签立即激活（默认关闭，即后台打开）
   tabSwitchKey: true,          // F2/F3 切换标签
   quickSaveImage: true,        // Alt+点击快速保存图片

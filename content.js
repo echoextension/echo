@@ -173,7 +173,7 @@
     quickMute: true,
     fineZoom: true,
     fineZoomLargeStep: true,   // 大比例时加速步进
-    superDrag: true,
+    superDrag: false,
     tabSwitchKey: true,        // F2/F3 切换标签
     customBookmarkBar: false,  // 自绘书签栏，默认关闭
     bookmarkBarPinned: true,   // 书签栏是否固定显示

@@ -15,7 +15,7 @@ const DEFAULT_SETTINGS = {
   bossKey: true,
   quickMute: true,
   fineZoom: true,
-  superDrag: true,
+  superDrag: false,
   superDragActivate: false,    // 拖拽产生的标签是否立即激活，默认关闭（即后台打开）
   tabSwitchKey: true,          // F2/F3 切换标签，默认开启
   floatingSearchBox: true,     // 悬浮搜索框（实验室），默认开启
