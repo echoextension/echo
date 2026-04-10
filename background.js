@@ -21,7 +21,7 @@ const DEFAULT_SETTINGS = {
   floatingSearchBox: true,     // 悬浮搜索框（实验室），默认开启
   floatingSearchBoxAlwaysShow: false,  // 悬浮搜索框常驻显示，默认关闭
   floatingSearchBoxTrending: false,    // 悬浮搜索框热搜榜，默认关闭
-  floatingSearchBoxBiliTool: true,     // B站视频优化工具，默认开启
+  biliTool: true,                      // B站视频优化工具，默认开启
   customBookmarkBar: false,    // 自绘书签栏（已隐藏），默认关闭
   bookmarkBarPinned: true,     // 书签栏是否固定显示（已隐藏）
   bookmarkOpenInNewTab: false, // 收藏栏点击链接新标签打开（已隐藏，默认关闭）
