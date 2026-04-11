@@ -700,12 +700,11 @@
     ratechangeHandler = () => updatePanelState();
     video.addEventListener('ratechange', ratechangeHandler);
     // 同时绑到原生 video（B站原生倍速控件可能直接操作原生元素）
+    // loadstart 也绑到同一个原生 <video>（bwp-video 不触发媒体加载事件）
     rawVideoEl = document.querySelector('video');
     if (rawVideoEl && rawVideoEl !== video) {
       rawVideoEl.addEventListener('ratechange', ratechangeHandler);
     }
-    // loadstart 绑到原生 <video> 元素（bwp-video 不触发媒体加载事件）
-    rawVideoEl = document.querySelector('video');
     if (rawVideoEl) {
       videoSourceHandler = () => {
         clearAllEffects();
@@ -1143,6 +1142,17 @@
     initRouteListener();
     if (isBilibiliVideoPage()) {
       createCapsuleUI();
+    } else if (window.location.hostname.includes('bilibili.com')) {
+      // 播放器 DOM 可能尚未渲染（慢连接等），用 MutationObserver 等待出现
+      const initObserver = new MutationObserver(() => {
+        if (document.querySelector('.bpx-player-video-wrap')) {
+          initObserver.disconnect();
+          clearTimeout(initTimeout);
+          createCapsuleUI();
+        }
+      });
+      initObserver.observe(document.body, { childList: true, subtree: true });
+      const initTimeout = setTimeout(() => initObserver.disconnect(), 15000);
     }
   }
 
