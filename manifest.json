@@ -3,7 +3,7 @@
   "name": "__MSG_extName__",
   "version": "1.2.0",
   "default_locale": "zh_CN",
-  "homepage_url": "https://github.com/echoextension/echo",
+  "homepage_url": "https://www.echoextension.com",
   "description": "__MSG_extDescription__",
   "permissions": ["tabs", "storage", "downloads", "scripting", "declarativeNetRequest"],
   "declarative_net_request": {
