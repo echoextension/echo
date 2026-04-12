@@ -328,14 +328,15 @@
       .capsule-rail {
         display: flex;
         flex-direction: column;
-        background: rgba(255, 255, 255, 0.92);
+        background: rgba(255, 255, 255, 0.96);
         backdrop-filter: blur(12px);
         -webkit-backdrop-filter: blur(12px);
-        border-radius: 0 14px 14px 0;
+        border-radius: 0 12px 12px 0;
         border: 0.5px solid rgba(251,114,153,0.35);
         border-left: none;
         box-shadow: 2px 0 12px rgba(0, 0, 0, 0.08), 0 2px 8px rgba(0, 0, 0, 0.04);
         overflow: hidden;
+        padding: 2px 0;
       }
 
       /* ---- 拖拽手柄 ---- */
@@ -379,7 +380,7 @@
       .capsule-segment {
         width: 40px;
         height: 52px;
-        background: rgba(251,114,153,0.08);
+        background: rgba(251,114,153,0.03);
         display: flex;
         flex-direction: column;
         align-items: center;
@@ -394,7 +395,7 @@
       }
 
       .capsule-segment:hover {
-        background: rgba(251,114,153,0.18);
+        background: rgba(251,114,153,0.10);
       }
 
       .capsule-segment.active {
@@ -440,8 +441,8 @@
         flex-direction: column;
         gap: 8px;
         padding: 14px;
-        background: rgba(255,245,248,0.96);
-        border: 0.5px solid rgba(251,114,153,0.35);
+        background: rgba(255,255,255,0.96);
+        border: 0.5px solid rgba(251,114,153,0.18);
         border-left: none;
         border-radius: 0 12px 12px 0;
         backdrop-filter: blur(16px);
@@ -454,7 +455,7 @@
       .panel-title {
         font-size: 12px;
         font-weight: 600;
-        color: #fb7299;
+        color: rgba(251,114,153,0.85);
         margin-bottom: 4px;
       }
 
@@ -478,10 +479,10 @@
       .tool-btn {
         height: 34px;
         padding: 0 14px;
-        border: none;
+        border: 1px solid rgba(244,31,107,0.25);
         border-radius: 8px;
-        background: rgba(251,114,153,0.15);
-        color: #ff3c82;
+        background: rgba(251,114,153,0.06);
+        color: #F41F6B;
         font-size: 12px;
         font-family: inherit;
         cursor: pointer;
@@ -494,7 +495,7 @@
       }
 
       .tool-btn:hover {
-        background: rgba(251,114,153,0.25);
+        background: rgba(251,114,153,0.13);
       }
 
       .tool-btn.active {
@@ -527,9 +528,9 @@
         left: 42px;
         top: 0;
         flex-direction: column;
-        background: rgba(255,245,248,0.96);
-        border: 0.5px solid rgba(251,114,153,0.35);
-        border-radius: 8px;
+        background: rgba(255,255,255,0.96);
+        border: 0.5px solid rgba(251,114,153,0.18);
+        border-radius: 12px;
         backdrop-filter: blur(16px);
         -webkit-backdrop-filter: blur(16px);
         box-shadow: 0 4px 20px rgba(0,0,0,0.12);
@@ -547,7 +548,7 @@
         gap: 6px;
         padding: 7px 12px;
         font-size: 12px;
-        color: #f30c5f;
+        color: #F41F6B;
         cursor: pointer;
         border-radius: 6px;
         white-space: nowrap;
@@ -596,16 +597,19 @@
           color: rgba(251,114,153,0.85);
         }
         .panel {
-          background: rgba(30, 20, 25, 0.95);
-          border-color: rgba(251,114,153,0.12);
+          background: rgba(35, 25, 30, 0.95);
+          border-color: rgba(251,114,153,0.10);
           box-shadow: 0 4px 24px rgba(0, 0, 0, 0.35), 0 1px 4px rgba(0, 0, 0, 0.15);
+        }
+        .panel-title {
+          color: rgba(251,114,153,0.55);
         }
         .tool-btn {
           background: rgba(251,114,153,0.06);
-          color: #e8829e;
+          color: rgba(251,114,153,0.5);
         }
         .tool-btn:hover {
-          background: rgba(251,114,153,0.12);
+          background: rgba(251,114,153,0.10);
         }
         .tool-btn.active {
           background: #fb7299;
@@ -744,7 +748,7 @@
     const segReset = document.createElement('div');
     segReset.className = 'capsule-segment';
     segReset.dataset.segment = 'reset';
-    segReset.innerHTML = SVG_RESET + '<span class="seg-label">复位</span>';
+    segReset.innerHTML = SVG_RESET + '<span class="seg-label">重置</span>';
 
     const dragHandle = document.createElement('div');
     dragHandle.className = 'drag-handle';
