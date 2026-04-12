@@ -340,7 +340,7 @@
 
       /* ---- 拖拽手柄 ---- */
       .drag-handle {
-        width: 36px;
+        width: 40px;
         height: 12px;
         display: grid;
         grid-template-columns: repeat(3, 3px);
@@ -377,15 +377,15 @@
 
       /* ---- 四段胶囊 ---- */
       .capsule-segment {
-        width: 36px;
-        height: 60px;
+        width: 40px;
+        height: 52px;
         background: rgba(251,114,153,0.08);
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
         gap: 2px;
-        padding-left: 0;
+        padding-left: 4px;
         padding-right: 4px;
         box-sizing: border-box;
         cursor: pointer;
@@ -429,17 +429,14 @@
       }
 
       .segment-divider {
-        width: 20px;
-        height: 1px;
-        background: rgba(251,114,153,0.35);
-        margin: 0 auto;
+        display: none;
       }
 
       /* ---- 弹出面板 ---- */
       .panel {
         display: none;
         position: absolute;
-        left: 39px;
+        left: 43px;
         flex-direction: column;
         gap: 8px;
         padding: 14px;
@@ -527,7 +524,7 @@
       .context-menu {
         display: none;
         position: absolute;
-        left: 38px;
+        left: 42px;
         top: 0;
         flex-direction: column;
         background: rgba(255,245,248,0.96);
@@ -597,9 +594,6 @@
         }
         .capsule-segment .seg-label {
           color: rgba(251,114,153,0.85);
-        }
-        .segment-divider {
-          background: rgba(251,114,153,0.08);
         }
         .panel {
           background: rgba(30, 20, 25, 0.95);
@@ -784,7 +778,7 @@
     // ---- 旋转面板 ----
     const panelRotate = document.createElement('div');
     panelRotate.className = 'panel';
-    panelRotate.style.top = '75px';
+    panelRotate.style.top = '66px';
     const rotateTitle = document.createElement('div');
     rotateTitle.className = 'panel-title';
     rotateTitle.textContent = '旋转镜像';
@@ -801,7 +795,7 @@
     // ---- 倍速面板 ----
     const panelSpeed = document.createElement('div');
     panelSpeed.className = 'panel';
-    panelSpeed.style.top = '136px';
+    panelSpeed.style.top = '118px';
     const speedTitle = document.createElement('div');
     speedTitle.className = 'panel-title';
     speedTitle.textContent = '超级变速';
