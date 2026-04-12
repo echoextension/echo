@@ -4245,7 +4245,6 @@ async function initBookmarkBar() {
 
   // 检查 EchoBookmarkBar 模块是否已加载
   if (!window.EchoBookmarkBar || !window.EchoBookmarkBar.init) {
-    console.warn('[ECHO NTP] BookmarkBar module not loaded');
     setBookmarkBarHeightVar(0);
     return;
   }

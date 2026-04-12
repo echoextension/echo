@@ -958,6 +958,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     getTabId().then(tabId => {
       if (tabId) {
         chrome.tabs.getZoom(tabId, (zoom) => {
+          if (chrome.runtime.lastError) { sendResponse({ zoom: 1 }); return; }
           sendResponse({ zoom: zoom });
         });
       } else {
@@ -977,6 +978,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     getTabId().then(tabId => {
       if (tabId) {
         chrome.tabs.setZoom(tabId, message.zoom, () => {
+          if (chrome.runtime.lastError) { sendResponse({ success: false }); return; }
           sendResponse({ success: true });
         });
       } else {
@@ -1238,6 +1240,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.action === 'getZoom') {
     if (sender.tab) {
       chrome.tabs.getZoom(sender.tab.id, (zoomFactor) => {
+        if (chrome.runtime.lastError) { sendResponse({ zoom: 1 }); return; }
         sendResponse({ zoom: zoomFactor });
       });
       return true;

@@ -830,8 +830,10 @@
     menuSettings.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><span>打开设置</span>';
     menuSettings.addEventListener('click', () => {
       ctxMenu.classList.remove('show');
-      const optionsUrl = chrome.runtime.getURL('options/options.html#biliToolCard');
-      chrome.runtime.sendMessage({ action: 'openInNewTab', url: optionsUrl, active: true });
+      try {
+        const optionsUrl = chrome.runtime.getURL('options/options.html#biliToolCard');
+        chrome.runtime.sendMessage({ action: 'openInNewTab', url: optionsUrl, active: true });
+      } catch (e) {}
     });
     const menuHide = document.createElement('button');
     menuHide.className = 'context-menu-item';
@@ -929,7 +931,7 @@
           document.removeEventListener('mouseup', onUp);
           if (isDragging) {
             const logicalTop = host._logicalTop;
-            chrome.storage.sync.set({ biliToolPosition: { top: `${logicalTop}px` } });
+            try { chrome.storage.sync.set({ biliToolPosition: { top: `${logicalTop}px` } }); } catch (e) {}
             setTimeout(() => { isDragging = false; }, 50);
           }
         };
@@ -959,16 +961,21 @@
 
     function checkAndApplyZoom() {
       if (!host) return;
-      chrome.runtime.sendMessage({ action: 'getZoom' }, (response) => {
-        if (chrome.runtime.lastError) return;
-        if (response && response.zoom) {
-          const newZoom = response.zoom;
-          if (newZoom !== currentZoomLevel) {
-            currentZoomLevel = newZoom;
-            applyZoomCompensation(newZoom);
+      try {
+        chrome.runtime.sendMessage({ action: 'getZoom' }, (response) => {
+          if (chrome.runtime.lastError) return;
+          if (response && response.zoom) {
+            const newZoom = response.zoom;
+            if (newZoom !== currentZoomLevel) {
+              currentZoomLevel = newZoom;
+              applyZoomCompensation(newZoom);
+            }
           }
-        }
-      });
+        });
+      } catch (e) {
+        // Extension context invalidated — stop polling
+        if (localZoomInterval) { clearInterval(localZoomInterval); localZoomInterval = null; }
+      }
     }
 
     function applyZoomCompensation(zoom) {
@@ -980,17 +987,19 @@
     }
 
     // 首次无条件执行补偿
-    chrome.runtime.sendMessage({ action: 'getZoom' }, (response) => {
-      const zoom = (response && response.zoom) ? response.zoom : 1;
-      currentZoomLevel = zoom;
-      if (host._logicalTop != null) {
-        applyLogicalTop(host._logicalTop);
-      } else if (zoom !== 1) {
-        // 无保存位置但 zoom != 1：从当前渲染位置推算逻辑坐标并应用缩放补偿
-        const cssTop = host.getBoundingClientRect().top;
-        applyLogicalTop(cssTop * zoom);
-      }
-    });
+    try {
+      chrome.runtime.sendMessage({ action: 'getZoom' }, (response) => {
+        const zoom = (response && response.zoom) ? response.zoom : 1;
+        currentZoomLevel = zoom;
+        if (host._logicalTop != null) {
+          applyLogicalTop(host._logicalTop);
+        } else if (zoom !== 1) {
+          // 无保存位置但 zoom != 1：从当前渲染位置推算逻辑坐标并应用缩放补偿
+          const cssTop = host.getBoundingClientRect().top;
+          applyLogicalTop(cssTop * zoom);
+        }
+      });
+    } catch (e) {}
     let localZoomInterval = setInterval(checkAndApplyZoom, 500);
 
     // 恢复位置
