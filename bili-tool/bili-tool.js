@@ -112,6 +112,8 @@
   let invertStyleElement = null;
   let invertSvgElement = null;
   let rotateStyleElement = null;
+  let rotateCanvas = null;
+  let rotateRAFId = null;
   let isDragging = false;
   let currentVideoEl = null;
   let ratechangeHandler = null;
@@ -222,7 +224,81 @@
 
   // ============ 旋转/镜像功能 ============
 
+  function stopCanvasRotation() {
+    if (rotateRAFId) {
+      cancelAnimationFrame(rotateRAFId);
+      rotateRAFId = null;
+    }
+    if (rotateCanvas) {
+      rotateCanvas.remove();
+      rotateCanvas = null;
+    }
+  }
+
+  function startCanvasRotation() {
+    stopCanvasRotation();
+    const wrap = document.querySelector('.bpx-player-video-wrap');
+    const video = document.querySelector('.bpx-player-video-wrap video');
+    if (!wrap || !video) return false;
+    let cw = wrap.clientWidth, ch = wrap.clientHeight;
+    if (cw === 0 || ch === 0) return false;
+    // DRM check: verify canvas can access video frames
+    try {
+      const tc = document.createElement('canvas');
+      tc.width = 1; tc.height = 1;
+      tc.getContext('2d').drawImage(video, 0, 0, 1, 1);
+    } catch (e) { return false; }
+    // Create canvas overlay
+    rotateCanvas = document.createElement('canvas');
+    rotateCanvas.width = cw;
+    rotateCanvas.height = ch;
+    rotateCanvas.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;z-index:1;pointer-events:none;';
+    wrap.appendChild(rotateCanvas);
+    const ctx = rotateCanvas.getContext('2d');
+    // Hide original video visually
+    rotateStyleElement = document.createElement('style');
+    rotateStyleElement.id = 'echo-video-rotate-style';
+    rotateStyleElement.textContent = `
+      .bpx-player-video-wrap video,
+      .bpx-player-video-wrap bwp-video,
+      #bilibili-player video {
+        opacity: 0.001 !important;
+      }
+    `;
+    document.head.appendChild(rotateStyleElement);
+    function drawFrame() {
+      if (!rotateCanvas) return;
+      // Handle resize (e.g. fullscreen toggle)
+      const nw = wrap.clientWidth, nh = wrap.clientHeight;
+      if (nw !== cw || nh !== ch) {
+        cw = nw; ch = nh;
+        rotateCanvas.width = cw;
+        rotateCanvas.height = ch;
+      }
+      const vw = video.videoWidth, vh = video.videoHeight;
+      if (vw === 0 || vh === 0) {
+        rotateRAFId = requestAnimationFrame(drawFrame);
+        return;
+      }
+      ctx.clearRect(0, 0, cw, ch);
+      ctx.save();
+      ctx.translate(cw / 2, ch / 2);
+      if (mirrorActive) ctx.scale(-1, 1);
+      ctx.rotate(rotateAngle * Math.PI / 180);
+      const fitScale = rotateFillMode
+        ? Math.max(cw / vh, ch / vw)
+        : Math.min(cw / vh, ch / vw);
+      ctx.scale(fitScale, fitScale);
+      try { ctx.drawImage(video, -vw / 2, -vh / 2); } catch (e) {}
+      ctx.restore();
+      rotateRAFId = requestAnimationFrame(drawFrame);
+    }
+    drawFrame();
+    return true;
+  }
+
   function applyRotateTransform() {
+    stopCanvasRotation();
     if (rotateStyleElement) {
       rotateStyleElement.remove();
       rotateStyleElement = null;
@@ -233,6 +309,13 @@
       return;
     }
     const isRotated90 = (rotateAngle === 90 || rotateAngle === 270);
+    // For 90°/270°, use canvas-based rotation to work around GPU rendering bugs
+    if (isRotated90 && startCanvasRotation()) {
+      updateWrapOverflow();
+      updatePanelState();
+      return;
+    }
+    // CSS-based rotation for 180°, mirror-only, or canvas fallback (DRM)
     let scaleCSS = '';
     if (isRotated90) {
       const container = document.querySelector('.bpx-player-video-area') || document.querySelector('.bpx-player-video-wrap');
@@ -290,6 +373,7 @@
     rotateAngle = 0;
     rotateFillMode = false;
     mirrorActive = false;
+    stopCanvasRotation();
     if (rotateStyleElement) {
       rotateStyleElement.remove();
       rotateStyleElement = null;
