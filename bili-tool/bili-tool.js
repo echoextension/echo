@@ -104,10 +104,11 @@
   // 分割线：rgba(251,114,153,0.15)
 
   // ============ 状态变量 ============
-  let invertActive = false;
+  let invertActive = 0; // 0=关, 1=全反转, 2=R反转, 3=G反转, 4=B反转
   let activeChannels = new Set();
   let rotateAngle = 0;
   let rotateFillMode = false;
+  let fillOffset = 75; // 填充偏移百分比 0~100，仅在 rotateFillMode && 90°/270° 时生效
   let mirrorActive = false;
   let invertStyleElement = null;
   let invertSvgElement = null;
@@ -138,7 +139,7 @@
   function updateWrapOverflow() {
     const wrap = document.querySelector('.bpx-player-video-wrap');
     if (!wrap) return;
-    const hasAnyEffect = invertActive || activeChannels.size > 0 || rotateAngle !== 0 || mirrorActive;
+    const hasAnyEffect = invertActive !== 0 || activeChannels.size > 0 || rotateAngle !== 0 || mirrorActive;
     wrap.style.overflow = hasAnyEffect ? 'hidden' : '';
   }
 
@@ -165,12 +166,19 @@
       [0, 0, 1, 0, 0],
       [0, 0, 0, 1, 0],
     ];
+    // 1. 通道交换（行交换）
     for (const swap of CHANNEL_SWAPS) {
       if (!activeChannels.has(swap.id)) continue;
       const [a, b] = swap.rows;
       const temp = rows[a];
       rows[a] = rows[b];
       rows[b] = temp;
+    }
+    // 2. 单通道反转（R=2/G=3/B=4 对应行 0/1/2）
+    // 假设行仍是置换矩阵（只有单个非零权重），将该权重取反并设偏移为 1
+    if (invertActive >= 2 && invertActive <= 4) {
+      const channelIndex = invertActive - 2;
+      rows[channelIndex] = rows[channelIndex].map((v, i) => (i === 4 ? 1 : -v));
     }
     return rows.map(r => r.join(' ')).join('  ');
   }
@@ -180,16 +188,19 @@
       invertStyleElement.remove();
       invertStyleElement = null;
     }
-    if (!invertActive && activeChannels.size === 0) {
+    if (invertActive === 0 && activeChannels.size === 0) {
       updateWrapOverflow();
       updatePanelState();
       return;
     }
     const filters = [];
-    if (invertActive) {
+    // 状态 1（全反转）走 CSS filter，因为 hue-rotate 不是纯矩阵运算
+    if (invertActive === 1) {
       filters.push('invert(1) hue-rotate(180deg)');
     }
-    if (activeChannels.size > 0) {
+    // 状态 2/3/4（单通道反转）或通道交换走 SVG feColorMatrix（合并矩阵）
+    const needSvgMatrix = activeChannels.size > 0 || (invertActive >= 2 && invertActive <= 4);
+    if (needSvgMatrix) {
       ensureInvertSvgFilters();
       const matrixEl = invertSvgElement.querySelector('feColorMatrix');
       if (matrixEl) matrixEl.setAttribute('values', computeChannelMatrix());
@@ -199,6 +210,7 @@
     invertStyleElement.id = 'echo-video-invert-style';
     invertStyleElement.textContent = `
       .bpx-player-video-wrap video,
+      .bpx-player-video-wrap canvas.echo-rotate-canvas,
       #bilibili-player video {
         filter: ${filters.join(' ')} !important;
       }
@@ -209,7 +221,7 @@
   }
 
   function toggleInvert() {
-    invertActive = !invertActive;
+    invertActive = (invertActive + 1) % 5;
     applyInvertFilter();
   }
 
@@ -250,11 +262,24 @@
     } catch (e) { return false; }
     // Create canvas overlay
     rotateCanvas = document.createElement('canvas');
+    rotateCanvas.className = 'echo-rotate-canvas';
     rotateCanvas.width = cw;
     rotateCanvas.height = ch;
     rotateCanvas.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;z-index:1;pointer-events:none;';
     wrap.appendChild(rotateCanvas);
     const ctx = rotateCanvas.getContext('2d');
+    // 计算填充模式下的屏幕空间垂直偏移（仅 90°/270°）
+    function computeScreenOffsetY(vwLocal, vhLocal, cwLocal, chLocal) {
+      if (!rotateFillMode) return 0;
+      if (rotateAngle !== 90 && rotateAngle !== 270) return 0;
+      const fs = Math.max(cwLocal / vhLocal, chLocal / vwLocal);
+      const overflow = Math.max(0, vwLocal * fs - chLocal);
+      const maxOff = overflow / 2;
+      const normalized = (fillOffset - 50) / 50;
+      // fillOffset > 50 显示原内容顶部：90° 时画面下移（正 Y），270° 时画面上移（负 Y）
+      const sign = (rotateAngle === 90) ? 1 : -1;
+      return sign * normalized * maxOff;
+    }
     // Hide original video visually
     rotateStyleElement = document.createElement('style');
     rotateStyleElement.id = 'echo-video-rotate-style';
@@ -282,7 +307,8 @@
       }
       ctx.clearRect(0, 0, cw, ch);
       ctx.save();
-      ctx.translate(cw / 2, ch / 2);
+      const screenOffsetY = computeScreenOffsetY(vw, vh, cw, ch);
+      ctx.translate(cw / 2, ch / 2 + screenOffsetY);
       if (mirrorActive) ctx.scale(-1, 1);
       ctx.rotate(rotateAngle * Math.PI / 180);
       const fitScale = rotateFillMode
@@ -317,6 +343,7 @@
     }
     // CSS-based rotation for 180°, mirror-only, or canvas fallback (DRM)
     let scaleCSS = '';
+    let translateCSS = '';
     if (isRotated90) {
       const container = document.querySelector('.bpx-player-video-area') || document.querySelector('.bpx-player-video-wrap');
       const video = document.querySelector('.bpx-player-video-wrap video');
@@ -328,6 +355,15 @@
           const scaleY = ch / cw;
           const scale = rotateFillMode ? Math.max(scaleX, scaleY) : Math.min(scaleX, scaleY);
           scaleCSS = ` scale(${scale.toFixed(4)})`;
+          // 填充模式下的屏幕空间垂直偏移
+          if (rotateFillMode) {
+            const overflow = Math.max(0, cw * scale - ch);
+            const maxOff = overflow / 2;
+            const normalized = (fillOffset - 50) / 50;
+            const sign = (rotateAngle === 90) ? 1 : -1;
+            const offsetPx = sign * normalized * maxOff;
+            if (Math.abs(offsetPx) > 0.5) translateCSS = `translateY(${offsetPx.toFixed(2)}px)`;
+          }
         } else {
           const defaultScale = rotateFillMode ? 1.78 : 0.5625;
           scaleCSS = ` scale(${defaultScale})`;
@@ -338,6 +374,8 @@
       }
     }
     const transforms = [];
+    // translateY 放首位 → transform 从右到左应用时最后施加，落在屏幕坐标系
+    if (translateCSS) transforms.push(translateCSS);
     if (mirrorActive) transforms.push('scaleX(-1)');
     if (rotateAngle !== 0) transforms.push(`rotate(${rotateAngle}deg)`);
     if (scaleCSS) transforms.push(scaleCSS.trim());
@@ -369,9 +407,17 @@
     applyRotateTransform();
   }
 
+  function adjustFillOffset(delta) {
+    const next = Math.max(0, Math.min(100, fillOffset + delta));
+    if (next === fillOffset) return;
+    fillOffset = next;
+    applyRotateTransform();
+  }
+
   function clearRotate() {
     rotateAngle = 0;
     rotateFillMode = false;
+    fillOffset = 75;
     mirrorActive = false;
     stopCanvasRotation();
     if (rotateStyleElement) {
@@ -562,6 +608,7 @@
 
       .tool-btn {
         height: 34px;
+        min-width: 92px;
         padding: 0 14px;
         border: 1px solid rgba(244,31,107,0.25);
         border-radius: 8px;
@@ -603,6 +650,53 @@
         opacity: 0.3;
         cursor: default;
         pointer-events: none;
+      }
+
+      /* ---- 偏移 stepper（与 tool-btn 同高同风格的分段控件）---- */
+      .offset-stepper {
+        display: flex;
+        align-items: stretch;
+        height: 34px;
+        border: 1px solid rgba(244,31,107,0.25);
+        border-radius: 8px;
+        background: rgba(251,114,153,0.06);
+        overflow: hidden;
+      }
+      .offset-stepper.disabled {
+        opacity: 0.3;
+        pointer-events: none;
+      }
+      .offset-stepper-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 26px;
+        border: none;
+        background: transparent;
+        color: #F41F6B;
+        cursor: pointer;
+        padding: 0;
+        transition: background 0.15s;
+      }
+      .offset-stepper-btn:hover:not(.disabled) {
+        background: rgba(251,114,153,0.13);
+      }
+      .offset-stepper-btn.disabled {
+        opacity: 0.35;
+        cursor: default;
+      }
+      .offset-stepper-value {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 38px;
+        padding: 0 4px;
+        font-size: 12px;
+        color: #F41F6B;
+        font-family: inherit;
+        border-left: 1px solid rgba(244,31,107,0.18);
+        border-right: 1px solid rgba(244,31,107,0.18);
+        user-select: none;
       }
 
       /* ---- 右键菜单 ---- */
@@ -702,6 +796,20 @@
         .tool-btn.active:hover {
           background: #e5637f;
         }
+        .offset-stepper {
+          background: rgba(251,114,153,0.06);
+          border-color: rgba(251,114,153,0.18);
+        }
+        .offset-stepper-btn {
+          color: rgba(251,114,153,0.7);
+        }
+        .offset-stepper-btn:hover:not(.disabled) {
+          background: rgba(251,114,153,0.10);
+        }
+        .offset-stepper-value {
+          color: rgba(251,114,153,0.7);
+          border-color: rgba(251,114,153,0.12);
+        }
       }
     `;
   }
@@ -724,7 +832,7 @@
   }
 
   function clearAllEffects() {
-    invertActive = false;
+    invertActive = 0;
     activeChannels.clear();
     if (invertStyleElement) { invertStyleElement.remove(); invertStyleElement = null; }
     if (invertSvgElement) { invertSvgElement.remove(); invertSvgElement = null; }
@@ -878,6 +986,29 @@
     const fitBtn = createToolBtn('<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/><path d="M15 3v18"/></svg><span>适应</span>', 'fit', () => { toggleRotateFitMode(); updateBtnStates(); });
     fitBtn.classList.add('disabled');
     rotateGrid.appendChild(fitBtn);
+
+    // ---- 填充偏移 stepper（与 tool-btn 同高同风格，单一控件避免换行）----
+    const stepper = document.createElement('div');
+    stepper.className = 'offset-stepper';
+    stepper.dataset.action = 'offset-stepper';
+    stepper.title = '画面偏移：100% 显示顶部，0% 显示底部';
+    const upBtn = document.createElement('button');
+    upBtn.className = 'offset-stepper-btn';
+    upBtn.dataset.action = 'offset-up';
+    upBtn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>';
+    upBtn.addEventListener('click', () => { adjustFillOffset(25); updateBtnStates(); });
+    const valueEl = document.createElement('div');
+    valueEl.className = 'offset-stepper-value';
+    valueEl.textContent = '75%';
+    const downBtn = document.createElement('button');
+    downBtn.className = 'offset-stepper-btn';
+    downBtn.dataset.action = 'offset-down';
+    downBtn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>';
+    downBtn.addEventListener('click', () => { adjustFillOffset(-25); updateBtnStates(); });
+    stepper.appendChild(downBtn);
+    stepper.appendChild(valueEl);
+    stepper.appendChild(upBtn);
+    rotateGrid.appendChild(stepper);
     panelRotate.appendChild(rotateGrid);
 
     // ---- 倍速面板 ----
@@ -891,10 +1022,8 @@
     const speedGrid = document.createElement('div');
     speedGrid.className = 'btn-grid';
     const slowBtn = createToolBtn('<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9 8v8"/><path d="M15 8v8"/></svg><span>0.25×</span>', 'slow', () => { setSpeed(0.25); updateBtnStates(); });
-    slowBtn.style.minWidth = '80px';
     speedGrid.appendChild(slowBtn);
     const fastBtn2 = createToolBtn('<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg><span>3.0×</span>', 'fast', () => { setSpeed(3.0); updateBtnStates(); });
-    fastBtn2.style.minWidth = '80px';
     speedGrid.appendChild(fastBtn2);
     panelSpeed.appendChild(speedGrid);
 
@@ -942,17 +1071,33 @@
       ctxMenu.classList.remove('show');
       if (currentPanel === segmentName) {
         panels[segmentName].classList.remove('show');
+        panels[segmentName].style.marginTop = '';
         segments[segmentName].classList.remove('active');
         currentPanel = null;
       } else {
         if (currentPanel) {
           panels[currentPanel].classList.remove('show');
+          panels[currentPanel].style.marginTop = '';
           segments[currentPanel].classList.remove('active');
         }
         panels[segmentName].classList.add('show');
         segments[segmentName].classList.add('active');
         currentPanel = segmentName;
+        clampPanelToViewport(panels[segmentName]);
       }
+    }
+
+    function clampPanelToViewport(panel) {
+      panel.style.marginTop = '';
+      requestAnimationFrame(() => {
+        const rect = panel.getBoundingClientRect();
+        const viewH = window.innerHeight;
+        const margin = 8;
+        let adj = 0;
+        if (rect.bottom > viewH - margin) adj = viewH - margin - rect.bottom;
+        if (rect.top + adj < margin) adj = margin - rect.top;
+        if (adj !== 0) panel.style.marginTop = adj + 'px';
+      });
     }
 
     segColor.addEventListener('click', () => togglePanel('color'));
@@ -969,6 +1114,7 @@
       if (!host.contains(e.target)) {
         if (currentPanel) {
           panels[currentPanel].classList.remove('show');
+          panels[currentPanel].style.marginTop = '';
           segments[currentPanel].classList.remove('active');
           currentPanel = null;
         }
@@ -983,6 +1129,7 @@
       // 关闭已打开的面板
       if (currentPanel) {
         panels[currentPanel].classList.remove('show');
+        panels[currentPanel].style.marginTop = '';
         segments[currentPanel].classList.remove('active');
         currentPanel = null;
       }
@@ -1013,7 +1160,12 @@
           document.removeEventListener('mouseup', onUp);
           if (isDragging) {
             const logicalTop = host._logicalTop;
-            try { chrome.storage.sync.set({ biliToolPosition: { top: `${logicalTop}px` } }); } catch (e) {}
+            const logicalViewH = window.innerHeight * currentZoomLevel;
+            const topRatio = logicalViewH > 0
+              ? Math.max(0, Math.min(1, logicalTop / logicalViewH))
+              : 0.5;
+            host._topRatio = topRatio;
+            try { chrome.storage.sync.set({ biliToolPosition: { topRatio } }); } catch (e) {}
             setTimeout(() => { isDragging = false; }, 50);
           }
         };
@@ -1062,7 +1214,9 @@
 
     function applyZoomCompensation(zoom) {
       if (!host) return;
-      if (host._logicalTop != null) {
+      if (host._topRatio != null) {
+        applyRatioPosition();
+      } else if (host._logicalTop != null) {
         applyLogicalTop(host._logicalTop);
       }
       // 没有保存位置时不做任何事，让 CSS 默认的 top:50% + translateY(-50%) 生效
@@ -1073,7 +1227,9 @@
       chrome.runtime.sendMessage({ action: 'getZoom' }, (response) => {
         const zoom = (response && response.zoom) ? response.zoom : 1;
         currentZoomLevel = zoom;
-        if (host._logicalTop != null) {
+        if (host._topRatio != null) {
+          applyRatioPosition();
+        } else if (host._logicalTop != null) {
           applyLogicalTop(host._logicalTop);
         } else if (zoom !== 1) {
           // 无保存位置但 zoom != 1：从当前渲染位置推算逻辑坐标并应用缩放补偿
@@ -1084,16 +1240,39 @@
     } catch (e) {}
     let localZoomInterval = setInterval(checkAndApplyZoom, 500);
 
-    // 恢复位置
-    if (settings.biliToolPosition && settings.biliToolPosition.top) {
-      const topStr = settings.biliToolPosition.top;
-      if (!topStr.includes('%')) {
-        const savedTop = parseInt(topStr);
-        if (!isNaN(savedTop)) {
-          applyLogicalTop(savedTop);
-        }
+    // 恢复位置（基于视口比例，跨设备安全；兼容旧 px 绝对值）
+    const pos = settings.biliToolPosition || {};
+    let restoredRatio = null;
+    if (typeof pos.topRatio === 'number' && isFinite(pos.topRatio)) {
+      restoredRatio = Math.max(0, Math.min(1, pos.topRatio));
+    } else if (typeof pos.top === 'string' && !pos.top.includes('%')) {
+      // Legacy 绝对像素值 → 一次性迁移为 ratio
+      const oldPx = parseInt(pos.top);
+      const legacyViewH = window.innerHeight * currentZoomLevel;
+      if (!isNaN(oldPx) && legacyViewH > 0) {
+        restoredRatio = Math.max(0, Math.min(1, oldPx / legacyViewH));
+        try {
+          chrome.storage.sync.set({ biliToolPosition: { topRatio: restoredRatio } });
+        } catch (e) {}
       }
-      // 百分比值（默认 '50%'）不调用 applyLogicalTop，让 CSS 默认的 top:50% + translateY(-50%) 生效
+    }
+    if (restoredRatio !== null) {
+      host._topRatio = restoredRatio;
+      applyRatioPosition();
+    }
+
+    // 窗口尺寸变化时按 ratio 重新定位
+    window.addEventListener('resize', () => {
+      if (host._topRatio != null) applyRatioPosition();
+    });
+
+    function applyRatioPosition() {
+      const viewH = window.innerHeight * currentZoomLevel;
+      if (viewH <= 0) return;
+      let logicalTop = host._topRatio * viewH;
+      const maxTop = Math.max(30, viewH - 260);
+      logicalTop = Math.max(30, Math.min(maxTop, logicalTop));
+      applyLogicalTop(logicalTop);
     }
 
     // 监听倍速变化（绑定到当前 video 元素）
@@ -1103,7 +1282,14 @@
       const btns = shadow.querySelectorAll('.tool-btn');
       btns.forEach(btn => {
         const action = btn.dataset.action;
-        if (action === 'invert') btn.classList.toggle('active', invertActive);
+        if (action === 'invert') {
+          btn.classList.toggle('active', invertActive !== 0);
+          const label = btn.querySelector('span');
+          if (label) {
+            const labels = ['颜色反转', '全反转', 'R 反转', 'G 反转', 'B 反转'];
+            label.textContent = labels[invertActive] || '颜色反转';
+          }
+        }
         if (action?.startsWith('channel-')) {
           const id = parseInt(action.split('-')[1]);
           btn.classList.toggle('active', activeChannels.has(id));
@@ -1127,8 +1313,21 @@
         }
       });
 
+      // 偏移 stepper 状态
+      const stepperEl = shadow.querySelector('.offset-stepper');
+      if (stepperEl) {
+        const canOffset = rotateFillMode && (rotateAngle === 90 || rotateAngle === 270);
+        stepperEl.classList.toggle('disabled', !canOffset);
+        const valueEl2 = stepperEl.querySelector('.offset-stepper-value');
+        if (valueEl2) valueEl2.textContent = fillOffset + '%';
+        const upEl = stepperEl.querySelector('[data-action="offset-up"]');
+        const downEl = stepperEl.querySelector('[data-action="offset-down"]');
+        if (upEl) upEl.classList.toggle('disabled', fillOffset >= 100);
+        if (downEl) downEl.classList.toggle('disabled', fillOffset <= 0);
+      }
+
       // 段 has-effect 状态
-      const hasColorEffect = invertActive || activeChannels.size > 0;
+      const hasColorEffect = invertActive !== 0 || activeChannels.size > 0;
       const hasRotateEffect = rotateAngle !== 0 || mirrorActive;
       const v = document.querySelector('bwp-video, video');
       const hasSpeedEffect = v && v.playbackRate !== 1.0;
@@ -1141,6 +1340,7 @@
     shadowRef = { updateBtnStates, closePanel: () => {
       if (currentPanel) {
         panels[currentPanel].classList.remove('show');
+        panels[currentPanel].style.marginTop = '';
         segments[currentPanel].classList.remove('active');
         currentPanel = null;
       }
