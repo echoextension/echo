@@ -276,9 +276,9 @@
       const overflow = Math.max(0, vwLocal * fs - chLocal);
       const maxOff = overflow / 2;
       const normalized = (fillOffset - 50) / 50;
-      // fillOffset > 50 显示原内容顶部：90° 时画面下移（正 Y），270° 时画面上移（负 Y）
-      const sign = (rotateAngle === 90) ? 1 : -1;
-      return sign * normalized * maxOff;
+      // 用户看到的是已摆正的画面：fillOffset>50 表示看正立画面的上半部分，
+      // 即把画面整体下推（正 Y），与旋转角度（90°/270°）无关。
+      return normalized * maxOff;
     }
     // Hide original video visually
     rotateStyleElement = document.createElement('style');
@@ -360,8 +360,8 @@
             const overflow = Math.max(0, cw * scale - ch);
             const maxOff = overflow / 2;
             const normalized = (fillOffset - 50) / 50;
-            const sign = (rotateAngle === 90) ? 1 : -1;
-            const offsetPx = sign * normalized * maxOff;
+            // 屏幕坐标系下，正立画面顶部对应正 Y 偏移，与旋转角度无关
+            const offsetPx = normalized * maxOff;
             if (Math.abs(offsetPx) > 0.5) translateCSS = `translateY(${offsetPx.toFixed(2)}px)`;
           }
         } else {
@@ -645,6 +645,17 @@
       .tool-btn.active svg circle[fill]:not([fill="none"]) {
         fill: #fff;
       }
+
+      /* 单通道反转：图标按通道染色，区分 R/G/B 状态 */
+      .tool-btn.active[data-invert-mode="2"] svg { stroke: #FF3B30; }
+      .tool-btn.active[data-invert-mode="2"] svg path[fill]:not([fill="none"]),
+      .tool-btn.active[data-invert-mode="2"] svg circle[fill]:not([fill="none"]) { fill: #FF3B30; }
+      .tool-btn.active[data-invert-mode="3"] svg { stroke: #34C759; }
+      .tool-btn.active[data-invert-mode="3"] svg path[fill]:not([fill="none"]),
+      .tool-btn.active[data-invert-mode="3"] svg circle[fill]:not([fill="none"]) { fill: #34C759; }
+      .tool-btn.active[data-invert-mode="4"] svg { stroke: #4A8CFF; }
+      .tool-btn.active[data-invert-mode="4"] svg path[fill]:not([fill="none"]),
+      .tool-btn.active[data-invert-mode="4"] svg circle[fill]:not([fill="none"]) { fill: #4A8CFF; }
 
       .tool-btn.disabled {
         opacity: 0.3;
@@ -1284,9 +1295,11 @@
         const action = btn.dataset.action;
         if (action === 'invert') {
           btn.classList.toggle('active', invertActive !== 0);
+          if (invertActive === 0) btn.removeAttribute('data-invert-mode');
+          else btn.setAttribute('data-invert-mode', String(invertActive));
           const label = btn.querySelector('span');
           if (label) {
-            const labels = ['颜色反转', '全反转', 'R 反转', 'G 反转', 'B 反转'];
+            const labels = ['颜色反转', '全色反转', '单 R 反转', '单 G 反转', '单 B 反转'];
             label.textContent = labels[invertActive] || '颜色反转';
           }
         }
