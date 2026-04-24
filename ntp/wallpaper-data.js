@@ -3,15 +3,58 @@
  * 数据来源及深切感谢：https://github.com/niumoo/bing-wallpaper
  * 原始仓库许可证：Apache License 2.0（https://github.com/niumoo/bing-wallpaper/blob/main/LICENSE.md）
  * 使用方式：基于原始仓库的壁纸归档数据，提取 ID、日期、描述、版权信息，重新整理为 JS 静态数组格式
- * 
+ *
  * 图片 URL 构建规则：
  * - 4K: https://cn.bing.com/th?id=OHR.{id}_UHD.jpg&rf=LaDigue_UHD.jpg&pid=hp&w=3840&h=2160&rs=1&c=4
  * - 1080P: https://cn.bing.com/th?id=OHR.{id}_UHD.jpg&pid=hp&w=1920&h=1080&rs=1&c=4
+ *
+ * ────────────────────────────────────────────────────────────────
+ * 追加新条目的约定（供维护者/脚本参考）：
+ *  1. 唯一数据源：上述 niumoo 仓库的 zh-cn 目录（中文版原生文案）。
+ *     - ID 首选来源：zh-cn/picture/YYYY-MM/README.md
+ *       （月度汇总表格，每格都带完整 OHR 图片 URL，结构规整不易错位）
+ *     - 描述/版权来源：zh-cn/bing-wallpaper.md
+ *     不要使用其它镜像或聚合站点，也不要把 en-us 的文案翻译过来充当中文描述。
+ *     注意 zh-cn 版本与 en-us 通常有 1 天时差，请以 zh-cn 的日期标注为准。
+ *  2. 字段格式：{ id, date: "YYYY-MM-DD", desc, copyright }
+ *     - id 取 OHR.{id}_UHD.jpg 中的 {id} 部分（形如 "Xxx_ZH-CN1234567890"）
+ *     - desc 与 copyright 直接采用原始仓库中的中文描述与署名，不做再加工
+ *  3. 排序：数组整体按日期从新到旧；同月条目紧凑放置并用 `// YYYY-MM` 分段
+ *  4. 远端 bing-wallpaper.md 文件较大，一次抓取可能按相关度分段并省略；
+ *     若发现目标日期的条目缺失或描述不完整，请带上日期/ID 关键字再请求
+ *     同一个授权 URL，而不是改用其他来源。务必按"N 天对应 N 条"核对完整性，
+ *     不要用相邻日期的 ID 凑数。
+ *  5. 落库前自检：
+ *     - 批次内 id 字段两两不重复
+ *     - 对每条新 id 做一次 HEAD 请求
+ *       https://cn.bing.com/th?id=OHR.{id}_UHD.jpg 必须返回 200 image/jpeg
+ *  6. 若上游偶发笔误（例如相邻两天 ID 重复、版权串多余括号等），
+ *     以 cn.bing.com 实际可访问的 OHR 图片 URL 为准进行修正，
+ *     并保留对上游仓库的致谢与许可证声明。
  */
 
 const BING_WALLPAPER_HISTORY = [
 
   // 2026-04
+  { id: "SlashPine_ZH-CN5629388290", date: "2026-04-24", desc: "湿地松和锯棕榈组成的森林吊床, 大沼泽地国家公园, 佛罗里达, 美国", copyright: "© Mary Liz Austin/Alamy" },
+  { id: "HathawayCottage_ZH-CN5558945636", date: "2026-04-23", desc: "安妮·海瑟薇的小屋与花园，埃文河畔斯特拉特，英格兰", copyright: "© David Steele/Shutterstock" },
+  { id: "TartuEstonia_ZH-CN5477370206", date: "2026-04-22", desc: "阿拉姆-佩德亚自然保护区，塔尔图县，爱沙尼亚", copyright: "© Sven Zacek/Nature Picture Library" },
+  { id: "SpringHedgehog_ZH-CN5232922916", date: "2026-04-21", desc: "西欧刺猬，法国", copyright: "© Klein & Hubert/Nature Picture Library" },
+  { id: "SunsetKiva_ZH-CN3978606378", date: "2026-04-20", desc: "夕阳下的峡谷地国家公园，莫阿布，犹他州，美国", copyright: "© Jason Hatfield/Tandem Stills + Motion" },
+  { id: "TranBA_ZH-CN3467060262", date: "2026-04-19", desc: "镜面海滩，塞古罗港，巴伊亚州，巴西", copyright: "© Marcelo Nacinovic/Getty Images" },
+  { id: "MaoiStatues_ZH-CN3219447748", date: "2026-04-18", desc: "摩艾石像采石场，拉诺拉拉库，复活节岛，智利", copyright: "© Gavin Hellier/Alamy" },
+  { id: "FlyingFoxMom_ZH-CN2913012516", date: "2026-04-17", desc: "灰头狐蝠母亲携幼崽，雅拉湾国家公园，澳大利亚", copyright: "© Doug Gimesy/Nature Picture Library" },
+  { id: "SkagitTulips_ZH-CN4234324174", date: "2026-04-16", desc: "斯卡吉特谷地郁金香花田, 华盛顿, 美国", copyright: "© Alan Majchrowicz/Getty Images" },
+  { id: "VanGoghFields_ZH-CN3495668941", date: "2026-04-15", desc: "光之采石场的文森特·梵高展览, 莱博德普罗旺斯, 法国", copyright: "© Patrick Aventurier/Getty Images" },
+  { id: "OcellarisClownfish_ZH-CN9362948727", date: "2026-04-14", desc: "海葵中的普通小丑鱼, 拉贾安帕特群岛, 印度尼西亚", copyright: "© Magnus Lundgren/Nature Picture Library" },
+  { id: "BorregoStars_ZH-CN8915519147", date: "2026-04-13", desc: "安扎-博雷戈沙漠州立公园上空的银河, 加利福尼亚州, 美国", copyright: "© Kevin Key/Slworking/Getty Images" },
+  { id: "SpaceTrails_ZH-CN8377463217", date: "2026-04-12", desc: "城市灯光在下方划过, 拍摄于国际空间站", copyright: "© NASA" },
+  { id: "PlayaPapagayo_ZH-CN7708804019", date: "2026-04-11", desc: "帕帕加约海滩, 兰萨罗特, 加那利群岛, 西班牙", copyright: "© Gavin Hellier/Getty Images" },
+  { id: "FoxSiblings_ZH-CN8133856518", date: "2026-04-10", desc: "卡鲁拉国家公园的两只幼年赤狐, 爱沙尼亚", copyright: "© Sven Zacek/Nature Picture Library" },
+  { id: "WalesWaterfall_ZH-CN3175091833", date: "2026-04-09", desc: "雪落瀑布，布雷肯比肯斯国家公园，威尔士", copyright: "© Guy Edwardes/Nature Picture Library" },
+  { id: "SeattleSunrise_ZH-CN2884575647", date: "2026-04-08", desc: "西雅图，华盛顿州，美国", copyright: "© Jim Patterson/Tandem Stills + Motion" },
+  { id: "BeaverPortrait_ZH-CN4700069789", date: "2026-04-07", desc: "河狸，德国", copyright: "© Andyworks/Getty Images" },
+  { id: "CastleBlossoms_ZH-CN3064288127", date: "2026-04-06", desc: "樱花盛开的弘前城，弘前，日本", copyright: "© Glenn Waters/Getty Images" },
   { id: "SpringSnowdrops_ZH-CN2933051747", date: "2026-04-05", desc: "春天的雪钟花", copyright: "© klagyivik/Getty Images" },
   { id: "GrouseGuff_ZH-CN2647001885", date: "2026-04-04", desc: "求偶展示场上对峙的雄性黑琴鸡，爱沙尼亚", copyright: "© Sven Zacek/Nature Picture Library" },
   { id: "ArmbrugBridge_ZH-CN4600005169", date: "2026-04-03", desc: "阿姆布鲁大桥，阿姆斯特丹，荷兰", copyright: "© Alexander Spatari/Getty Images" },
