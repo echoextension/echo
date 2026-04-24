@@ -1000,7 +1000,9 @@
 
     // ---- 填充偏移 stepper（与 tool-btn 同高同风格，单一控件避免换行）----
     const stepper = document.createElement('div');
-    stepper.className = 'offset-stepper';
+    // 初始置 disabled：只有在 rotateFillMode && 旋转 90°/270° 时才启用，
+    // 否则首次打开旋转面板会看到未变灰的 75% 与箭头，且能被点到污染 fillOffset 状态。
+    stepper.className = 'offset-stepper disabled';
     stepper.dataset.action = 'offset-stepper';
     stepper.title = '画面偏移：100% 显示顶部，0% 显示底部';
     const upBtn = document.createElement('button');
