@@ -575,20 +575,70 @@ async function fetchBingWallpapers() {
 }
 
 /**
- * 合并历史数据（API + 静态数据）
+ * 合并历史数据（本地 JSON + 远程 JSON + Bing API）
  * 
  * 策略：
+ * - 本地 JSON（打包在扩展内）作为兜底，fetch 读取，瞬时完成
+ * - 远程 JSON（Cloudflare）每 24h 拉一次，缓存到 localStorage
+ * - Bing API 提供最近 8 张实时数据
  * - daily 模式：如果缓存不包含今天，等待 API（最多 5 秒）
- * - collection 模式：直接使用静态数据，不等待 API
- * - 缓存有效性：基于"是否包含今天"而非固定时间
+ * - collection 模式：直接使用已有数据，不等待 API
  */
 async function mergeWallpaperHistory() {
-  // 获取静态历史数据（立即可用，作为兜底）
-  const staticHistory = typeof BING_WALLPAPER_HISTORY !== 'undefined' ? BING_WALLPAPER_HISTORY : [];
-  // 今天的日期
+  // 1. 获取本地打包的 JSON 数据（兜底，同步级速度）
+  let localHistory = [];
+  try {
+    const resp = await fetch(chrome.runtime.getURL('website/wallpaper-data.json'));
+    if (resp.ok) localHistory = await resp.json();
+  } catch (e) {
+    console.warn('[ECHO NTP] 本地壁纸数据加载失败:', e.message);
+  }
+
+  // 2. 获取远程 JSON 缓存（localStorage）
+  let remoteHistory = [];
+  try {
+    const cached = localStorage.getItem('echo_remote_wallpaper_cache');
+    if (cached) {
+      const parsed = JSON.parse(cached);
+      remoteHistory = parsed.data || [];
+    }
+  } catch (e) {}
+
+  // 3. 后台刷新远程 JSON（24h TTL）
+  let shouldFetchRemote = true;
+  try {
+    const cached = localStorage.getItem('echo_remote_wallpaper_cache');
+    if (cached) {
+      const parsed = JSON.parse(cached);
+      const elapsed = Date.now() - (parsed.timestamp || 0);
+      if (elapsed < 24 * 60 * 60 * 1000) shouldFetchRemote = false;
+    }
+  } catch (e) {}
+
+  if (shouldFetchRemote) {
+    fetch('https://www.echoextension.com/wallpaper-data.json', { signal: AbortSignal.timeout(5000) })
+      .then(r => r.ok ? r.json() : Promise.reject(new Error('HTTP ' + r.status)))
+      .then(data => {
+        if (Array.isArray(data) && data.length > 0) {
+          localStorage.setItem('echo_remote_wallpaper_cache', JSON.stringify({
+            timestamp: Date.now(),
+            data: data
+          }));
+          // 静默合并到内存中的 history
+          data.forEach(wp => {
+            const idx = wallpaperState.history.findIndex(w => w.date === wp.date);
+            if (idx === -1) {
+              wallpaperState.history.push(wp);
+            }
+          });
+          wallpaperState.history.sort((a, b) => b.date.localeCompare(a.date));
+        }
+      })
+      .catch(() => {}); // 静默失败
+  }
+
+  // 4. 获取 Bing API 缓存
   const today = new Date().toISOString().split('T')[0];
-  
-  // 尝试从 localStorage 获取缓存的 API 数据
   let cachedApiData = [];
   let cacheHasToday = false;
   try {
@@ -596,25 +646,22 @@ async function mergeWallpaperHistory() {
     if (cached) {
       const parsed = JSON.parse(cached);
       cachedApiData = parsed.data || [];
-      // 缓存有效性：是否包含今天的壁纸
       cacheHasToday = cachedApiData.some(wp => wp.date === today);
     }
   } catch (e) {}
   
-  // 判断是否需要等待 API（只有 daily 模式且缓存不含今天才需要）
+  // 5. 判断是否需要等待 Bing API
   const isDailyMode = wallpaperState.settings.mode === 'daily';
   const needWaitApi = isDailyMode && !cacheHasToday;
   
   if (needWaitApi) {
     try {
-      // 等待 API，最多 5 秒
       const apiData = await Promise.race([
         fetchBingWallpapers(),
         new Promise((_, reject) => setTimeout(() => reject(new Error('API timeout')), 5000))
       ]);
       if (apiData && apiData.length > 0) {
         cachedApiData = apiData;
-        // 更新缓存
         localStorage.setItem('echo_bing_api_cache', JSON.stringify({
           timestamp: Date.now(),
           data: apiData
@@ -625,27 +672,22 @@ async function mergeWallpaperHistory() {
     }
   }
   
-  // 合并数据（API/缓存优先，静态数据兜底）
+  // 6. 三层合并（优先级：Bing API > 远程 JSON 缓存 > 本地 JSON）
   const merged = new Map();
+  localHistory.forEach(wp => merged.set(wp.date, wp));
+  remoteHistory.forEach(wp => merged.set(wp.date, wp));
   cachedApiData.forEach(wp => merged.set(wp.date, wp));
-  staticHistory.forEach(wp => {
-    if (!merged.has(wp.date)) {
-      merged.set(wp.date, wp);
-    }
-  });
   
-  // 后台静默更新（非 daily 模式或已有今日数据时，后台刷新以备下次使用）
+  // 7. 后台静默刷新 Bing API
   if (!needWaitApi) {
     fetchBingWallpapers().then(apiWallpapers => {
       if (apiWallpapers.length > 0) {
-        // 缓存到 localStorage
         try {
           localStorage.setItem('echo_bing_api_cache', JSON.stringify({
             timestamp: Date.now(),
             data: apiWallpapers
           }));
         } catch (e) {}
-        // 更新内存中的 history
         apiWallpapers.forEach(wp => {
           const idx = wallpaperState.history.findIndex(w => w.date === wp.date);
           if (idx === -1) {
@@ -656,8 +698,6 @@ async function mergeWallpaperHistory() {
         });
         wallpaperState.history.sort((a, b) => b.date.localeCompare(a.date));
         
-        // 如果是 daily 模式且未锁定，且当前显示的不是最新壁纸，自动刷新
-        // 注意：pinnedDate 有值时表示锁定状态，不应覆盖
         const isLocked = !!wallpaperState.settings.pinnedDate;
         if (wallpaperState.settings.mode === 'daily' && !isLocked) {
           const latestWp = wallpaperState.history[0];
