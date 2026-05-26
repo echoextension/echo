@@ -8,6 +8,8 @@
 
 使用方式：基于原始仓库的壁纸归档数据，提取 ID、日期、描述、版权信息，整理为 JSON 静态数组格式。
 
+发布位置：该文件既随扩展打包作为本地离线兜底数据，也发布到官网 `https://www.echoextension.com/wallpaper-data.json` 供新标签页远程刷新缓存使用。
+
 ## 图片 URL 构建规则
 
 - 4K: `https://cn.bing.com/th?id=OHR.{id}_UHD.jpg&rf=LaDigue_UHD.jpg&pid=hp&w=3840&h=2160&rs=1&c=4`

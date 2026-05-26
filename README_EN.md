@@ -142,8 +142,9 @@ ECHO/
 ├── net_rules.json          # Request header modification rules
 ├── ntp/
 │   ├── ntp.html / ntp.js   # New Tab Page (wallpaper system, trending)
-│   ├── ntp.css
-│   └── wallpaper-data.js   # Bing wallpaper history data
+│   └── ntp.css
+├── website/
+│   └── wallpaper-data.json # Bing wallpaper history data (remote website source + local extension fallback)
 ├── search-box/
 │   └── search-box.js       # Floating search box
 ├── related-search/

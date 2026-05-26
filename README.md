@@ -142,8 +142,9 @@ ECHO/
 ├── net_rules.json          # 请求头修改规则
 ├── ntp/
 │   ├── ntp.html / ntp.js   # 新标签页（壁纸系统、热搜）
-│   ├── ntp.css
-│   └── wallpaper-data.js   # Bing 壁纸历史数据
+│   └── ntp.css
+├── website/
+│   └── wallpaper-data.json # Bing 壁纸历史数据（官网远程源 + 扩展本地兜底）
 ├── search-box/
 │   └── search-box.js       # 悬浮搜索框
 ├── related-search/
