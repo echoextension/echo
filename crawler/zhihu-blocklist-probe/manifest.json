@@ -1,0 +1,15 @@
+{
+  "manifest_version": 3,
+  "name": "ECHO Zhihu Blocklist Probe (Local Research Only)",
+  "version": "0.1.0",
+  "description": "Read-only local probe for Zhihu blocklist pagination, scale, latency, and response integrity.",
+  "host_permissions": ["https://www.zhihu.com/*"],
+  "content_scripts": [
+    {
+      "matches": ["https://www.zhihu.com/*"],
+      "js": ["probe.js"],
+      "run_at": "document_idle",
+      "all_frames": false
+    }
+  ]
+}
