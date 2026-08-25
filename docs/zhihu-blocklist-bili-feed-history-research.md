@@ -45,6 +45,10 @@ ECHO 的目标应表述为：
 
 ### 2.2 已有项目验证
 
+> **阅读边界：** 本节是对公开项目现状的技术调研，用于展示已经有人尝试过哪些路径、各自付出了什么成本。项目行为、下文的比较以及“可借鉴点”都不代表 ECHO 已确认的产品范围、架构决策、实现顺序或验收契约；是否采用其中任何做法，仍需单独评审。
+
+#### 项目 A：`liuyubing233/zhihu-custom`
+
 参考项目：[liuyubing233/zhihu-custom](https://github.com/liuyubing233/zhihu-custom)（知乎修改器）。调研时用户脚本版本为 `5.21.4`，仓库仍在维护。
 
 该项目已经验证以下能力可行：
@@ -63,7 +67,78 @@ GET https://www.zhihu.com/api/v3/settings/blocked_users?offset={offset}&limit={l
 
 请求在 `www.zhihu.com` 登录页面内发起，通过 `credentials: "include"` 使用浏览器已有登录态；插件无需读取、复制或保存 Cookie。响应中的 `data[].id`、`data[].url_token` 和 `paging` 可分别用于稳定身份匹配与分页。新增或解除拉黑则可使用 `/api/v4/members/{url_token}/actions/block`，写操作需要 XSRF 处理，但 ECHO 首版不必主动代理原生拉黑操作。
 
-这说明需求真实且可以实现，但不能把参考项目的“能工作”视为生产架构已经解决。尤其需要独立处理多账号缓存隔离、部分分页失败、同步期间名单变化、接口限流、主世界请求拦截风险，以及评论区 ID 表达不一致。参考项目没有明显展示完整的账号级快照隔离，ECHO 不应照搬其存储模型。
+该项目的官方黑名单同步是**用户在脚本设置面板点击“同步知乎黑名单”后手动触发**，不是定时任务。实现以 `limit=20` 从 `offset=0` 递归分页；加载中显示“已读取人数 / `paging.totals`”，完成后以本次完整结果替换官方名单缓存，并保留同一用户原有的本地标签。官方名单与脚本本地补充名单分开保存；同步结束时，会从本地补充名单中移除已进入官方名单的重复成员。
+
+页面过滤主要使用以下数据链路：
+
+- 推荐流和问题回答从 `data-za-extra-module.card.content.author_member_hash_id` 提取稳定作者 ID，再与名单构建的 `Map` 匹配。
+- 评论作者信息来自知乎评论接口响应中的 `author.id`、`author.url_token`，页面链接作为辅助识别来源。
+- 推荐流、回答、评论和用户主页使用不同处理器；已处理节点会添加标记，部分入口带 500 ms 级节流或重试。
+- 可选择整项隐藏，或把正文替换为 `***` 并保留黑名单标签。
+- 脚本拦截页面 `fetch`，用推荐、回答、评论等接口响应补足 DOM 中不易稳定取得的数据，并监听原生拉黑/解除接口以更新本地名单。
+
+从源码可见的局限包括：同步函数没有完整展示 HTTP 状态、响应结构异常和递归中途失败后的 UI 恢复；缓存没有明显按当前知乎账号分区；作者识别和动态处理依赖知乎内部字段、接口及页面类名。它证明了“手动同步 + 本地名单 + 多页面过滤”是一条实际使用中的路径，但不自动证明其全部实现细节适合 ECHO。
+
+#### 项目 B：`pionxzh/userscripts` 的知乎助手
+
+参考项目：[pionxzh/userscripts](https://github.com/pionxzh/userscripts/tree/main/packages/zhihu)。该仓库使用标准 MIT 许可证；知乎助手最近一次仓库代码推送时间为 2023-11，活跃度低于 `zhihu-custom`。
+
+该项目采用**脚本启动时自动同步**：`blockByBlackList()` 调用 `getBlockedUser()`，从官方 `blocked_users` 接口以 `limit=20` 递归读取全部分页。同源 `fetch` 没有显式填写 `credentials`，但默认会携带同源凭据。递归成功时通过 `GM_setValue('__zhihu_blocked_user__', result)` 缓存结果；请求或解析抛错时返回 `GM_getValue` 中的旧缓存。
+
+它没有为每个新增卡片执行 JavaScript `Set` 查询，而是按黑名单成员生成成组 CSS：
+
+- 回答和搜索结果使用 `:has()`、作者 `meta[itemprop="name"]` 等选择器隐藏整张卡片。
+- 评论使用用户主页链接、头像 `alt` 和昵称组合定位，并可隐藏评论正文、划掉或替换作者名称。
+- 搜索结果的部分动态处理交给 `sentinel-js`，由选择器命中新节点后添加屏蔽类。
+
+这一实现的优势是过滤后主要交给浏览器样式系统，不需要持续遍历所有卡片；但名单达到数千人时会生成大量 CSS 选择器和字符串。部分规则依赖昵称或同时依赖昵称与链接，昵称变更、重名、特殊字符转义和知乎 DOM 改版都可能影响匹配。缓存写入发生在递归回溯过程中，而不是清晰的单次最终提交；因此它更适合作为“自动同步和 CSS 驱动过滤确实有人实践过”的证据，不足以单独证明大名单下的性能与一致性。
+
+#### 项目 C：`pionxzh/Zhihu-block`（已废弃）
+
+参考项目：[pionxzh/Zhihu-block](https://github.com/pionxzh/Zhihu-block)。仓库 README 已标记 `DEPRECATED`，后续迁移到上述 `pionxzh/userscripts`；README 声明 MIT。
+
+这是较早的自动同步实现：每次脚本初始化后递归请求官方名单，保存 `{id, name, url_token}`；为跨 `www.zhihu.com` 与专栏子域共享数据，它没有继续使用 `localStorage`，而是把精简后的名单 JSON 写入有效期 7 天的站点 Cookie。接口失败（注释中特别提到专栏页面 401）时恢复 Cookie 缓存。
+
+过滤器遍历名单，为每个用户执行多条 jQuery `:has()` 查询，覆盖关注流、话题、回答和评论。它在整个 `document` 上安装 `MutationObserver({childList:true, subtree:true})`；只要新增节点，就重新调用一次全量 `blockContent()`。
+
+该方案提供了历史价值：它验证了官方名单、不同知乎子域和动态页面过滤早已是实际问题。但 Cookie 容量通常只有数 KB，无法承载数千人名单；“每次 DOM 变化 × 全名单 × 多选择器”的处理方式也不适合作为当前性能基线。它应被视为历史实现样本，而非现代推荐方案。
+
+#### 项目 D：`jasonz3157/my-violentmonkey-scripts`
+
+参考项目：[jasonz3157/my-violentmonkey-scripts](https://github.com/jasonz3157/my-violentmonkey-scripts/blob/master/zhihu-blocker-user.js)。调研时脚本版本为 `0.13`，仓库在 2026-08 仍有提交；用户脚本头声明 GPL-3.0。
+
+该项目更接近“在知乎页面内维护一套可操作的本地屏蔽名单”：
+
+- 首次运行时从官方 `blocked_users` 接口导入，随后写入 `shurlormes-synced`，以后启动不会重复做官方全量导入。
+- 请求初始 URL 写 `limit=100`，后续直接跟随 `paging.next`；当前知乎实际仍会硬限制为每页 20 人。
+- 官方导入把每个用户保存为 `localStorage` 中的 `b-{userId}` 项，同时在 `GM_setValue` 保存归一化 ID 数组。
+- 同步过程只添加官方返回的用户，没有在全量结束后删除“本地存在但官方已不存在”的 ID，因此语义是初次导入或集合补充，不是官方名单的严格镜像。
+- 回答作者优先读取 `data-za-extra-module.card.content.author_member_hash_id`，失败时回退到作者主页链接；评论作者从 `/people/{token}` 链接提取。
+- 回答和评论旁会插入屏蔽/取消按钮；点击后立即修改本地名单，并调用知乎成员接口查询 `url_token`，再调用官方拉黑或解除接口。
+- 支持“替换为 `[已屏蔽]`”和“删除整个用户内容容器”两种强度，也支持名单导入、导出及可选 WebDAV 跨设备同步。
+- 页面动态处理采用每 500 ms 调用一次 `mainEvent()` 的轮询：标记回答与评论、追加按钮、过滤内容并修复折叠回答。
+
+这一项目验证了本地名单、页面内即时操作和跨设备同步可以独立于“每次全量镜像官方名单”存在。与此同时，500 ms 全页轮询、按用户拆分大量 `localStorage` 键、用 `innerHTML` 保存和恢复原内容，以及导入时可能批量调用知乎写接口，都带来不同的性能、稳定性和风险取舍。WebDAV 同步还会把屏蔽 ID 发送到用户配置的第三方服务器，与 ECHO 当前的纯本地隐私边界不同。
+
+#### 四类实现横向对照
+
+| 项目 | 官方名单触发方式 | 本地数据语义 | 作者识别 | 动态内容处理 | 维护状态 |
+| --- | --- | --- | --- | --- | --- |
+| `zhihu-custom` | 设置面板手动全量同步 | 官方名单镜像 + 独立本地补充名单 | 结构化稳定 ID 为主，评论接口补足 | 接口拦截、分页面处理、节流/重试 | 2026 年仍维护 |
+| `pionxzh/userscripts` | 每次脚本启动自动全量同步 | 官方名单缓存，失败回退旧值 | 链接、昵称、meta 等组合 | 大量生成 CSS + `sentinel-js` | 2023 年后少有更新 |
+| `pionxzh/Zhihu-block` | 每次启动自动全量同步 | 7 天 Cookie 缓存 | 用户 ID、URL Token、部分昵称 | 全文档 MutationObserver 后全量重扫 | 已废弃 |
+| `jasonz3157` | 首次启动导入，之后本地维护 | 本地 ID 集合，可选 WebDAV 合并 | 结构化 ID + 作者链接回退 | 每 500 ms 页面轮询 | 2026 年仍有提交 |
+
+#### 可供后续评审的启示（非决策）
+
+以下只是基于外部实现的分析建议，**不构成最终开发契约**：
+
+- 手动同步不是未经实践的退让方案；维护较活跃、功能覆盖最完整的 `zhihu-custom` 正在采用手动同步并显示分页进度。
+- “启动时自动同步”也有公开先例，但现有样本没有同时解决大名单性能、多账号隔离、精确删除同步和完整失败恢复，不能仅凭其存在就判断自动方案更成熟。
+- 稳定作者 ID 比昵称更可靠；多个项目都逐步转向 `author_member_hash_id` 或用户链接，昵称匹配更适合作为兼容回退而非唯一依据。
+- 动态过滤已有四种实践：接口拦截、Sentinel/选择器监听、MutationObserver、固定间隔轮询。它们分别在数据完整性、页面侵入、维护成本和运行开销上有不同取舍，需要结合 ECHO 范围另行评审。
+- 数千人场景下，按用户生成 CSS、每次 DOM 变化遍历全名单、500 ms 全页轮询都值得专门压测；调研信息本身不能替代 ECHO 的实际性能验证。
+- 本地补充名单、导入导出、页面内即时拉黑、WebDAV 同步均已有项目实践，但它们是彼此独立的产品能力，不应因为参考项目同时提供就自动进入 ECHO 范围。
 
 ### 2.3 推荐的 ECHO 范围
 
@@ -261,6 +336,9 @@ blockedUrlTokens: Set<people-url-token>
 | 参考项目 | 调研时许可证证据 | 是否可直接复制代码 | ECHO 的合规策略 |
 | --- | --- | --- | --- |
 | `liuyubing233/zhihu-custom` | 用户脚本头含 `@license MIT`；`package.json` 含 `"license": "MIT"`；仓库没有标准 `LICENSE` 文件，GitHub API 未识别许可证 | MIT 原则上允许使用、复制、修改和再分发，但必须保留版权与许可声明；因仓库缺少标准许可证正文，大段复制前仍建议向作者确认 | 优先独立实现；若确需引用实质性代码，记录来源和版本，加入完整 MIT 许可证文本及版权声明，并在发布材料中署名 |
+| `pionxzh/userscripts` | 仓库根目录有标准 MIT `LICENSE`，知乎助手构建配置也读取包内 `license` | MIT 原则上允许使用、复制、修改和再分发，但必须保留版权与许可声明 | 可研究和借鉴；若使用实质性代码，记录具体文件与提交并保留 MIT 声明 |
+| `pionxzh/Zhihu-block` | README 声明 MIT；仓库已标记废弃 | MIT 声明允许复用，但旧实现已不适合作为兼容性基线 | 主要作为历史方案研究；若复用实质性代码，仍需保留原作者与 MIT 声明 |
+| `jasonz3157/my-violentmonkey-scripts` | `zhihu-blocker-user.js` 用户脚本头声明 `@license GPL-3.0` | 与 ECHO 的 GPL-3.0 方向兼容，但仍须保留原版权和许可归属 | 优先独立实现；若引用实质性代码，记录来源、提交、修改范围和版权声明 |
 | `qiweiii/bili-feed-history` | 仓库无 `LICENSE` 文件；GitHub API `license: null`；`package.json` 无 `license` 字段 | **不可以默认复制、修改或再分发** | 仅借鉴需求、产品形态和公开事实；不复制源码、样式、文案或视觉资产。若要复用，先取得作者书面授权或请作者补充明确许可证 |
 | `746505972/bilibili-feed-history` | 仓库无 `LICENSE` 文件；GitHub API `license: null`；清单和源码未发现许可证声明 | **不可以默认复制、修改或再分发** | 仅借鉴需求和产品形态；不复制源码、样式、文案、截图或视觉资产。若要复用，先取得作者书面授权或请作者补充明确许可证 |
 
@@ -320,6 +398,9 @@ ECHO 当前采用 GPL-3.0。MIT 许可代码通常可以并入 GPL-3.0 项目，
 
 - [知乎修改器仓库](https://github.com/liuyubing233/zhihu-custom)
 - [知乎修改器用户脚本](https://raw.githubusercontent.com/liuyubing233/zhihu-custom/main/index.js)
+- [Pionxzh Userscripts：知乎助手](https://github.com/pionxzh/userscripts/tree/main/packages/zhihu)
+- [Pionxzh Zhihu-block（已废弃）](https://github.com/pionxzh/Zhihu-block)
+- [Jasonz3157：知乎屏蔽用户评论](https://github.com/jasonz3157/my-violentmonkey-scripts/blob/master/zhihu-blocker-user.js)
 - [Bilibili “换一换”历史仓库](https://github.com/qiweiii/bili-feed-history)
 - [Bilibili Feed History 仓库](https://github.com/746505972/bilibili-feed-history)
 - [GitHub Terms of Service：License Grant to Other Users](https://docs.github.com/en/site-policy/github-terms/github-terms-of-service#5-license-grant-to-other-users)
