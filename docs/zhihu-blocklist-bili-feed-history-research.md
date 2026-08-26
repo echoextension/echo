@@ -4,6 +4,7 @@
 > 工作分支：`feature/zhihu-blocklist-bili-feed-history`  
 > 状态：公开实现源码审计与名单基线实测完成；进入 ECHO 原型验证阶段
 > 说明：本文记录产品判断与开源合规边界，不构成法律意见。
+> 实现后续：[知乎黑名单与 B站推荐回退：实现后续记录](./zhihu-blocklist-bili-feed-history-follow-up.md)
 
 ## 结论摘要
 
