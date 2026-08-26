@@ -2109,6 +2109,35 @@ chrome.runtime.onConnect.addListener((optionsPort) => {
 });
 
 // ============================================
+// B站推荐回退注入兜底
+// ============================================
+
+async function ensureBiliFeedHistoryInjected() {
+  const settings = await chrome.storage.sync.get({ biliFeedHistory: false });
+  if (!settings.biliFeedHistory) return;
+  const tabs = await chrome.tabs.query({ url: ['https://www.bilibili.com/*'] });
+  for (const tab of tabs) {
+    if (!tab.id) continue;
+    try {
+      await chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        files: ['bili-feed-history/bili-feed-history.js']
+      });
+    } catch (error) {
+      console.warn('[ECHO] Failed to inject Bilibili feed history:', error);
+    }
+  }
+}
+
+chrome.storage.onChanged.addListener((changes, areaName) => {
+  if (areaName === 'sync' && changes.biliFeedHistory?.newValue) {
+    ensureBiliFeedHistoryInjected();
+  }
+});
+
+ensureBiliFeedHistoryInjected();
+
+// ============================================
 // ⚠️ DEPRECATED: 监听器未注册，此函数为死代码
 // 监听书签的增删改移，通知前端更新
 // ============================================

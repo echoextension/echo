@@ -47,7 +47,7 @@
       "all_frames": false
     },
     {
-      "matches": ["https://www.bilibili.com/"],
+      "matches": ["https://www.bilibili.com/*"],
       "js": ["bili-feed-history/bili-feed-history.js"],
       "run_at": "document_idle",
       "all_frames": false
