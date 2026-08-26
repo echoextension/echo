@@ -106,7 +106,7 @@
     styleElement = document.createElement('style');
     styleElement.id = 'echo-bili-feed-history-style';
     styleElement.textContent = `
-      .echo-bili-feed-navigation{display:flex;flex-direction:column;gap:6px;margin-bottom:8px}
+      .echo-bili-feed-navigation{position:absolute;top:0;right:48px;z-index:3;display:flex;flex-direction:column;gap:6px;width:40px;margin:0}
       .echo-bili-feed-navigation button{display:flex;align-items:center;justify-content:center;width:40px;height:32px;padding:0;border:1px solid var(--line_regular,#e3e5e7);border-radius:6px;background:var(--bg1,#fff);color:var(--text2,#61666d);cursor:pointer;font-size:18px;line-height:1;box-shadow:0 1px 2px rgba(0,0,0,.04)}
       .echo-bili-feed-navigation button:hover:not(:disabled){border-color:#00aeec;color:#00aeec;background:#e3f7ff}
       .echo-bili-feed-navigation button:disabled{opacity:.38;cursor:default}
