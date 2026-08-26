@@ -45,7 +45,12 @@
     └────────────┘
 ```
 
-**核心通信模式**：所有模块通过 `chrome.runtime.sendMessage` 与 background.js 通信，background 作为唯一的状态权威和 API 代理。Content Script 不直接调用外部 API。
+**核心通信模式**：通用模块通过 `chrome.runtime.sendMessage` 与 background.js 通信，background 负责浏览器级状态和跨页面路由。站点专用模块保持独立：B站推荐历史仅维护当前标签页内存；知乎同步由设置页与后台建立 Port 长连接，再交给已登录的知乎内容脚本执行同源只读请求，完整快照写入 `chrome.storage.local` 后由 `www.zhihu.com` 与 `zhuanlan.zhihu.com` 共享。除这一受限同源同步外，Content Script 不直接调用外部 API。
+
+站点增强模块包括：
+
+- `bili-feed-history/`：捕获首页推荐批次，使用结构化数据渲染独立历史层，不替换 B站 Vue 节点。
+- `zhihu-tool/`：手动同步官方黑名单，以稳定用户 ID 过滤回答与评论；无法识别作者时放行。
 
 ---
 

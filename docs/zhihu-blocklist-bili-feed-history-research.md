@@ -177,7 +177,7 @@ ECHO 不应复制「知乎修改器」的大而全形态，但可以围绕一个
 首版按两阶段实现：
 
 1. **阶段 A：列表与回答。** 同步官方名单，以 `blocked_users.id` 建 `blockedIds`；从 `data-za-extra-module.card.content.author_member_hash_id` 读取当前内容作者并隐藏整张卡片。这条链路已经被 `zhihu-custom` 和 `jasonz3157` 分别实现。
-2. **阶段 B：评论与子评论。** 同一份官方名单以 `url_token` 建 `blockedUrlTokens`；从评论作者链接 `/people/{token}` 提取 Token。只检查评论作者，不因回复对象命中而隐藏评论；递归扫描子评论容器。这综合了 `zhihu-custom` 的子评论遍历与 `pionxzh/Zhihu-block`、`jasonz3157` 的 DOM Token 匹配路径。
+2. **阶段 B：评论与子评论。** 从评论作者链接 `/people/{pathValue}` 提取路径值，并以 `blockedIds` 匹配。2026-08-26 的真实黑名单评论样本证明当前路径值直接命中 `blocked_users.id`，而不是 `blocked_users.url_token`。只检查评论作者，不因回复对象命中而隐藏评论；递归扫描子评论容器。
 
 阶段 A 可以先独立发布，阶段 B 在评论样本验证通过后追加。这样评论适配不会阻塞推荐流和回答这一主体价值。
 
@@ -189,9 +189,9 @@ ECHO 不应复制「知乎修改器」的大而全形态，但可以围绕一个
 | 每页硬限制为 20 人 | 已证实一次 | 请求 `limit=20/50/100` 均只返回 20 |
 | 一次静态扫描中的 ID 完整且无重复 | 已证实一次 | 2,097 个唯一 `id` 与 `url_token`，无缺失 |
 | 官方名单 ID 用于匹配推荐/回答作者 Hash ID | 公开实现已证实，待 ECHO 回归 | `zhihu-custom` 的列表和回答处理器直接执行 `blockedUserMap.get(author_member_hash_id)`；`jasonz3157` 同样优先读取该字段 |
-| 评论作者可通过 DOM Token 识别 | 公开实现已证实，待 ECHO 回归 | 两个项目从 `/people/{token}` 提取作者；旧 `Zhihu-block` 同时按 `id` 和 `url_token` 选择器覆盖评论 |
+| 评论作者主页路径可匹配官方名单 ID | **ECHO 实测已证实一个真实命中样本** | 2 条评论均成功识别作者，其中原生资料卡明确显示“已屏蔽”的作者通过路径值直接命中 `blocked_users.id`；直接匹配 `url_token` 未命中 |
 | 子评论可以持续处理 | 公开实现已证实，待 ECHO 回归 | `zhihu-custom` 递归读取接口 `child_comments`，并递归调用 `formatComments(item, childSelector)` |
-| 所有知乎内容入口都能覆盖 | **未证实且不现实** | 搜索、通知、热榜、专栏、想法等入口尚未逐项定义 |
+| 所有知乎内容入口都能覆盖 | **未证实且不现实** | 搜索、通知、热榜、想法等入口尚未逐项定义；首版明确支持 www 问答/评论与独立专栏评论 |
 | 多账号缓存不会串用 | **未证实** | 只测试了一个账号的一次扫描 |
 | 分页期间名单变更不会漏项 | **未证实** | `offset` 分页没有快照令牌，扫描期间增删可能漂移 |
 | 长期不会限流或触发风控 | **未证实** | 一次无 429 不能外推到长期、重复和更大名单 |
@@ -279,20 +279,19 @@ ECHO 不应复制「知乎修改器」的大而全形态，但可以围绕一个
 
 ### 2.9 ECHO 过滤方案与公开实现依据
 
-加载成功快照后，在每个知乎顶层页面构建两个内存集合：
+加载成功快照后，在每个知乎顶层页面构建稳定 ID 内存集合：
 
 ```text
 blockedIds: Set<stable-user-id>
-blockedUrlTokens: Set<people-url-token>
 ```
 
-这两个集合是独立索引，但来自同一条官方名单记录：`id` 用于列表与回答，`url_token` 用于评论作者链接。公开源码已经给出映射依据：
+`blocked_users.id` 同时用于列表、回答和当前评论作者主页路径。`url_token` 仍随快照保存，供成员资料或接口兼容诊断使用，但不作为当前 DOM 评论的主匹配键：
 
 - `zhihu-custom` 同步时保存 `{ id, name, urlToken: url_token }`；列表和回答建立 `Map<id, user>`，直接查询 `card.content.author_member_hash_id`。
 - `jasonz3157` 的回答处理同样优先读取 `author_member_hash_id`，取不到时回退到作者主页链接。
-- `pionxzh/Zhihu-block` 对评论同时尝试 `/people/{id}` 与 `/people/{url_token}`；当前更稳妥的 ECHO 路径是直接使用 `blockedUrlTokens` 匹配评论链接。
+- `pionxzh/Zhihu-block` 对评论同时尝试 `/people/{id}` 与 `/people/{url_token}`，说明两类标识必须分别验证，不能预设路径命名空间。
 
-这里不是照搬 `zhihu-custom` 的评论判断：该项目当前 `getUserIdFromPeopleLink()` 取得的是主页路径 Token，却调用按 `user.id` 查询的 `findBlockedUserWithType()`，存在命名空间依赖。ECHO 已经从同一官方名单同时保存 `id` 和 `url_token`，因此评论明确查 `blockedUrlTokens`，列表和回答明确查 `blockedIds`，避免两类标识混用。
+2026-08-26 组合探针对同一真实样本并行验证了五条路径：主页路径直接匹配 `id` 成功、直接匹配 `url_token` 失败；成员资料解析后的 `id` 与 `url_token` 均成功；评论接口 `author.id` 与 `author.url_token` 均成功；姓名也命中但不作为可靠依据。因此首版评论明确使用 `blockedIds.has(pathValue)`，成员资料和评论接口仅作为未来结构变化时的兼容回退候选。
 
 因此 ECHO 首版不需要 MAIN world，也不需要覆盖页面 `fetch`。默认 MV3 `ISOLATED` 内容脚本已经能够读取 `data-za-extra-module`、作者链接和新增 DOM。`zhihu-custom` 拦截评论接口主要用于给页面增加拉黑按钮所需的完整作者对象；如果 ECHO 首版只做过滤，DOM 中的 URL Token 足以完成匹配。只有实测发现某类评论没有作者链接时，才评估主动请求或最小 MAIN world 桥接。
 
@@ -325,7 +324,7 @@ blockedUrlTokens: Set<people-url-token>
 
 原型实验按以下顺序执行，每一步都会产出聚合报告，不保存用户名或原始内容：
 
-1. **身份链实验：** 从已同步名单随机选取当前页面实际出现的命中项，记录 `blockedIds.has(author_member_hash_id)` 与 `blockedUrlTokens.has(commentToken)` 的命中数量；人工抽查命中内容确属已拉黑用户。
+1. **身份链实验：** 从已同步名单选取当前页面实际出现的命中项，记录 `blockedIds.has(author_member_hash_id)` 与 `blockedIds.has(commentPathValue)` 的命中数量；人工抽查命中内容确属已拉黑用户。
 2. **列表/回答实验：** 在推荐、关注和问题页分别滚动加载至少 100 项，记录总节点、可解析作者、命中、未知作者和处理耗时。解析失败只记录计数，不隐藏。
 3. **评论实验：** 展开一级评论和至少两层子评论，比较评论作者 Token 与回复对象 Token，验证只按索引 0 的实际作者决定隐藏。这直接复现 `zhihu-custom` 的处理语义。
 4. **动态加载实验：** 分别验证滚动加载、点击“更多评论”、打开/关闭评论弹窗和 SPA 跳转；确保新增节点只处理一次。
@@ -401,7 +400,7 @@ ECHO 独立实现一个批次状态机：
 
 ```text
 原生最新批次 -> 点击换一换前保存旧批次 -> 观察到 10 张卡片身份集合变化并稳定
-			 -> 保存新批次并把 currentIndex 指向末尾
+             -> 保存新批次并把 currentIndex 指向末尾
 
 上一批/下一批 -> 只改变 currentIndex -> 在 ECHO 历史层渲染结构化卡片
 回到末尾     -> 关闭历史层 -> 显示始终由 B站维护的原生最新批次
@@ -486,7 +485,7 @@ ECHO 当前采用 GPL-3.0。MIT 许可代码通常可以并入 GPL-3.0 项目，
 3. 知乎先把现有名单探针扩展为身份链探针，验证 `id -> author_member_hash_id` 和 `url_token -> 评论链接` 的当前站点命中情况。
 4. 实现知乎阶段 A：手动同步、账号分区、推荐/关注/回答过滤与临时查看。
 5. 完成阶段 A 的 100 项滚动和多账号验收后，实现阶段 B：一级评论与子评论过滤。
-6. 评论阶段优先使用 DOM URL Token，不默认引入 MAIN world；只有出现无作者链接的受支持评论结构时再评估桥接。
+6. 评论阶段优先使用 DOM 作者主页路径中的稳定 ID，不默认引入 MAIN world；只有出现无作者链接的受支持评论结构时再评估桥接。
 7. 两个模块均独立开关和独立失效，任何站点适配故障都不影响 ECHO 通用功能。
 
 ## 七、进入实现前的决策项

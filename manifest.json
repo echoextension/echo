@@ -45,6 +45,18 @@
       "js": ["bili-tool/bili-tool.js"],
       "run_at": "document_idle",
       "all_frames": false
+    },
+    {
+      "matches": ["https://www.bilibili.com/"],
+      "js": ["bili-feed-history/bili-feed-history.js"],
+      "run_at": "document_idle",
+      "all_frames": false
+    },
+    {
+      "matches": ["https://www.zhihu.com/*", "https://zhuanlan.zhihu.com/*"],
+      "js": ["zhihu-tool/zhihu-tool.js"],
+      "run_at": "document_idle",
+      "all_frames": false
     }
   ],
   "options_page": "options/options.html",

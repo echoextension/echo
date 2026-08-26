@@ -11,6 +11,7 @@ The probe measures facts needed before designing the production feature:
 - Pagination completeness, duplicates, and missing stable identifiers.
 - Per-page latency, response size, retries, and rate-limit behavior.
 - Approximate full-sync wall time for a large account.
+- Aggregate coverage of all researched comment identity paths: profile-path value against `id` and `url_token`, author-name diagnostics, read-only member-profile resolution, and refetched comment API `author.id` / `author.url_token`.
 
 It performs GET requests only. Reports do not include names, raw user IDs, URL tokens, cookies, or response bodies. A short SHA-256 prefix identifies the logged-in account so reports from different accounts can be distinguished without exposing the account ID.
 
@@ -25,6 +26,8 @@ It performs GET requests only. Reports do not include names, raw user IDs, URL t
 Use **Quick probe** first. It makes three blocklist requests. Use **Full scan** only when ready to read every page; requests are serial with a 250 ms delay, retry `429` and server errors with backoff, and can be stopped.
 
 Download the JSON report after completion. Inspect it before sharing. The most important fields are `limitProbe`, `fullScan.expectedTotals`, `fullScan.uniqueIds`, `fullScan.totalsMatch`, `fullScan.pages`, `fullScan.totalElapsedMs`, `fullScan.totalResponseBytes`, and `fullScan.retryCount`.
+
+After a complete scan whose unique count matches `paging.totals`, open a supported feed, answer, or comment view and choose **Validate current page identity chain**. The blocklist remains in memory only. One click compares every researched read-only path and reports them separately, so a failed hypothesis does not require another full scan. The exported `identityChecks` contain aggregate node counts, parse coverage, request counts, match counts, and ambiguity counts; they do not contain page titles, content, raw identifiers, profile tokens, member names, comment API URLs, or target URLs.
 
 ## Cleanup
 

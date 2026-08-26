@@ -22,6 +22,8 @@ const DEFAULT_SETTINGS = {
   floatingSearchBoxAlwaysShow: false,  // 悬浮搜索框常驻显示，默认关闭
   floatingSearchBoxTrending: false,    // 悬浮搜索框热搜榜，默认关闭
   biliTool: true,                      // B站视频优化工具，默认开启
+  biliFeedHistory: false,              // B站推荐回退，默认关闭
+  zhihuBlocklistFilter: false,         // 知乎黑名单内容过滤，默认关闭
   customBookmarkBar: false,    // 自绘书签栏（已隐藏），默认关闭
   bookmarkBarPinned: true,     // 书签栏是否固定显示（已隐藏）
   bookmarkOpenInNewTab: false, // 收藏栏点击链接新标签打开（已隐藏，默认关闭）
@@ -2022,6 +2024,88 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
       console.error('[ECHO Background] Failed to inject related-search.js:', e);
     }
   }
+});
+
+// ============================================
+// 知乎黑名单同步长连接
+// ============================================
+
+let zhihuSyncInProgress = false;
+let zhihuSyncOwnerPort = null;
+
+chrome.runtime.onConnect.addListener((optionsPort) => {
+  if (optionsPort.name !== 'echo-zhihu-blocklist-sync') return;
+
+  let workerPort = null;
+  let disconnected = false;
+
+  const post = (message) => {
+    if (!disconnected) {
+      try { optionsPort.postMessage(message); } catch (e) {}
+    }
+  };
+
+  optionsPort.onMessage.addListener(async (message) => {
+    if (message?.action === 'cancel') {
+      if (zhihuSyncOwnerPort === optionsPort) {
+        try { workerPort?.postMessage({ action: 'cancel' }); } catch (e) {}
+      }
+      return;
+    }
+    if (message?.action !== 'start') return;
+    if (zhihuSyncInProgress) {
+      post({ type: 'error', message: '已有同步任务正在运行' });
+      return;
+    }
+    zhihuSyncInProgress = true;
+    zhihuSyncOwnerPort = optionsPort;
+    try {
+      const tabs = await chrome.tabs.query({ url: ['https://www.zhihu.com/*'] });
+      const tab = tabs.find((item) => item.active) || tabs[0];
+      if (!tab?.id) {
+        zhihuSyncInProgress = false;
+        zhihuSyncOwnerPort = null;
+        post({ type: 'error', message: '请先打开并登录知乎 www.zhihu.com' });
+        return;
+      }
+      workerPort = chrome.tabs.connect(tab.id, { name: 'echo-zhihu-blocklist-worker' });
+      workerPort.onMessage.addListener((workerMessage) => {
+        post(workerMessage);
+        if (zhihuSyncOwnerPort === optionsPort && ['complete', 'error', 'cancelled'].includes(workerMessage?.type)) {
+          zhihuSyncInProgress = false;
+          zhihuSyncOwnerPort = null;
+        }
+      });
+      workerPort.onDisconnect.addListener(() => {
+        if (zhihuSyncOwnerPort === optionsPort) {
+          zhihuSyncInProgress = false;
+          zhihuSyncOwnerPort = null;
+        }
+        if (chrome.runtime.lastError && !disconnected) {
+          post({ type: 'error', message: '知乎页面连接已断开，请刷新页面后重试' });
+        }
+        workerPort = null;
+      });
+      workerPort.postMessage({ action: 'start' });
+    } catch (error) {
+      if (zhihuSyncOwnerPort === optionsPort) {
+        zhihuSyncInProgress = false;
+        zhihuSyncOwnerPort = null;
+      }
+      post({ type: 'error', message: error.message || '无法连接知乎页面' });
+    }
+  });
+
+  optionsPort.onDisconnect.addListener(() => {
+    disconnected = true;
+    if (zhihuSyncOwnerPort === optionsPort) {
+      zhihuSyncInProgress = false;
+      zhihuSyncOwnerPort = null;
+      try { workerPort?.postMessage({ action: 'cancel' }); } catch (e) {}
+    }
+    workerPort?.disconnect();
+    workerPort = null;
+  });
 });
 
 // ============================================

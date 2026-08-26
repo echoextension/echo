@@ -500,6 +500,56 @@
         </div>
       </section>
 
+      <!-- 知乎黑名单内容过滤 -->
+      <section class="card" id="zhihuBlocklistCard">
+        <div class="card-header">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            <path d="M9 9l6 6M15 9l-6 6"/>
+          </svg>
+          <h2>知乎黑名单内容过滤</h2>
+        </div>
+        <div class="option">
+          <div class="option-info">
+            <h3>隐藏黑名单用户发布的内容</h3>
+            <p>在知乎问答、评论和专栏中折叠黑名单用户本人发布的内容，并保留临时查看入口</p>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="zhihuBlocklistFilter">
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div class="option sub-option zhihu-sync-option">
+          <div class="option-info">
+            <h3>手动同步知乎黑名单</h3>
+            <p id="zhihuBlocklistStatus" class="zhihu-sync-status">尚未同步。同步时需要打开并登录 www.zhihu.com</p>
+          </div>
+          <button type="button" class="backup-btn export-btn zhihu-sync-button" id="zhihuBlocklistSync">同步知乎黑名单</button>
+        </div>
+      </section>
+
+      <!-- B站推荐回退 -->
+      <section class="card" id="biliFeedHistoryCard">
+        <div class="card-header">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 12a9 9 0 1 0 3-6.7"/>
+            <path d="M3 4v6h6"/>
+            <path d="M9 12h6"/>
+          </svg>
+          <h2>B站推荐回退</h2>
+        </div>
+        <div class="option">
+          <div class="option-info">
+            <h3>找回「换一换」前的推荐</h3>
+            <p>在 B站首页的「换一换」旁提供前后导航，当前标签页内保留最近 10 批推荐；刷新或关闭页面后清空</p>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="biliFeedHistory">
+            <span class="slider"></span>
+          </label>
+        </div>
+      </section>
+
       <!-- B站视频优化工具 -->
       <section class="card" id="biliToolCard">
         <div class="card-header">

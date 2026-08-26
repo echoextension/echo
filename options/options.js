@@ -18,7 +18,9 @@ const SETTING_IDS_DEFAULT_OFF = [
   'superDrag',                   // 超级拖拽（默认关闭，避免与 Edge 内置拖拽冲突）
   'superDragActivate',         // 拖拽产生的标签立即激活（默认关闭，即后台打开）
   'quickSaveImageDateFolder',  // 按日期创建子文件夹
-  'applyToPlusButton'          // 同时应用于「+」新建标签页
+  'applyToPlusButton',         // 同时应用于「+」新建标签页
+  'biliFeedHistory',           // B站推荐回退
+  'zhihuBlocklistFilter'       // 知乎黑名单内容过滤
 ];
 
 // 开关类设置 - 默认关闭（实验室功能）
@@ -59,6 +61,8 @@ const DEFAULT_SETTINGS = {
   floatingSearchBoxAlwaysShow: false,  // 悬浮搜索框常驻显示（默认关闭）
   floatingSearchBoxFollowZoom: false,  // 悬浮搜索框跟随页面缩放（默认关闭）
   biliTool: true,                        // B站视频优化工具（默认开启）
+  biliFeedHistory: false,                // B站推荐回退（默认关闭）
+  zhihuBlocklistFilter: false,           // 知乎黑名单内容过滤（默认关闭）
   floatingSearchBoxTrending: false,    // 悬浮搜索框热搜榜（默认关闭）
   relatedSearchRecommend: false, // 网页关联搜索推荐（实验室，默认关闭）
   relatedSearchFollowZoom: false,  // 关联搜索推荐跟随页面缩放（默认关闭）
@@ -872,6 +876,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   await loadSettings();
   initializeEventListeners();
   await loadShortcuts();
+  await initZhihuBlocklistSync();
   
   // 快捷键设置入口
   document.getElementById('openShortcutSettings').addEventListener('click', (e) => {
@@ -920,6 +925,66 @@ document.addEventListener('DOMContentLoaded', async () => {
     }, 300);
   }
 });
+
+async function initZhihuBlocklistSync() {
+  const button = document.getElementById('zhihuBlocklistSync');
+  const status = document.getElementById('zhihuBlocklistStatus');
+  if (!button || !status) return;
+
+  const snapshotStore = await chrome.storage.local.get('echoZhihuBlocklistV1');
+  const snapshot = snapshotStore.echoZhihuBlocklistV1;
+  const active = snapshot?.accounts?.[snapshot.activeAccountId];
+  if (active) {
+    const date = new Date(active.syncedAt).toLocaleString();
+    status.textContent = `已同步 ${active.total} 人 · ${date}`;
+    status.dataset.state = 'success';
+  }
+
+  let port = null;
+  const finish = () => {
+    button.disabled = false;
+    button.textContent = '同步知乎黑名单';
+    port?.disconnect();
+    port = null;
+  };
+
+  button.addEventListener('click', () => {
+    if (port) {
+      button.disabled = true;
+      button.textContent = '正在取消';
+      port.postMessage({ action: 'cancel' });
+      return;
+    }
+    button.disabled = false;
+    button.textContent = '取消同步';
+    status.textContent = '正在连接已登录的知乎页面...';
+    status.dataset.state = 'working';
+    port = chrome.runtime.connect({ name: 'echo-zhihu-blocklist-sync' });
+    port.onMessage.addListener((message) => {
+      if (message.type === 'progress') {
+        status.textContent = `正在同步 ${message.current} / ${message.total || '...'} 人`;
+      } else if (message.type === 'complete') {
+        status.textContent = `已同步 ${message.total} 人 · ${new Date(message.syncedAt).toLocaleString()}`;
+        status.dataset.state = 'success';
+        finish();
+      } else if (message.type === 'error' || message.type === 'cancelled') {
+        status.textContent = message.message || '同步已取消，仍保留上次成功名单';
+        status.dataset.state = 'error';
+        finish();
+      }
+    });
+    port.onDisconnect.addListener(() => {
+      if (port) {
+        status.textContent = '同步连接已中断，仍保留上次成功名单';
+        status.dataset.state = 'error';
+        button.disabled = false;
+        button.textContent = '同步知乎黑名单';
+        port = null;
+      }
+    });
+    port.postMessage({ action: 'start' });
+  });
+}
 
 // ============================================
 // 设置页鼠标手势和精细缩放支持

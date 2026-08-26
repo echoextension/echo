@@ -49,7 +49,12 @@ This document is divided into three parts: The first part covers architecture an
     └────────────┘
 ```
 
-**Core Communication Pattern**: all modules communicate with `background.js` via `chrome.runtime.sendMessage`, establishing `background` as the sole authority for state and API proxying. Content Scripts do not invoke external APIs directly.
+**Core Communication Pattern**: general-purpose modules communicate with `background.js` through `chrome.runtime.sendMessage`; the background worker owns browser-level state and cross-page routing. Site-specific modules remain isolated. Bilibili feed history is tab-local. Zhihu synchronization uses a Port from the options page through the background worker to a logged-in Zhihu content script, which performs same-origin read-only requests and atomically stores the completed snapshot in `chrome.storage.local` for both `www.zhihu.com` and `zhuanlan.zhihu.com`. Outside this constrained same-origin synchronization path, Content Scripts do not invoke external APIs directly.
+
+Site enhancement modules:
+
+- `bili-feed-history/`: captures homepage recommendation batches and renders a structured history layer without replacing Vue-managed nodes.
+- `zhihu-tool/`: manually synchronizes the official blocklist and filters answers and comments by stable user ID; unidentified authors are left untouched.
 
 ---
 

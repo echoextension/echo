@@ -2335,6 +2335,36 @@ input:disabled + .slider {
   flex-shrink: 0;
 }
 
+.zhihu-sync-button {
+  flex-shrink: 0;
+  min-width: 148px;
+  justify-content: center;
+}
+
+.zhihu-sync-button:disabled {
+  opacity: 0.55;
+  cursor: default;
+  transform: none;
+  box-shadow: none;
+}
+
+.zhihu-sync-status[data-state="success"] {
+  color: #16803c;
+}
+
+.zhihu-sync-status[data-state="error"] {
+  color: #c42b1c;
+}
+
+@media (prefers-color-scheme: dark) {
+  .zhihu-sync-status[data-state="success"] {
+    color: #57c785;
+  }
+  .zhihu-sync-status[data-state="error"] {
+    color: #ff776d;
+  }
+}
+
 .export-btn {
   background: var(--primary, #0078d4);
   color: #fff;

@@ -4,7 +4,7 @@
 
 > ⚠️ **Unofficial & Fan-made**: This is a personal side project, not affiliated with Microsoft or the Edge team. Independently developed and maintained.
 
-**ECHO 易可** is a browser enhancement extension built specifically for Chinese Edge users. From tab management to mouse gestures, from a beautiful New Tab Page to AI-powered search recommendations — it's designed to elevate every aspect of your browsing experience. Fully open-source, completely free, no ads, no pop-ups, no interruptions, and no privacy intrusion.
+**ECHO 易可** is a browser enhancement extension built specifically for Chinese Edge users. From tab management to mouse gestures, from a beautiful New Tab Page to AI-powered search recommendations — it's designed to elevate every aspect of your browsing experience. It is fully open-source, free, and ad-free. Except for explicitly enabled third-party AI features, feature data is processed locally in the browser.
 
 This project was built entirely by a **non-technical PM** through AI-assisted programming (Vibe Coding). It's not perfect, but every line of code represents real product thinking and countless rounds of testing.
 
@@ -89,6 +89,19 @@ This project was built entirely by a **non-technical PM** through AI-assisted pr
 - Per-site blacklist with undo support
 - Shadow DOM floating widget, draggable, non-intrusive
 
+#### 🛡️ Zhihu Blocklist Content Filter
+
+- **Disabled by default**; the official Zhihu blocklist is synchronized manually
+- Collapses content authored by blocked users in Zhihu answers, comments, and columns
+- Provides temporary reveal; content is left untouched when the author cannot be identified reliably
+- Account and blocklist snapshots stay in local browser storage and are excluded from backup and cloud sync
+
+#### ↩️ Bilibili Feed History
+
+- **Disabled by default**; adds previous/next batch controls beside the homepage refresh control
+- Keeps the latest 10 recommendation batches in the current tab and clears them on reload or close
+- Renders structured history cards without storing Bilibili page HTML
+
 ### 🎯 First Run Experience (FRE)
 
 - 4-step onboarding guide on first install
@@ -129,6 +142,8 @@ Click the ECHO icon in the Edge toolbar to open settings. All features can be to
 | Close Tab Activate  | Left tab      | Or: right (browser default)              |
 | Floating Search Box | ✅ On          | Ctrl+B toggle                            |
 | AI Related Search   | ❌ Off         | Requires manual opt-in                   |
+| Zhihu Blocklist Filter | ❌ Off      | Requires manual blocklist sync           |
+| Bilibili Feed History | ❌ Off       | Keeps 10 batches in the current tab      |
 
 ---
 

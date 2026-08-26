@@ -10,7 +10,7 @@
   const REQUEST_DELAY_MS = 250;
   const MAX_PAGES = 1000;
   const MAX_RETRIES = 4;
-  const state = { running: false, stopped: false, report: null };
+  const state = { running: false, stopped: false, report: null, identityIndex: null };
 
   const sleep = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));
 
@@ -119,9 +119,11 @@
     try {
       const initialDataNode = document.getElementById('js-initialData');
       const initialData = JSON.parse(initialDataNode?.textContent || '{}');
-      const viewerKey = initialData?.initialState?.currentUser
+      const currentUser = initialData?.initialState?.currentUser;
+      const viewerKey = (typeof currentUser === 'string' ? currentUser : currentUser?.id || currentUser?.urlToken || currentUser?.url_token)
         || initialData?.initialState?.me?.id
-        || initialData?.initialState?.me?.urlToken;
+        || initialData?.initialState?.me?.urlToken
+        || initialData?.initialState?.me?.url_token;
       if (viewerKey) {
         return {
           authenticated: true,
@@ -164,6 +166,7 @@
   async function runFullScan(limit, onProgress) {
     const seenIds = new Set();
     const seenTokens = new Set();
+    const seenNames = new Set();
     const pageMetrics = [];
     let duplicateIds = 0;
     let duplicateTokens = 0;
@@ -193,6 +196,7 @@
         } else {
           missingTokens += 1;
         }
+        if (item?.name) seenNames.add(String(item.name).trim());
       }
 
       if (page.isEnd) {
@@ -206,7 +210,7 @@
 
     const totalElapsedMs = pageMetrics.reduce((sum, page) => sum + page.elapsedMs, 0);
     const totalResponseBytes = pageMetrics.reduce((sum, page) => sum + page.responseBytes, 0);
-    return {
+    const result = {
       completed,
       requestedLimit: limit,
       pages: pageMetrics.length,
@@ -224,6 +228,190 @@
       retryCount: pageMetrics.reduce((sum, page) => sum + page.retries, 0),
       pageMetrics,
     };
+    Object.defineProperty(result, 'identityIndex', {
+      value: { blockedIds: seenIds, blockedUrlTokens: seenTokens, blockedNames: seenNames },
+      enumerable: false,
+    });
+    return result;
+  }
+
+  function getPeopleToken(href) {
+    if (!href) return null;
+    try {
+      const url = new URL(href, location.origin);
+      if (url.hostname !== 'www.zhihu.com') return null;
+      const match = url.pathname.match(/^\/people\/([^/?#]+)/);
+      return match ? decodeURIComponent(match[1]) : null;
+    } catch {
+      return null;
+    }
+  }
+
+  function collectCommentApiAuthors(data, target) {
+    if (!Array.isArray(data)) return;
+    for (const item of data) {
+      if (item?.id && item?.author) target.set(String(item.id), item.author);
+      collectCommentApiAuthors(item?.child_comments, target);
+    }
+  }
+
+  async function fetchVisibleCommentAuthors() {
+    const urls = [...new Set(performance.getEntriesByType('resource')
+      .map((entry) => entry.name)
+      .filter((url) => /\/api\/v4\/comment_v5\//.test(url)))]
+      .slice(-20);
+    const authors = new Map();
+    let successfulRequests = 0;
+    let failedRequests = 0;
+    for (const url of urls) {
+      try {
+        const result = await fetchJson(url, 1);
+        collectCommentApiAuthors(result.body?.data, authors);
+        successfulRequests += 1;
+      } catch {
+        failedRequests += 1;
+      }
+    }
+    return { authors, resourceUrls: urls.length, successfulRequests, failedRequests };
+  }
+
+  async function resolveMembers(tokens) {
+    const members = new Map();
+    let failures = 0;
+    for (const token of tokens) {
+      try {
+        const result = await fetchJson(`https://www.zhihu.com/api/v4/members/${encodeURIComponent(token)}?include=id,url_token,name`, 1);
+        members.set(token, result.body);
+      } catch {
+        failures += 1;
+      }
+    }
+    return { members, failures };
+  }
+
+  async function scanIdentityChain() {
+    if (!state.identityIndex) throw new Error('请先完成一次人数与总数一致的完整扫描');
+
+    const cardMetrics = {
+      attributeNodes: 0,
+      parsedCards: 0,
+      identifiedAuthors: 0,
+      blockedMatches: 0,
+      malformedAttributes: 0,
+    };
+    const cardNodes = document.querySelectorAll('[data-za-extra-module]');
+    cardMetrics.attributeNodes = cardNodes.length;
+    for (const node of cardNodes) {
+      let extra;
+      try {
+        extra = JSON.parse(node.getAttribute('data-za-extra-module') || '{}');
+      } catch {
+        cardMetrics.malformedAttributes += 1;
+        continue;
+      }
+      const content = extra?.card?.content;
+      if (!content) continue;
+      cardMetrics.parsedCards += 1;
+      const authorId = String(content.author_member_hash_id || '');
+      if (!authorId) continue;
+      cardMetrics.identifiedAuthors += 1;
+      if (state.identityIndex.blockedIds.has(authorId)) cardMetrics.blockedMatches += 1;
+    }
+
+    const commentMetrics = {
+      contentNodes: 0,
+      identifiedAuthors: 0,
+      blockedMatches: 0,
+      missingAuthorLinks: 0,
+      ambiguousAuthorRegions: 0,
+      directPathIdMatches: 0,
+      directPathUrlTokenMatches: 0,
+      directNameMatches: 0,
+      profileResolved: 0,
+      profileResolveFailures: 0,
+      resolvedIdMatches: 0,
+      resolvedUrlTokenMatches: 0,
+      apiResourceUrls: 0,
+      apiSuccessfulRequests: 0,
+      apiFailedRequests: 0,
+      apiCorrelatedComments: 0,
+      apiIdMatches: 0,
+      apiUrlTokenMatches: 0,
+    };
+    const commentNodes = document.querySelectorAll('.CommentContent');
+    commentMetrics.contentNodes = commentNodes.length;
+    const commentAuthors = [];
+    for (const [index, contentNode] of [...commentNodes].entries()) {
+      const authorRegion = contentNode.parentElement?.firstElementChild?.firstElementChild;
+      const peopleLinks = authorRegion ? [...authorRegion.querySelectorAll('a[href*="/people/"]')] : [];
+      const authorLinks = peopleLinks.map((link) => getPeopleToken(link.getAttribute('href'))).filter(Boolean);
+      const uniqueTokens = [...new Set(authorLinks)];
+      if (uniqueTokens.length === 0) {
+        commentMetrics.missingAuthorLinks += 1;
+        continue;
+      }
+      if (uniqueTokens.length > 1) {
+        commentMetrics.ambiguousAuthorRegions += 1;
+        continue;
+      }
+      commentMetrics.identifiedAuthors += 1;
+      const token = uniqueTokens[0];
+      const nameCandidates = new Set();
+      for (const link of peopleLinks) {
+        const text = (link.textContent || link.getAttribute('title') || '').trim();
+        if (text) nameCandidates.add(text);
+        const imageAlt = link.querySelector('img')?.getAttribute('alt')?.trim();
+        if (imageAlt) nameCandidates.add(imageAlt);
+      }
+      const directIdMatch = state.identityIndex.blockedIds.has(token);
+      const directTokenMatch = state.identityIndex.blockedUrlTokens.has(token);
+      const directNameMatch = [...nameCandidates].some((name) => state.identityIndex.blockedNames.has(name));
+      if (directIdMatch) commentMetrics.directPathIdMatches += 1;
+      if (directTokenMatch) commentMetrics.directPathUrlTokenMatches += 1;
+      if (directNameMatch) commentMetrics.directNameMatches += 1;
+      commentAuthors.push({
+        index,
+        token,
+        commentId: contentNode.closest('[data-id]')?.getAttribute('data-id') || null,
+        matched: directIdMatch || directTokenMatch,
+      });
+    }
+
+    const uniqueTokens = [...new Set(commentAuthors.map((item) => item.token))];
+    const profileResult = await resolveMembers(uniqueTokens);
+    commentMetrics.profileResolved = profileResult.members.size;
+    commentMetrics.profileResolveFailures = profileResult.failures;
+    for (const item of commentAuthors) {
+      const member = profileResult.members.get(item.token);
+      const idMatch = Boolean(member?.id && state.identityIndex.blockedIds.has(String(member.id)));
+      const tokenMatch = Boolean(member?.url_token && state.identityIndex.blockedUrlTokens.has(String(member.url_token)));
+      if (idMatch) commentMetrics.resolvedIdMatches += 1;
+      if (tokenMatch) commentMetrics.resolvedUrlTokenMatches += 1;
+      item.matched ||= idMatch || tokenMatch;
+    }
+
+    const apiResult = await fetchVisibleCommentAuthors();
+    commentMetrics.apiResourceUrls = apiResult.resourceUrls;
+    commentMetrics.apiSuccessfulRequests = apiResult.successfulRequests;
+    commentMetrics.apiFailedRequests = apiResult.failedRequests;
+    for (const item of commentAuthors) {
+      const author = item.commentId ? apiResult.authors.get(String(item.commentId)) : null;
+      if (!author) continue;
+      commentMetrics.apiCorrelatedComments += 1;
+      const idMatch = Boolean(author.id && state.identityIndex.blockedIds.has(String(author.id)));
+      const tokenMatch = Boolean(author.url_token && state.identityIndex.blockedUrlTokens.has(String(author.url_token)));
+      if (idMatch) commentMetrics.apiIdMatches += 1;
+      if (tokenMatch) commentMetrics.apiUrlTokenMatches += 1;
+      item.matched ||= idMatch || tokenMatch;
+    }
+    commentMetrics.blockedMatches = commentAuthors.filter((item) => item.matched).length;
+
+    return {
+      capturedAt: new Date().toISOString(),
+      pageUrl: `${location.origin}${location.pathname}`,
+      cards: cardMetrics,
+      comments: commentMetrics,
+    };
   }
 
   async function run(mode, onProgress) {
@@ -231,6 +419,7 @@
     state.running = true;
     state.stopped = false;
     state.report = null;
+    state.identityIndex = null;
     const startedAt = new Date().toISOString();
     try {
       onProgress('确认知乎登录账号...');
@@ -240,7 +429,7 @@
       }
       const limitProbe = await runLimitProbe(onProgress);
       const report = {
-        schemaVersion: 1,
+        schemaVersion: 2,
         generatedAt: new Date().toISOString(),
         startedAt,
         pageUrl: `${location.origin}${location.pathname}`,
@@ -253,6 +442,9 @@
       };
       if (mode === 'full') {
         report.fullScan = await runFullScan(limitProbe.recommendedLimit, onProgress);
+        state.identityIndex = report.fullScan.completed && report.fullScan.totalsMatch
+          ? report.fullScan.identityIndex
+          : null;
       }
       state.report = report;
       return report;
@@ -290,6 +482,7 @@
         <div class="actions">
           <button class="primary" data-action="probe">快速探测</button>
           <button data-action="full">完整扫描</button>
+          <button data-action="identity" disabled>验证当前页面身份链</button>
           <button data-action="stop" disabled>停止</button>
           <button data-action="download" disabled>下载报告</button>
         </div>
@@ -301,6 +494,7 @@
     const setRunning = (running) => {
       button('probe').disabled = running;
       button('full').disabled = running;
+      button('identity').disabled = running || !state.identityIndex;
       button('stop').disabled = !running;
       button('download').disabled = running || !state.report;
     };
@@ -324,6 +518,22 @@
     };
     button('probe').addEventListener('click', () => execute('probe'));
     button('full').addEventListener('click', () => execute('full'));
+    button('identity').addEventListener('click', async () => {
+      setRunning(true);
+      try {
+        setStatus('正在并行验证 DOM、成员资料与评论接口身份链...');
+        const identityCheck = await scanIdentityChain();
+        state.report.identityChecks = [...(state.report.identityChecks || []), identityCheck];
+        const cards = identityCheck.cards;
+        const comments = identityCheck.comments;
+        setStatus(`身份链：卡片 ${cards.identifiedAuthors}/${cards.attributeNodes} 可识别，命中 ${cards.blockedMatches}；评论 ${comments.identifiedAuthors}/${comments.contentNodes} 可识别，命中 ${comments.blockedMatches}。`, 'success');
+        setRunning(false);
+      } catch (error) {
+        setStatus(`身份链验证失败：${error.message}`, 'error');
+      } finally {
+        setRunning(false);
+      }
+    });
     button('stop').addEventListener('click', () => {
       state.stopped = true;
       setStatus('正在停止，将在当前请求结束后退出...');
