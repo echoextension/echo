@@ -132,13 +132,9 @@
     styleElement = document.createElement('style');
     styleElement.id = 'echo-bili-feed-history-style';
     styleElement.textContent = `
-      .feed-roll-btn.echo-bili-feed-rail{height:90px!important;min-height:90px!important}
-      .feed-roll-btn.echo-bili-feed-rail>.primary-btn.roll-btn{display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;gap:1px!important;width:40px!important;height:42px!important;min-height:42px!important;padding:2px 0!important}
-      .feed-roll-btn.echo-bili-feed-rail>.primary-btn.roll-btn>svg{width:14px!important;height:14px!important;flex:none!important}
-      .feed-roll-btn.echo-bili-feed-rail>.primary-btn.roll-btn>span{font-size:11px!important;line-height:12px!important;white-space:nowrap!important;writing-mode:horizontal-tb!important}
-      .echo-bili-feed-navigation{position:absolute;top:46px;right:0;z-index:4;display:flex;flex-direction:column;gap:3px;width:40px;height:43px;margin:0;pointer-events:none}
-      .echo-bili-feed-navigation button{display:flex;align-items:center;justify-content:center;width:40px;height:20px;padding:0;border:1px solid rgba(251,114,153,.38);border-radius:5px;background:rgba(255,255,255,.96);color:#fb7299;cursor:pointer;pointer-events:auto;box-shadow:0 1px 4px rgba(0,0,0,.08)}
-      .echo-bili-feed-navigation button svg{width:13px;height:13px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+      .echo-bili-feed-navigation{position:absolute;top:calc(100% + 6px);right:0;z-index:4;display:flex;flex-direction:column;gap:4px;width:40px;height:68px;margin:0;pointer-events:none}
+      .echo-bili-feed-navigation button{display:flex;align-items:center;justify-content:center;width:40px;height:32px;padding:0;border:1px solid rgba(251,114,153,.48);border-radius:7px;background:rgba(255,255,255,.97);color:#fb7299;cursor:pointer;pointer-events:auto;box-shadow:0 2px 8px rgba(0,0,0,.1)}
+      .echo-bili-feed-navigation button svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
       .echo-bili-feed-navigation button:hover:not(:disabled){border-color:#fb7299;background:rgba(251,114,153,.12);color:#e85c86}
       .echo-bili-feed-navigation button:active:not(:disabled){background:rgba(251,114,153,.2);transform:translateY(1px)}
       .echo-bili-feed-navigation button:disabled{border-color:#d8dadd;background:rgba(255,255,255,.88);color:#b5b8bd;cursor:not-allowed;box-shadow:none}
@@ -179,8 +175,6 @@
     removeNavigation();
     document.querySelectorAll('.echo-bili-feed-navigation').forEach((item) => item.remove());
     nativeButton = nextNativeButton;
-    nativeButton.closest('.feed-roll-btn')?.classList.add('echo-bili-feed-rail');
-    nativeButton.title = '换一换';
     navigation = document.createElement('div');
     navigation.className = 'echo-bili-feed-navigation';
     const previousButton = createNavigationButton('上一批推荐', 'previous');
@@ -206,7 +200,6 @@
 
   function removeNavigation() {
     if (nativeButton) nativeButton.removeEventListener('click', handleNativeRefresh, true);
-    nativeButton?.closest('.feed-roll-btn')?.classList.remove('echo-bili-feed-rail');
     navigation?.remove();
     navigation = null;
     nativeButton = null;
