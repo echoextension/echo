@@ -53,7 +53,7 @@ This document is divided into three parts: The first part covers architecture an
 
 Site enhancement modules:
 
-- `bili-feed-history/`: captures homepage recommendation batches and renders a structured history layer without replacing Vue-managed nodes.
+- `bili-feed-history/`: captures homepage recommendation batches with a schema-v2 structured model and renders a separate history layer without replacing Vue-managed nodes. The background worker stores state in `chrome.storage.session` by `tabId`, restores it after reload or same-tab return, and clears it when the tab closes.
 - `zhihu-tool/`: manually synchronizes the official blocklist and filters answers and comments by stable user ID; unidentified authors are left untouched.
 
 ---

@@ -774,6 +774,7 @@ chrome.windows.onRemoved.addListener((windowId) => {
  */
 chrome.tabs.onRemoved.addListener(async (tabId, removeInfo) => {
   const { windowId, isWindowClosing } = removeInfo;
+  await chrome.storage.session.remove(`echoBiliFeedHistory:${tabId}`);
   
   // 如果是整个窗口关闭，清理缓存即可
   if (isWindowClosing) {
@@ -896,6 +897,49 @@ chrome.tabs.onRemoved.addListener(async (tabId, removeInfo) => {
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   // DEBUG: 记录所有收到的消息
+  if (message.action === 'loadBiliFeedHistory') {
+    const tabId = sender.tab?.id;
+    if (!tabId) {
+      sendResponse({ ok: false, error: 'Missing tab ID' });
+      return false;
+    }
+    const key = `echoBiliFeedHistory:${tabId}`;
+    chrome.storage.session.get(key).then((result) => {
+      sendResponse({ ok: true, state: result[key] || null });
+    }).catch((error) => sendResponse({ ok: false, error: error.message }));
+    return true;
+  }
+
+  if (message.action === 'saveBiliFeedHistory') {
+    const tabId = sender.tab?.id;
+    if (!tabId) {
+      sendResponse({ ok: false, error: 'Missing tab ID' });
+      return false;
+    }
+    const state = message.state;
+    if (!state || state.schemaVersion !== 2 || !Array.isArray(state.batches)) {
+      sendResponse({ ok: false, error: 'Invalid history state' });
+      return false;
+    }
+    const key = `echoBiliFeedHistory:${tabId}`;
+    chrome.storage.session.set({ [key]: state }).then(() => {
+      sendResponse({ ok: true });
+    }).catch((error) => sendResponse({ ok: false, error: error.message }));
+    return true;
+  }
+
+  if (message.action === 'clearBiliFeedHistory') {
+    const tabId = sender.tab?.id;
+    if (!tabId) {
+      sendResponse({ ok: false, error: 'Missing tab ID' });
+      return false;
+    }
+    chrome.storage.session.remove(`echoBiliFeedHistory:${tabId}`).then(() => {
+      sendResponse({ ok: true });
+    }).catch((error) => sendResponse({ ok: false, error: error.message }));
+    return true;
+  }
+
   // 鼠标手势：右键按下
   if (message.action === 'mouseGestureStart') {
     isRightMouseDown = true;
@@ -2129,10 +2173,16 @@ async function ensureBiliFeedHistoryInjected() {
   }
 }
 
+async function clearAllBiliFeedHistorySessions() {
+  const stored = await chrome.storage.session.get(null);
+  const keys = Object.keys(stored).filter((key) => key.startsWith('echoBiliFeedHistory:'));
+  if (keys.length) await chrome.storage.session.remove(keys);
+}
+
 chrome.storage.onChanged.addListener((changes, areaName) => {
-  if (areaName === 'sync' && changes.biliFeedHistory?.newValue) {
-    ensureBiliFeedHistoryInjected();
-  }
+  if (areaName !== 'sync' || !changes.biliFeedHistory) return;
+  if (changes.biliFeedHistory.newValue) ensureBiliFeedHistoryInjected();
+  else clearAllBiliFeedHistorySessions();
 });
 
 ensureBiliFeedHistoryInjected();
