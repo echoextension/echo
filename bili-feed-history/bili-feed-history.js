@@ -106,10 +106,13 @@
     styleElement = document.createElement('style');
     styleElement.id = 'echo-bili-feed-history-style';
     styleElement.textContent = `
-      .echo-bili-feed-navigation{position:absolute;top:0;right:48px;z-index:3;display:flex;flex-direction:column;gap:6px;width:40px;margin:0}
+      .echo-bili-feed-navigation{position:absolute;inset:0;z-index:3;width:40px;height:100%;pointer-events:none}
       .echo-bili-feed-navigation button{display:flex;align-items:center;justify-content:center;width:40px;height:32px;padding:0;border:1px solid var(--line_regular,#e3e5e7);border-radius:6px;background:var(--bg1,#fff);color:var(--text2,#61666d);cursor:pointer;font-size:18px;line-height:1;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+      .echo-bili-feed-navigation button{position:absolute;left:0;pointer-events:auto}
+      .echo-bili-feed-navigation [data-action="previous"]{top:-38px}
+      .echo-bili-feed-navigation [data-action="next"]{bottom:-38px}
       .echo-bili-feed-navigation button:hover:not(:disabled){border-color:#00aeec;color:#00aeec;background:#e3f7ff}
-      .echo-bili-feed-navigation button:disabled{opacity:.38;cursor:default}
+      .echo-bili-feed-navigation button:disabled{opacity:.58;cursor:default}
       .echo-bili-feed-overlay{position:absolute;inset:0;z-index:20;pointer-events:none}
       .echo-bili-history-card{position:absolute;overflow:hidden;background:var(--bg1,#fff);color:var(--text1,#18191c);pointer-events:auto}
       .echo-bili-history-card a{color:inherit;text-decoration:none}
@@ -149,7 +152,7 @@
     previousButton.addEventListener('click', () => navigate(-1));
     nextButton.addEventListener('click', () => navigate(1));
     navigation.append(previousButton, nextButton);
-    nativeButton.closest('.feed-roll-btn')?.before(navigation);
+    nativeButton.closest('.feed-roll-btn')?.appendChild(navigation);
     nativeButton.addEventListener('click', handleNativeRefresh, true);
     updateNavigation();
     return true;
