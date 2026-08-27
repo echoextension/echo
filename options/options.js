@@ -961,7 +961,10 @@ async function initZhihuBlocklistSync() {
     status.dataset.state = 'working';
     port = chrome.runtime.connect({ name: 'echo-zhihu-blocklist-sync' });
     port.onMessage.addListener((message) => {
-      if (message.type === 'progress') {
+      if (message.type === 'status') {
+        status.textContent = message.message;
+        status.dataset.state = 'working';
+      } else if (message.type === 'progress') {
         status.textContent = `正在同步 ${message.current} / ${message.total || '...'} 人`;
       } else if (message.type === 'complete') {
         status.textContent = `已同步 ${message.total} 人 · ${new Date(message.syncedAt).toLocaleString()}`;

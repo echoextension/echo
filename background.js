@@ -2081,7 +2081,10 @@ chrome.runtime.onConnect.addListener((optionsPort) => {
   if (optionsPort.name !== 'echo-zhihu-blocklist-sync') return;
 
   let workerPort = null;
+  let temporaryTabId = null;
   let disconnected = false;
+  let cancelRequested = false;
+  let workerFinished = false;
 
   const post = (message) => {
     if (!disconnected) {
@@ -2089,14 +2092,22 @@ chrome.runtime.onConnect.addListener((optionsPort) => {
     }
   };
 
+  const closeTemporaryTab = () => {
+    if (!temporaryTabId) return;
+    const tabId = temporaryTabId;
+    temporaryTabId = null;
+    chrome.tabs.remove(tabId).catch(() => {});
+  };
+
   const connectWorker = (tabId) => new Promise((resolve, reject) => {
     const port = chrome.tabs.connect(tabId, { name: 'echo-zhihu-blocklist-worker' });
     let settled = false;
+    let timer = null;
 
     const finish = (outcome) => {
       if (settled) return;
       settled = true;
-      clearTimeout(timer);
+      if (timer) clearTimeout(timer);
       port.onMessage.removeListener(onMessage);
       port.onDisconnect.removeListener(onDisconnect);
       if (outcome instanceof Error) reject(outcome);
@@ -2110,19 +2121,85 @@ chrome.runtime.onConnect.addListener((optionsPort) => {
     };
 
     const onDisconnect = () => {
-      finish(new Error('知乎页面连接已断开，请刷新页面后重试'));
+      finish(new Error(chrome.runtime.lastError?.message || '知乎页面无法接收同步连接'));
     };
-
-    const timer = setTimeout(() => {
-      finish(new Error('连接知乎页面超时，请确认已打开并登录知乎 www.zhihu.com'));
-    }, 15000);
 
     port.onMessage.addListener(onMessage);
     port.onDisconnect.addListener(onDisconnect);
+    timer = setTimeout(() => {
+      try { port.disconnect(); } catch (e) {}
+      finish(new Error('知乎页面未响应同步连接'));
+    }, 3000);
+    try {
+      port.postMessage({ type: 'ping' });
+    } catch (error) {
+      finish(error);
+    }
   });
+
+  const waitForTabReady = async (tabId) => {
+    const tab = await chrome.tabs.get(tabId);
+    if (tab.status === 'complete') return;
+    await new Promise((resolve, reject) => {
+      let timer = null;
+      const cleanup = () => {
+        if (timer) clearTimeout(timer);
+        chrome.tabs.onUpdated.removeListener(onUpdated);
+        chrome.tabs.onRemoved.removeListener(onRemoved);
+      };
+      const onUpdated = (updatedTabId, changeInfo) => {
+        if (updatedTabId !== tabId || changeInfo.status !== 'complete') return;
+        cleanup();
+        resolve();
+      };
+      const onRemoved = (removedTabId) => {
+        if (removedTabId !== tabId) return;
+        cleanup();
+        reject(new Error('自动打开的知乎页面已被关闭'));
+      };
+      chrome.tabs.onUpdated.addListener(onUpdated);
+      chrome.tabs.onRemoved.addListener(onRemoved);
+      timer = setTimeout(() => {
+        cleanup();
+        reject(new Error('自动打开知乎页面超时'));
+      }, 30000);
+    });
+  };
+
+  const acquireWorker = async () => {
+    const tabs = await chrome.tabs.query({ url: ['https://www.zhihu.com/*'] });
+    tabs.sort((left, right) => Number(right.active) - Number(left.active)
+      || (right.lastAccessed || 0) - (left.lastAccessed || 0));
+    for (const tab of tabs) {
+      if (!tab.id || cancelRequested || disconnected) continue;
+      try {
+        return await connectWorker(tab.id);
+      } catch (error) {}
+    }
+
+    if (cancelRequested || disconnected) throw new DOMException('同步已取消', 'AbortError');
+    post({ type: 'status', message: '正在自动打开知乎同步页面...' });
+    const tab = await chrome.tabs.create({ url: 'https://www.zhihu.com/', active: false });
+    if (!tab.id) throw new Error('无法自动打开知乎同步页面');
+    temporaryTabId = tab.id;
+    await waitForTabReady(tab.id);
+    const startedAt = Date.now();
+    let lastError = null;
+    while (!cancelRequested && !disconnected && Date.now() - startedAt < 10000) {
+      try {
+        return await connectWorker(tab.id);
+      } catch (error) {
+        lastError = error;
+        await new Promise((resolve) => setTimeout(resolve, 250));
+      }
+    }
+    if (cancelRequested || disconnected) throw new DOMException('同步已取消', 'AbortError');
+    throw lastError || new Error('自动打开的知乎页面无法启动同步组件');
+  };
 
   optionsPort.onMessage.addListener(async (message) => {
     if (message?.action === 'cancel') {
+      cancelRequested = true;
       if (zhihuSyncOwnerPort === optionsPort) {
         try { workerPort?.postMessage({ action: 'cancel' }); } catch (e) {}
       }
@@ -2135,21 +2212,26 @@ chrome.runtime.onConnect.addListener((optionsPort) => {
     }
     zhihuSyncInProgress = true;
     zhihuSyncOwnerPort = optionsPort;
+    cancelRequested = false;
+    workerFinished = false;
     try {
-      const tabs = await chrome.tabs.query({ url: ['https://www.zhihu.com/*'] });
-      const tab = tabs.find((item) => item.active) || tabs[0];
-      if (!tab?.id) {
+      workerPort = await acquireWorker();
+      if (cancelRequested || disconnected) {
+        workerFinished = true;
         zhihuSyncInProgress = false;
         zhihuSyncOwnerPort = null;
-        post({ type: 'error', message: '请先打开并登录知乎 www.zhihu.com' });
+        try { workerPort.disconnect(); } catch (e) {}
+        closeTemporaryTab();
+        if (!disconnected) post({ type: 'cancelled', message: '同步已取消，仍保留上次成功名单' });
         return;
       }
-      workerPort = await connectWorker(tab.id);
       workerPort.onMessage.addListener((workerMessage) => {
         post(workerMessage);
         if (zhihuSyncOwnerPort === optionsPort && ['complete', 'error', 'cancelled'].includes(workerMessage?.type)) {
+          workerFinished = true;
           zhihuSyncInProgress = false;
           zhihuSyncOwnerPort = null;
+          closeTemporaryTab();
         }
       });
       workerPort.onDisconnect.addListener(() => {
@@ -2157,9 +2239,10 @@ chrome.runtime.onConnect.addListener((optionsPort) => {
           zhihuSyncInProgress = false;
           zhihuSyncOwnerPort = null;
         }
-        if (!disconnected) {
-          post({ type: 'error', message: '知乎页面连接已断开，请刷新页面后重试' });
+        if (!disconnected && !workerFinished) {
+          post({ type: 'error', message: '同步执行页面已关闭，仍保留上次成功名单' });
         }
+        closeTemporaryTab();
         workerPort = null;
       });
       workerPort.postMessage({ action: 'start' });
@@ -2168,12 +2251,19 @@ chrome.runtime.onConnect.addListener((optionsPort) => {
         zhihuSyncInProgress = false;
         zhihuSyncOwnerPort = null;
       }
-      post({ type: 'error', message: error.message || '无法连接知乎页面' });
+      closeTemporaryTab();
+      if (error?.name === 'AbortError') {
+        post({ type: 'cancelled', message: '同步已取消，仍保留上次成功名单' });
+      } else {
+        post({ type: 'error', message: error.message || '无法启动知乎同步' });
+      }
     }
   });
 
   optionsPort.onDisconnect.addListener(() => {
     disconnected = true;
+    cancelRequested = true;
+    workerFinished = true;
     if (zhihuSyncOwnerPort === optionsPort) {
       zhihuSyncInProgress = false;
       zhihuSyncOwnerPort = null;
@@ -2181,6 +2271,7 @@ chrome.runtime.onConnect.addListener((optionsPort) => {
     }
     workerPort?.disconnect();
     workerPort = null;
+    closeTemporaryTab();
   });
 });
 
