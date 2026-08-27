@@ -179,9 +179,14 @@
   chrome.runtime.onConnect.addListener((port) => {
     if (port.name !== 'echo-zhihu-blocklist-worker' || location.hostname !== 'www.zhihu.com') return;
     port.onMessage.addListener((message) => {
+      if (message?.type === 'ping') {
+        port.postMessage({ type: 'ready' });
+        return;
+      }
       if (message?.action === 'start') syncBlocklist(port);
       if (message?.action === 'cancel') syncCancelled = true;
     });
+    port.postMessage({ type: 'ready' });
   });
 
   function ensureStyles() {
@@ -189,8 +194,8 @@
     styleElement = document.createElement('style');
     styleElement.id = 'echo-zhihu-blocklist-style';
     styleElement.textContent = `
-      .echo-zhihu-blocked-content{display:none!important}
-      .echo-zhihu-blocked-placeholder{display:flex;width:100%;align-items:center;justify-content:center;min-height:36px;padding:8px 12px;border:0;border-top:1px solid rgba(133,144,166,.18);border-bottom:1px solid rgba(133,144,166,.18);background:rgba(133,144,166,.06);color:#8491a5;font:14px/20px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;cursor:pointer}
+      .echo-zhihu-blocked-content{display:block}
+      .echo-zhihu-blocked-placeholder{display:flex;width:100%;align-items:center;justify-content:center;min-height:32px;padding:6px 12px;border:0;border-top:1px solid rgba(133,144,166,.18);border-bottom:1px solid rgba(133,144,166,.18);background:rgba(133,144,166,.06);color:#8491a5;font:13px/18px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;cursor:pointer}
       .echo-zhihu-blocked-placeholder:hover{background:rgba(0,102,255,.06);color:#175199}
       .echo-zhihu-blocked-placeholder[data-revealed="true"]{border-color:rgba(0,102,255,.2);color:#175199}
     `;
@@ -221,7 +226,7 @@
   function hideContainer(container) {
     if (!container || container.dataset.echoZhihuProcessed) return;
     container.dataset.echoZhihuProcessed = 'blocked';
-    container.classList.add('echo-zhihu-blocked-content');
+    container.dataset.echoZhihuDisplay = container.style.display || '';
     const placeholder = document.createElement('button');
     placeholder.type = 'button';
     placeholder.className = 'echo-zhihu-blocked-placeholder';
@@ -229,9 +234,16 @@
     placeholder.addEventListener('click', () => {
       const revealed = placeholder.dataset.revealed !== 'true';
       placeholder.dataset.revealed = String(revealed);
-      container.classList.toggle('echo-zhihu-blocked-content', !revealed);
-      placeholder.textContent = revealed ? '正在临时查看 · 重新隐藏' : '已隐藏黑名单用户内容 · 临时查看';
+      if (revealed) {
+        container.style.display = container.dataset.echoZhihuDisplay || '';
+        placeholder.textContent = '已隐藏黑名单用户内容 · 临时查看';
+        placeholder.remove();
+        return;
+      }
+      container.style.display = 'none';
+      placeholder.textContent = '正在临时查看 · 重新隐藏';
     });
+    container.style.display = 'none';
     container.before(placeholder);
   }
 
@@ -331,6 +343,8 @@
     currentSnapshot = null;
     document.querySelectorAll('.echo-zhihu-blocked-placeholder').forEach((item) => item.remove());
     document.querySelectorAll('[data-echo-zhihu-processed]').forEach((item) => {
+      item.style.display = item.dataset.echoZhihuDisplay || '';
+      delete item.dataset.echoZhihuDisplay;
       item.classList.remove('echo-zhihu-blocked-content');
       delete item.dataset.echoZhihuProcessed;
     });

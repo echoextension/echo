@@ -2089,6 +2089,38 @@ chrome.runtime.onConnect.addListener((optionsPort) => {
     }
   };
 
+  const connectWorker = (tabId) => new Promise((resolve, reject) => {
+    const port = chrome.tabs.connect(tabId, { name: 'echo-zhihu-blocklist-worker' });
+    let settled = false;
+
+    const finish = (outcome) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      port.onMessage.removeListener(onMessage);
+      port.onDisconnect.removeListener(onDisconnect);
+      if (outcome instanceof Error) reject(outcome);
+      else resolve(port);
+    };
+
+    const onMessage = (message) => {
+      if (message?.type === 'ready') {
+        finish(port);
+      }
+    };
+
+    const onDisconnect = () => {
+      finish(new Error('知乎页面连接已断开，请刷新页面后重试'));
+    };
+
+    const timer = setTimeout(() => {
+      finish(new Error('连接知乎页面超时，请确认已打开并登录知乎 www.zhihu.com'));
+    }, 15000);
+
+    port.onMessage.addListener(onMessage);
+    port.onDisconnect.addListener(onDisconnect);
+  });
+
   optionsPort.onMessage.addListener(async (message) => {
     if (message?.action === 'cancel') {
       if (zhihuSyncOwnerPort === optionsPort) {
@@ -2112,7 +2144,7 @@ chrome.runtime.onConnect.addListener((optionsPort) => {
         post({ type: 'error', message: '请先打开并登录知乎 www.zhihu.com' });
         return;
       }
-      workerPort = chrome.tabs.connect(tab.id, { name: 'echo-zhihu-blocklist-worker' });
+      workerPort = await connectWorker(tab.id);
       workerPort.onMessage.addListener((workerMessage) => {
         post(workerMessage);
         if (zhihuSyncOwnerPort === optionsPort && ['complete', 'error', 'cancelled'].includes(workerMessage?.type)) {
@@ -2125,7 +2157,7 @@ chrome.runtime.onConnect.addListener((optionsPort) => {
           zhihuSyncInProgress = false;
           zhihuSyncOwnerPort = null;
         }
-        if (chrome.runtime.lastError && !disconnected) {
+        if (!disconnected) {
           post({ type: 'error', message: '知乎页面连接已断开，请刷新页面后重试' });
         }
         workerPort = null;
