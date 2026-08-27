@@ -10,7 +10,7 @@
   window.__ECHO_BILI_FEED_HISTORY_ACTIVE__ = true;
 
   const SETTING_KEY = 'biliFeedHistory';
-  const SCHEMA_VERSION = 2;
+  const SCHEMA_VERSION = 3;
   const MAX_BATCHES = 10;
   const CARD_SELECTOR = '.feed-card';
   const NATIVE_BUTTON_SELECTOR = '.feed-roll-btn .primary-btn.roll-btn';
@@ -31,6 +31,7 @@
   let resizeObserver = null;
   let settleVersion = 0;
   let initialSettleRunning = false;
+  let initialSettleCompleted = false;
   let overlay = null;
   let styleElement = null;
   let persistTimer = 0;
@@ -81,7 +82,15 @@
     }
   }
 
+  function getPresentationKind(node) {
+    if (!node?.querySelector('.bili-video-card__wrap')) return '';
+    const directStatsLabel = node.querySelector('.bili-video-card__stats > .bili-video-card__stats--text');
+    return node.querySelector('.bili-video-card__info--owner.disable-hover') || directStatsLabel ? 'ad' : 'video';
+  }
+
   function extractCard(node) {
+    const presentationKind = getPresentationKind(node);
+    if (!presentationKind) return null;
     const links = [...node.querySelectorAll('a[href]')];
     const targetLink = node.querySelector('.bili-video-card__image--link[href], .bili-video-card__info--tit[href]')
       || links.find((link) => /\/video\/|\/bangumi\/play\/|live\.bilibili\.com/.test(link.getAttribute('href') || ''))
@@ -95,7 +104,9 @@
     const statText = (item) => (item?.querySelector('.bili-video-card__stats--text')?.textContent || item?.textContent || '').trim();
     const authorLink = node.querySelector('.bili-video-card__info--owner[href]');
     const authorName = textFrom(node, ['.bili-video-card__info--author']);
-    const authorLabel = (authorLink?.textContent || authorName).trim().replace(/\s+/g, ' ');
+    const dateLabel = textFrom(node, ['.bili-video-card__info--date']);
+    const badgeText = textFrom(node, ['.bili-video-card__info--icon-text']);
+    const adLabel = textFrom(node, ['.bili-video-card__stats > .bili-video-card__stats--text']);
 
     return {
       schemaVersion: SCHEMA_VERSION,
@@ -105,8 +116,16 @@
       title: textFrom(node, ['.bili-video-card__info--tit', 'h3', '[title]']),
       author: {
         name: authorName,
-        label: authorLabel,
         url: normalizeUrl(authorLink?.getAttribute('href')),
+      },
+      dateLabel,
+      presentation: {
+        kind: presentationKind,
+        videoCardClass: node.querySelector('.bili-video-card')?.className || '',
+        authorLinkClass: authorLink?.className || '',
+        hasAuthorIcon: Boolean(authorLink?.querySelector('.bili-video-card__info--owner__up')),
+        badgeText,
+        adLabel,
       },
       duration: textFrom(node, ['.bili-video-card__stats__duration', '.bili-video-card__stats--duration', '[class*="duration"]']),
       metrics: {
@@ -116,8 +135,13 @@
     };
   }
 
+  function getFeedSlots() {
+    return [...document.querySelectorAll(CARD_SELECTOR)]
+      .filter((slot) => !slot.closest('.echo-bili-feed-overlay'));
+  }
+
   function captureBatch() {
-    const slots = [...document.querySelectorAll(CARD_SELECTOR)];
+    const slots = getFeedSlots();
     const cards = slots.map(extractCard);
     return {
       slots,
@@ -139,14 +163,8 @@
       .echo-bili-feed-navigation button:active:not(:disabled){background:rgba(251,114,153,.2);transform:translateY(1px)}
       .echo-bili-feed-navigation button:disabled{border-color:#d8dadd;background:rgba(255,255,255,.88);color:#b5b8bd;cursor:not-allowed;box-shadow:none}
       .echo-bili-feed-overlay{position:absolute;inset:0;z-index:20;pointer-events:none}
-      .echo-bili-history-card{position:absolute;overflow:hidden;background:var(--bg1,#fff);color:var(--text1,#18191c);pointer-events:auto}
-      .echo-bili-history-card a{color:inherit;text-decoration:none}
-      .echo-bili-history-cover{position:relative;width:100%;aspect-ratio:16/9;overflow:hidden;border-radius:6px;background:var(--graph_bg_regular,#f1f2f3)}
-      .echo-bili-history-cover img{display:block;width:100%;height:100%;object-fit:cover}
-      .echo-bili-history-duration{position:absolute;right:6px;bottom:6px;padding:1px 4px;border-radius:3px;background:rgba(0,0,0,.65);color:#fff;font-size:12px;line-height:18px}
-      .echo-bili-history-metrics{position:absolute;bottom:6px;left:6px;display:flex;gap:8px;color:#fff;font-size:12px;line-height:18px;text-shadow:0 1px 2px rgba(0,0,0,.9)}
-      .echo-bili-history-title{display:-webkit-box;overflow:hidden;margin-top:8px;font-size:15px;font-weight:500;line-height:22px;-webkit-line-clamp:2;-webkit-box-orient:vertical}
-      .echo-bili-history-author{display:block;overflow:hidden;margin-top:5px;color:var(--text3,#9499a0);font-size:13px;line-height:18px;text-overflow:ellipsis;white-space:nowrap}
+      .echo-bili-history-card,.echo-bili-history-empty-slot{position:absolute!important;margin:0!important}
+      .echo-bili-history-card{pointer-events:auto}
       @media (prefers-color-scheme:dark){.echo-bili-feed-navigation button{background:rgba(30,30,34,.96);border-color:rgba(251,114,153,.48)}.echo-bili-feed-navigation button:disabled{border-color:#4b4f55;background:rgba(30,30,34,.88);color:#686d73}}
     `;
     document.head.appendChild(styleElement);
@@ -194,6 +212,7 @@
     navigation.append(previousButton, nextButton);
     nativeButton.closest('.feed-roll-btn')?.appendChild(navigation);
     nativeButton.addEventListener('click', handleNativeRefresh, true);
+    if (initialSettleCompleted) navigation.dataset.initialState = 'complete';
     updateNavigation();
     return true;
   }
@@ -270,7 +289,7 @@
 
   function positionOverlay() {
     if (!overlay) return;
-    const slots = [...document.querySelectorAll(CARD_SELECTOR)];
+    const slots = getFeedSlots();
     const renderedCards = [...overlay.children];
     slots.forEach((slot, index) => {
       const card = renderedCards[index];
@@ -283,10 +302,137 @@
     });
   }
 
+  function setLink(link, url) {
+    if (!link) return;
+    if (url) link.href = url;
+    else link.removeAttribute('href');
+  }
+
+  function createHistoryCard(templateSlot, data) {
+    if (!templateSlot?.querySelector('.bili-video-card__wrap')) return null;
+
+    const card = templateSlot.cloneNode(true);
+    card.classList.add('echo-bili-history-card');
+    card.removeAttribute('data-echo-history-hidden');
+    card.style.visibility = '';
+    card.querySelectorAll('[id]').forEach((item) => item.removeAttribute('id'));
+    card.querySelectorAll('.bili-video-card__no-interest,.bili-video-card__info--no-interest,.bili-watch-later--wrap,.v-inline-player')
+      .forEach((item) => item.remove());
+
+    const videoCard = card.querySelector('.bili-video-card');
+    if (videoCard && data.presentation?.videoCardClass) {
+      videoCard.className = data.presentation.videoCardClass;
+    }
+
+    card.querySelectorAll('.bili-video-card__image--link,.bili-video-card__info--tit a')
+      .forEach((link) => setLink(link, data.url));
+
+    const image = card.querySelector('.bili-video-card__cover img,.bili-video-card__image img');
+    if (image) {
+      image.closest('picture')?.querySelectorAll('source').forEach((source) => source.remove());
+      image.removeAttribute('srcset');
+      image.removeAttribute('data-src');
+      if (data.coverUrl) image.src = data.coverUrl;
+      else image.removeAttribute('src');
+      image.hidden = !data.coverUrl;
+      image.alt = data.title || '';
+    }
+
+    const presentationKind = data.presentation?.kind || 'video';
+    const stats = card.querySelector('.bili-video-card__stats');
+    const statsLeft = stats?.querySelector('.bili-video-card__stats--left');
+    const directStatsLabel = stats?.querySelector(':scope > .bili-video-card__stats--text');
+    const duration = stats?.querySelector('.bili-video-card__stats__duration,.bili-video-card__stats--duration');
+    if (presentationKind === 'ad') {
+      statsLeft?.replaceChildren();
+      duration?.remove();
+      const adLabel = directStatsLabel || document.createElement('span');
+      adLabel.className = 'bili-video-card__stats--text';
+      adLabel.textContent = data.presentation?.adLabel || '';
+      adLabel.hidden = !data.presentation?.adLabel;
+      if (!directStatsLabel) stats?.appendChild(adLabel);
+    } else {
+      directStatsLabel?.remove();
+      const statItems = [...card.querySelectorAll('.bili-video-card__stats--left .bili-video-card__stats--item')];
+      const statValues = [data.metrics?.playCount, data.metrics?.danmakuCount];
+      statItems.forEach((item, index) => {
+        const text = item.querySelector('.bili-video-card__stats--text');
+        if (text) text.textContent = statValues[index] || '';
+        item.hidden = !statValues[index];
+      });
+      if (duration) {
+        duration.textContent = data.duration || '';
+        duration.hidden = !data.duration;
+      }
+    }
+
+    const title = card.querySelector('.bili-video-card__info--tit');
+    if (title) title.title = data.title || '';
+    const titleLink = title?.querySelector('a');
+    if (titleLink) titleLink.textContent = data.title || '';
+
+    const authorLink = card.querySelector('.bili-video-card__info--owner');
+    setLink(authorLink, data.author?.url);
+    if (authorLink && data.presentation?.authorLinkClass) {
+      authorLink.className = data.presentation.authorLinkClass;
+    }
+    if (!data.presentation?.hasAuthorIcon) {
+      authorLink?.querySelector('.bili-video-card__info--owner__up')?.remove();
+    }
+    const author = card.querySelector('.bili-video-card__info--author');
+    if (author) {
+      author.textContent = data.author?.name || '';
+      author.title = data.author?.name || '';
+    }
+
+    const date = card.querySelector('.bili-video-card__info--date');
+    if (date) {
+      date.textContent = data.dateLabel || '';
+      date.hidden = !data.dateLabel;
+    }
+
+    const infoBottom = card.querySelector('.bili-video-card__info--bottom');
+    const currentBadge = infoBottom?.querySelector('.bili-video-card__info--icon-text');
+    if (presentationKind === 'video' && data.presentation?.badgeText) {
+      const badge = currentBadge || document.createElement('div');
+      badge.className = 'bili-video-card__info--icon-text';
+      badge.textContent = data.presentation.badgeText;
+      if (!currentBadge) infoBottom?.prepend(badge);
+    } else {
+      currentBadge?.remove();
+    }
+
+    return card;
+  }
+
+  function createEmptyHistorySlot() {
+    const slot = document.createElement('div');
+    slot.className = 'echo-bili-history-empty-slot';
+    return slot;
+  }
+
+  function isCompatibleTemplate(slot, data) {
+    if (!slot || !data) return false;
+    const presentationKind = data.presentation?.kind || 'video';
+    if (getPresentationKind(slot) !== presentationKind) return false;
+    if (presentationKind === 'ad') return true;
+
+    const requiredStats = [data.metrics?.playCount, data.metrics?.danmakuCount].filter(Boolean).length;
+    if (slot.querySelectorAll('.bili-video-card__stats--left .bili-video-card__stats--item').length < requiredStats) {
+      return false;
+    }
+    if (data.duration && !slot.querySelector('.bili-video-card__stats__duration,.bili-video-card__stats--duration')) {
+      return false;
+    }
+    if (data.dateLabel && !slot.querySelector('.bili-video-card__info--date')) return false;
+    if (data.presentation?.hasAuthorIcon && !slot.querySelector('.bili-video-card__info--owner__up')) return false;
+    return true;
+  }
+
   function renderHistoryBatch() {
     removeOverlay();
     if (currentIndex === batches.length - 1) return;
-    const slots = [...document.querySelectorAll(CARD_SELECTOR)];
+    const slots = getFeedSlots();
     const batch = batches[currentIndex];
     if (!slots.length || !batch) return;
 
@@ -294,60 +440,19 @@
     overlay.className = 'echo-bili-feed-overlay';
     document.body.appendChild(overlay);
     slots.forEach((slot, index) => {
+      const data = batch.cards[index];
+      const presentationKind = data?.presentation?.kind || 'video';
+      const compatibleTemplate = isCompatibleTemplate(slot, data)
+        ? slot
+        : slots.find((candidate) => isCompatibleTemplate(candidate, data));
+      const fallbackTemplate = presentationKind === 'ad'
+        ? slots.find((candidate) => getPresentationKind(candidate) === 'video')
+        : null;
+      const template = compatibleTemplate || fallbackTemplate;
+      const card = data ? createHistoryCard(template, data) : null;
       slot.style.visibility = 'hidden';
       slot.dataset.echoHistoryHidden = 'true';
-      const data = batch.cards[index];
-      const card = document.createElement('article');
-      card.className = 'echo-bili-history-card';
-      if (data) {
-        const contentLink = document.createElement('a');
-        contentLink.href = data.url;
-        const cover = document.createElement('div');
-        cover.className = 'echo-bili-history-cover';
-        if (data.coverUrl) {
-          const image = document.createElement('img');
-          image.src = data.coverUrl;
-          image.alt = '';
-          cover.appendChild(image);
-        }
-        const metrics = document.createElement('span');
-        metrics.className = 'echo-bili-history-metrics';
-        if (data.metrics?.playCount) {
-          const playCount = document.createElement('span');
-          playCount.textContent = `播放 ${data.metrics.playCount}`;
-          metrics.appendChild(playCount);
-        }
-        if (data.metrics?.danmakuCount) {
-          const danmakuCount = document.createElement('span');
-          danmakuCount.textContent = `弹幕 ${data.metrics.danmakuCount}`;
-          metrics.appendChild(danmakuCount);
-        }
-        if (metrics.children.length) cover.appendChild(metrics);
-        if (data.duration) {
-          const duration = document.createElement('span');
-          duration.className = 'echo-bili-history-duration';
-          duration.textContent = data.duration;
-          cover.appendChild(duration);
-        }
-        const title = document.createElement('div');
-        title.className = 'echo-bili-history-title';
-        title.textContent = data.title || 'B站推荐内容';
-        contentLink.append(cover, title);
-        card.appendChild(contentLink);
-
-        const author = document.createElement('span');
-        author.className = 'echo-bili-history-author';
-        author.textContent = data.author?.label || data.author?.name || '';
-        if (data.author?.url) {
-          const authorLink = document.createElement('a');
-          authorLink.href = data.author.url;
-          authorLink.appendChild(author);
-          card.appendChild(authorLink);
-        } else {
-          card.appendChild(author);
-        }
-      }
-      overlay.appendChild(card);
+      overlay.appendChild(card || createEmptyHistorySlot());
     });
     positionOverlay();
     window.addEventListener('scroll', positionOverlay, true);
@@ -385,7 +490,7 @@
   }
 
   async function settleInitialBatch(version) {
-    if (initialSettleRunning) return;
+    if (initialSettleRunning || initialSettleCompleted) return;
     initialSettleRunning = true;
     if (navigation) navigation.dataset.initialState = 'waiting';
     const startedAt = performance.now();
@@ -406,12 +511,14 @@
         const preserveCurrentIndex = restoredFromSession && currentIndex < batches.length - 1;
         saveBatch(batch, { preserveCurrentIndex });
         restoredFromSession = false;
+        initialSettleCompleted = true;
         if (navigation) navigation.dataset.initialState = 'complete';
         initialSettleRunning = false;
         return;
       }
     }
-    if (navigation) navigation.dataset.initialState = batches.length ? 'complete' : 'timeout';
+    if (batches.length) initialSettleCompleted = true;
+    if (navigation) navigation.dataset.initialState = initialSettleCompleted ? 'complete' : 'timeout';
     initialSettleRunning = false;
   }
 
@@ -454,7 +561,7 @@
 
   function bindFeedObserver() {
     feedObserver?.disconnect();
-    const container = document.querySelector(CARD_SELECTOR)?.parentElement;
+    const container = getFeedSlots()[0]?.parentElement;
     if (!container) return;
     feedObserverRoot = container;
     feedObserver = new MutationObserver(() => {
@@ -480,10 +587,11 @@
     ensureStyles();
     const waitForPage = () => {
       if (!enabled) return;
-      if (injectNavigation() && document.querySelectorAll(CARD_SELECTOR).length) {
-        const currentFeedRoot = document.querySelector(CARD_SELECTOR)?.parentElement;
+      if (injectNavigation() && getFeedSlots().length) {
+        const currentFeedRoot = getFeedSlots()[0]?.parentElement;
         const currentControlRoot = nativeButton?.closest('.feed2') || document.querySelector('.feed2');
         if (feedObserverRoot !== currentFeedRoot || controlObserverRoot !== currentControlRoot) {
+          if (feedObserverRoot && feedObserverRoot !== currentFeedRoot) initialSettleCompleted = false;
           bindFeedObserver();
         }
         settleInitialBatch(settleVersion);
@@ -511,6 +619,7 @@
     currentIndex = -1;
     restoredFromSession = false;
     initialSettleRunning = false;
+    initialSettleCompleted = false;
     clearPersistedState();
     styleElement?.remove();
     styleElement = null;

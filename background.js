@@ -917,7 +917,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       return false;
     }
     const state = message.state;
-    if (!state || state.schemaVersion !== 2 || !Array.isArray(state.batches)) {
+    if (!state || state.schemaVersion !== 3 || !Array.isArray(state.batches)) {
       sendResponse({ ok: false, error: 'Invalid history state' });
       return false;
     }

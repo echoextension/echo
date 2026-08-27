@@ -49,7 +49,7 @@
 
 站点增强模块包括：
 
-- `bili-feed-history/`：捕获首页推荐批次，使用 schema v2 结构化数据渲染独立历史层，不替换 B站 Vue 节点；通过后台按 `tabId` 写入 `chrome.storage.session`，支持刷新和同标签返回恢复，标签关闭时清理。
+- `bili-feed-history/`：捕获首页推荐批次，使用 schema v3 结构化数据保存内容与原生展示变体；历史层从当前页面克隆兼容的 B站原生卡片结构作为运行时模板，只替换历史字段，不保存站点 HTML，也不替换 B站 Vue 节点；通过后台按 `tabId` 写入 `chrome.storage.session`，支持刷新和同标签返回恢复，标签关闭时清理。
 - `zhihu-tool/`：手动同步官方黑名单，以稳定用户 ID 过滤回答与评论；无法识别作者时放行。
 
 ---
