@@ -15,14 +15,14 @@ const DEFAULT_SETTINGS = {
   bossKey: true,
   quickMute: true,
   fineZoom: true,
-  superDrag: false,
+  superDrag: true,
   superDragActivate: false,    // 拖拽产生的标签是否立即激活，默认关闭（即后台打开）
   tabSwitchKey: true,          // F2/F3 切换标签，默认开启
   floatingSearchBox: true,     // 悬浮搜索框（实验室），默认开启
   floatingSearchBoxAlwaysShow: false,  // 悬浮搜索框常驻显示，默认关闭
   floatingSearchBoxTrending: false,    // 悬浮搜索框热搜榜，默认关闭
   biliTool: true,                      // B站视频优化工具，默认开启
-  biliFeedHistory: false,              // B站推荐回退，默认关闭
+  biliFeedHistory: true,               // B站推荐回退，默认开启
   zhihuBlocklistFilter: false,         // 知乎黑名单内容过滤，默认关闭
   customBookmarkBar: false,    // 自绘书签栏（已隐藏），默认关闭
   bookmarkBarPinned: true,     // 书签栏是否固定显示（已隐藏）
@@ -2280,7 +2280,7 @@ chrome.runtime.onConnect.addListener((optionsPort) => {
 // ============================================
 
 async function ensureBiliFeedHistoryInjected() {
-  const settings = await chrome.storage.sync.get({ biliFeedHistory: false });
+  const settings = await chrome.storage.sync.get({ biliFeedHistory: true });
   if (!settings.biliFeedHistory) return;
   const tabs = await chrome.tabs.query({ url: ['https://www.bilibili.com/*'] });
   for (const tab of tabs) {

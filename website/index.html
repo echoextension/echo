@@ -4,21 +4,23 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ECHO 易可 — 让 Edge 更懂中国用户</title>
-  <meta name="description" content="ECHO 易可是一款免费开源的 Edge 浏览器扩展，为中国用户补齐鼠标手势、超级拖拽、悬浮搜索框、自定义新标签页等十余项本土化功能。无广告、不收集数据。">
+  <meta name="description" content="ECHO 易可是一款免费开源的 Edge 浏览器扩展，为中国用户补齐鼠标手势、超级拖拽、自定义新标签页，以及 B站和知乎网站增强等本土化功能。无广告、不收集数据。">
   <meta property="og:title" content="ECHO 易可 — 让 Edge 更懂中国用户">
-  <meta property="og:description" content="免费开源的 Edge 扩展，一键补齐鼠标手势、超级拖拽、新标签页壁纸等中国用户最需要的功能。">
+  <meta property="og:description" content="免费开源的 Edge 扩展，一键补齐鼠标手势、超级拖拽、新标签页壁纸，以及 B站和知乎网站增强。">
   <meta property="og:type" content="website">
   <meta property="og:image" content="https://www.echoextension.com/icon300.png">
   <meta property="og:url" content="https://www.echoextension.com/">
+  <meta name="theme-color" content="#08151f">
   <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
   <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
+  <link rel="manifest" href="site.webmanifest">
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
     "@type": "SoftwareApplication",
     "name": "ECHO 易可",
     "alternateName": "ECHO - Edge Chinese Helper & Optimizer",
-    "description": "专为中国 Edge 用户打造的浏览器增强扩展，补齐鼠标手势、超级拖拽、悬浮搜索框、自定义新标签页等十余项本土化功能。免费开源，无广告，不收集数据。",
+    "description": "专为中国 Edge 用户打造的浏览器增强扩展，补齐鼠标手势、超级拖拽、自定义新标签页，以及 B站和知乎网站增强等本土化功能。免费开源，无广告，不收集数据。",
     "url": "https://www.echoextension.com/",
     "applicationCategory": "BrowserExtension",
     "operatingSystem": "Windows, macOS",
@@ -33,7 +35,7 @@
     "installUrl": "https://microsoftedge.microsoft.com/addons/detail/echo-%E6%98%93%E5%8F%AF-%E8%AE%A9-edge-%E6%9B%B4%E6%87%82%E4%B8%AD%E5%9B%BD%E7%94%A8%E6%88%B7/fdjnafbimkhnjfnlgpmbbinmginclgck",
     "screenshot": "https://www.echoextension.com/images/ntp01.webp",
     "image": "https://www.echoextension.com/icon300.png",
-    "featureList": "鼠标手势, 超级拖拽, 悬浮搜索框, 新标签页壁纸, 精细缩放, 老板键, 一键存图, 标签页管理, B站视频工具",
+    "featureList": "鼠标手势, 超级拖拽, 悬浮搜索框, 新标签页壁纸, 精细缩放, 老板键, 一键存图, 标签页管理, B站视频优化, B站推荐回退, 知乎黑名单内容过滤",
     "sourceOrganization": {
       "@type": "Organization",
       "name": "ECHO Extension",
@@ -2056,6 +2058,285 @@
       color: rgba(255,255,255,0.35);
       margin-top: 16px;
     }
+
+    /* 网站增强三功能：仅扩展原 B站工具屏，沿用原页面色彩、圆角与阴影 */
+    .site-tools-section { min-height: 850px; padding-top: 76px; }
+    .site-tools-section .ss-title { margin-top: 0; }
+    .site-tools-tabs { width: min(1120px, calc(100% - 80px)); display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 42px auto 24px; padding: 7px; border: 1px solid rgba(243,12,95,.12); border-radius: 18px; background: rgba(255,255,255,.7); box-shadow: 0 8px 28px rgba(243,12,95,.06); }
+    .site-tools-tab { min-width: 0; min-height: 74px; display: grid; grid-template-columns: 28px minmax(0,1fr); gap: 4px 12px; align-items: center; padding: 15px 18px; border: 1px solid transparent; border-radius: 13px; color: rgba(0,0,0,.48); background: transparent; text-align: left; cursor: pointer; transition: .25s ease; }
+    .site-tools-tab:hover { background: rgba(251,114,153,.06); }
+    .site-tools-tab.active { border-color: rgba(243,12,95,.12); color: #f30c5f; background: #fff; box-shadow: 0 6px 18px rgba(243,12,95,.1); }
+    .site-tools-tab-index { grid-row: 1 / 3; color: rgba(243,12,95,.42); font-size: 12px; font-weight: 700; line-height: 1; letter-spacing: .04em; font-variant-numeric: tabular-nums; }
+    .site-tools-tab strong, .site-tools-tab small { min-width: 0; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .site-tools-tab strong { color: rgba(0,0,0,.68); font-size: 18px; font-weight: 650; line-height: 1.3; }
+    .site-tools-tab.active strong { color: #f30c5f; }
+    .site-tools-tab small { color: rgba(0,0,0,.52); font-size: 13px; line-height: 1.45; }
+    .site-tools-stage { position: relative; width: min(1200px, calc(100% - 80px)); min-height: 485px; margin: 0 auto; }
+    .site-tools-panel { min-height: 485px; display: grid; grid-template-columns: minmax(330px,.78fr) minmax(560px,1.22fr); gap: 42px; align-items: center; padding: 30px 34px; }
+    .site-tools-panel[hidden] { display: none !important; }
+    .site-tools-panel.active { animation: sitePanelIn .35s ease both; }
+    @keyframes sitePanelIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+    .site-tool-copy { max-width: 430px; text-align: left; }
+    .site-tool-site { display: inline-flex; margin-bottom: 18px; padding: 7px 13px; border-radius: 999px; font-size: 13px; font-weight: 650; line-height: 1.35; }
+    .bili-site-label { color: #d84f78; background: rgba(251,114,153,.1); }
+    .zhihu-site-label { color: #0066ff; background: rgba(0,102,255,.08); }
+    .site-tool-copy h3 { margin: 0 0 16px; color: rgba(0,0,0,.82); font-size: 32px; font-weight: 700; line-height: 1.3; letter-spacing: -.02em; }
+    .site-tool-copy p { margin: 0; color: rgba(0,0,0,.62); font-size: 16px; line-height: 1.8; }
+    .site-tool-demo { min-width: 0; }
+    .video-demo-compact .web-bili-demo { margin: 0; }
+    .video-demo-compact .web-bili-page { padding: 28px 0; }
+    .video-demo-compact .web-bili-player-shell { width: 64%; margin: 0 auto 0 20%; }
+    .video-demo-compact .web-bili-capsule { padding: 9px 9px 9px 8px; gap: 4px; }
+    .video-demo-compact .web-bili-seg { width: 84px; height: 38px; border-radius: 7px; gap: 4px; }
+    .video-demo-compact .web-bili-seg-label { font-size: 12px; letter-spacing: 2px; }
+    .video-demo-compact .web-bili-recs { right: 10px; gap: 9px; }
+    .video-demo-compact .web-bili-rec-thumb { width: 62px; height: 38px; }
+    .video-demo-compact .web-bili-rec-lines { display: none; }
+
+    .site-mini-browser { overflow: hidden; border-radius: 12px; background: #fff; box-shadow: 0 4px 32px rgba(243,12,95,.12), 0 2px 8px rgba(243,12,95,.06); }
+    .site-mini-topbar { height: 36px; display: flex; align-items: center; gap: 8px; padding: 0 14px; background: #f8e0e8; }
+    .zhihu-demo-compact .site-mini-topbar { background: #e8f1ff; }
+    .site-mini-topbar span { width: 10px; height: 10px; border-radius: 50%; background: rgba(243,12,95,.15); }
+    .site-mini-topbar i { flex: 1; max-width: 340px; height: 18px; margin-left: 12px; padding-left: 12px; border-radius: 9px; color: rgba(0,0,0,.25); background: #fff; font-size: 8px; font-style: normal; line-height: 18px; }
+    .site-mini-feed { position: relative; height: 354px; padding: 32px 90px 28px 24px; overflow: hidden; background: linear-gradient(135deg,#fff9fb,#fcecf2); }
+    .site-feed-batch { position: absolute; inset: 32px 90px 28px 24px; display: grid; grid-template-columns: repeat(2,1fr); gap: 10px; }
+    .site-feed-batch article { overflow: hidden; border: 1px solid rgba(31,41,55,.06); border-radius: 8px; background: #fff; box-shadow: 0 4px 12px rgba(80,35,50,.08); }
+    .site-feed-batch article i { display: block; height: 68%; background: var(--cover,linear-gradient(135deg,#6b8ba4,#d7a88b)); }
+    .site-feed-batch article b, .site-feed-batch article small { display: block; width: 78%; height: 5px; margin: 9px 8px 0; border-radius: 5px; background: #939aa0; }
+    .site-feed-batch article small { width: 48%; height: 4px; margin-top: 5px; background: #dadddf; }
+    .site-feed-batch .f2 i { --cover:linear-gradient(135deg,#708c7b,#c9d9ba); } .site-feed-batch .f3 i { --cover:linear-gradient(135deg,#967b92,#e2c6b7); } .site-feed-batch .f4 i { --cover:linear-gradient(135deg,#8e9eb3,#d8b9ca); }
+    .site-feed-batch .n1 i { --cover:linear-gradient(135deg,#4d6787,#a3c7d9); } .site-feed-batch .n2 i { --cover:linear-gradient(135deg,#bc8e6d,#ead1ad); } .site-feed-batch .n3 i { --cover:linear-gradient(135deg,#536e62,#a8c2a6); } .site-feed-batch .n4 i { --cover:linear-gradient(135deg,#826f91,#c3afd0); }
+    .site-feed-new { opacity: 0; animation: siteFeedNew 6.4s ease-in-out infinite; }
+    .site-feed-old { animation: siteFeedOld 6.4s ease-in-out infinite; }
+
+    .site-feed-controls { position: absolute; top: 31px; right: 16px; width: 58px; display: flex; flex-direction: column; gap: 6px; }
+    .site-feed-controls button { height: 43px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; border: 1px solid #d8dadd; border-radius: 8px; color: #777; background: #fff; }
+    .site-feed-controls button svg { width: 14px; height: 14px; stroke-width: 2; }
+    .site-feed-controls button span { font-size: 7px; }
+    .site-feed-controls em { color: #fb7299; font-size: 6px; font-style: normal; font-weight: 800; letter-spacing: .14em; text-align: center; }
+    .site-feed-refresh { animation: siteRefresh 6.4s ease-in-out infinite; }
+    .site-feed-prev { animation: sitePrev 6.4s ease-in-out infinite; }
+    .site-feed-memory { position: absolute; top: 9px; right: 16px; color: #c25073; font-size: 8px; font-weight: 650; }
+    .site-feed-toast { position: absolute; left: 50%; bottom: 12px; padding: 6px 10px; border: 1px solid rgba(251,114,153,.22); border-radius: 14px; color: #c25073; background: #fff; box-shadow: 0 6px 18px rgba(100,40,58,.14); font-size: 8px; font-weight: 700; opacity: 0; transform: translate(-50%,6px); animation: siteFeedToast 6.4s ease-in-out infinite; }
+    @keyframes siteFeedOld { 0%,15% { opacity:1; transform:none } 25%,48% { opacity:0; transform:translateX(-10px) } 58%,100% { opacity:1; transform:none } }
+    @keyframes siteFeedNew { 0%,18% { opacity:0; transform:translateX(10px) } 28%,47% { opacity:1; transform:none } 57%,100% { opacity:0; transform:translateX(10px) } }
+    @keyframes siteRefresh { 0%,10%,100% { color:#777;background:#fff;transform:none } 16%,27% { color:#fff;background:#fb7299;border-color:#fb7299;transform:scale(.94) } 35% { color:#777;background:#fff;transform:none } }
+    @keyframes sitePrev { 0%,44%,100% { color:#777;background:#fff;transform:none } 50%,62% { color:#fff;background:#fb7299;border-color:#fb7299;transform:scale(.94) } 70%,84% { color:#fb7299;background:#fff;border-color:#fb7299;transform:none } }
+    @keyframes siteFeedToast { 0%,57% { opacity:0;transform:translate(-50%,6px) } 65%,83% { opacity:1;transform:translate(-50%,0) } 92%,100% { opacity:0;transform:translate(-50%,-3px) } }
+
+    .site-zhihu-feed { position: relative; height: 354px; padding: 22px 26px; overflow: hidden; background: linear-gradient(135deg,#f7fbff,#edf5ff); }
+    .site-zhihu-card { position: relative; display: grid; grid-template-columns: 30px 1fr; gap: 10px; padding: 12px; border: 1px solid rgba(17,24,39,.07); border-radius: 8px; background: #fff; box-shadow: 0 3px 9px rgba(31,41,55,.055); }
+    .site-zhihu-card > i { width: 29px; height: 29px; border-radius: 50%; background: linear-gradient(135deg,#bfdbfe,#93c5fd); }
+    .site-zhihu-card b, .site-zhihu-card p { display: block; width: 42%; height: 6px; margin: 2px 0 9px; border-radius: 5px; background: #7c8790; }
+    .site-zhihu-card p { width: 90%; height: 5px; margin-bottom: 6px; background: #e1e6e9; }
+    .site-zhihu-card p:last-child { width: 64%; }
+    .site-zhihu-card.quiet { height: 63px; opacity: .56; }
+    .site-zhihu-card.target { height: 96px; margin-top: 9px; animation: siteZhihuTarget 6s ease-in-out infinite; }
+    .site-zhihu-card.target span { position: absolute; right: 10px; top: 9px; padding: 3px 6px; border-radius: 8px; color: #d95151; background: #fff0f0; font-size: 7px; font-weight: 650; }
+    .site-zhihu-card.tail { height: 63px; margin-top: 9px; opacity: .38; animation: siteZhihuTail 6s ease-in-out infinite; }
+    .site-zhihu-placeholder { position: absolute; left: 26px; right: 26px; top: 94px; min-height: 61px; display: grid; grid-template-columns: 28px 1fr auto; gap: 10px; align-items: center; padding: 11px 13px; border: 1px dashed rgba(0,102,255,.42); border-radius: 8px; color: #1767c0; background: #eef6ff; opacity: 0; transform: translateY(7px); animation: siteZhihuPlaceholder 6s ease-in-out infinite; }
+    .site-zhihu-placeholder svg { width: 23px; height: 23px; stroke-width: 1.8; }
+    .site-zhihu-placeholder strong, .site-zhihu-placeholder small { display:block; }
+    .site-zhihu-placeholder strong { font-size: 9px; } .site-zhihu-placeholder small { color:#7297bf;font-size:7px; }
+    .site-zhihu-placeholder button { padding: 4px 7px; border: 1px solid rgba(0,102,255,.25); border-radius: 6px; color:#1767c0;background:#fff;font-size:7px; }
+    .site-privacy-chip { position:absolute;right:15px;bottom:12px;padding:5px 8px;border-radius:12px;color:#1767c0;background:#fff;border:1px solid rgba(0,102,255,.16);font-size:8px;font-weight:650; }
+    @keyframes siteZhihuTarget { 0%,23% { opacity:1;transform:none } 39%,100% { opacity:0;transform:scaleY(.55) } }
+    @keyframes siteZhihuPlaceholder { 0%,32% { opacity:0;transform:translateY(7px) } 44%,88% { opacity:1;transform:none } 100% { opacity:0 } }
+    @keyframes siteZhihuTail { 0%,25% { transform:none } 43%,100% { transform:translateY(-46px) } }
+
+    .site-tools-tab:focus-visible { outline: 3px solid rgba(243,12,95,.28); outline-offset: 2px; }
+    @media (max-width: 1024px) {
+      .site-tools-section { min-height: 900px; }
+      .site-tools-tabs, .site-tools-stage { width: calc(100% - 48px); }
+      .site-tools-panel { grid-template-columns: 1fr; gap: 26px; padding: 22px; }
+      .site-tool-copy { max-width: 760px; margin-right: auto; margin-left: auto; text-align: center; }
+      .site-tool-site { margin-bottom: 14px; }
+      .site-tool-copy h3 { font-size: 32px; }
+      .site-tool-demo { width: min(760px,100%); margin: auto; }
+    }
+    @media (max-width: 768px) {
+      .site-tools-tabs { grid-template-columns: 1fr; }
+    }
+    /* 网站增强最终精修：导航顺序、内容自适应间距、视口内平滑循环 */
+    #bili-tool { margin-bottom: 0; }
+    #ntp { margin-top: 0 !important; }
+    #ntp .ntp-section { min-height: 960px; justify-content:flex-start; padding-top:56px; padding-bottom:44px; }
+    #ntp .ntp-section .ss-title { margin-top:24px; }
+    #ntp .ntp-gallery-wrapper { flex:0 0 620px; min-height:620px; }
+    #search-box { margin-top:16px !important; }
+    #story-faq { margin-top:40px !important; }
+
+    .site-tools-section { min-height:900px; padding:72px 40px 60px; gap:0; justify-content:flex-start; }
+    .site-tools-section .ss-subtitle { margin-top:2px; }
+    .site-tools-tabs { margin-top:34px; margin-bottom:22px; }
+    .site-tools-stage { min-height:470px; }
+    .site-tools-panel { min-height:470px; padding-top:24px; padding-bottom:24px; }
+    .site-tool-demo { position:relative; }
+    .site-mini-browser, .video-demo-compact .web-bili-demo { isolation:isolate; }
+
+    .site-tools-panel:not(.motion-running) .web-bili-content,
+    .site-tools-panel:not(.motion-running) .web-bili-seg-rotate,
+    .site-tools-panel:not(.motion-running) .web-bili-seg-fill,
+    .site-tools-panel:not(.motion-running) .web-bili-seg-rotate::after,
+    .site-tools-panel:not(.motion-running) .web-bili-seg-fill::after,
+    .site-tools-panel:not(.motion-running) .web-bili-progress-bar,
+    .site-tools-panel:not(.motion-running) .site-feed-old,
+    .site-tools-panel:not(.motion-running) .site-feed-new,
+    .site-tools-panel:not(.motion-running) .site-feed-refresh,
+    .site-tools-panel:not(.motion-running) .site-feed-prev,
+    .site-tools-panel:not(.motion-running) .site-feed-toast,
+    .site-tools-panel:not(.motion-running) .site-feed-status span,
+    .site-tools-panel:not(.motion-running) .site-zhihu-card.target,
+    .site-tools-panel:not(.motion-running) .site-zhihu-placeholder,
+    .site-tools-panel:not(.motion-running) .site-zhihu-card.tail { animation:none!important; }
+
+    .site-tools-panel.motion-running .web-bili-content { animation:webBiliRotate 4.5s ease-in-out infinite!important; will-change:transform; }
+    .site-tools-panel.motion-running .web-bili-seg-rotate { animation:webBiliSeg2 4.5s ease-in-out infinite!important; }
+    .site-tools-panel.motion-running .web-bili-seg-fill { animation:webBiliSeg4 4.5s ease-in-out infinite!important; }
+    .site-tools-panel.motion-running .web-bili-seg-rotate::after { animation:webBiliPulse2 4.5s ease-in-out infinite!important; }
+    .site-tools-panel.motion-running .web-bili-seg-fill::after { animation:webBiliPulse4 4.5s ease-in-out infinite!important; }
+
+    .site-feed-batch { bottom:50px; transition:none; will-change:opacity,transform; }
+    .site-feed-status { position:absolute; left:24px; top:9px; height:16px; min-width:126px; overflow:hidden; color:#c25073; font-size:9px; font-weight:750; }
+    .site-feed-status span { position:absolute; inset:0 auto auto 0; padding:1px 7px; border-radius:8px; opacity:0; transform:translateY(8px); white-space:nowrap; }
+    .site-feed-status .status-current { color:#a34b68; background:rgba(251,114,153,.09); }
+    .site-feed-status .status-next { color:#fff; background:#fb7299; }
+    .site-feed-status .status-back { color:#fff; background:#3584e4; }
+    .site-feed-memory { top:9px; }
+    .site-feed-toast { bottom:10px; z-index:3; }
+    .site-tools-panel.motion-running .site-feed-old { animation:biliOldBatch 4.5s cubic-bezier(.45,0,.2,1) infinite!important; }
+    .site-tools-panel.motion-running .site-feed-new { display:grid!important; animation:biliNewBatch 4.5s cubic-bezier(.45,0,.2,1) infinite!important; }
+    .site-tools-panel.motion-running .site-feed-refresh { animation:biliFeedRefresh 4.5s ease-in-out infinite!important; }
+    .site-tools-panel.motion-running .site-feed-refresh svg { animation:biliFeedSpin 4.5s ease-in-out infinite!important; }
+    .site-tools-panel.motion-running .site-feed-prev { animation:biliPrevButton 4.5s ease-in-out infinite!important; }
+    .site-tools-panel.motion-running .site-feed-memory { animation:biliMemoryBadge 4.5s ease-in-out infinite!important; }
+    .site-tools-panel.motion-running .site-feed-toast { animation:biliHistoryToast 4.5s cubic-bezier(.34,1.56,.64,1) infinite!important; }
+    .site-tools-panel.motion-running .site-feed-status .status-current { animation:siteStatusCurrent 4.5s ease infinite!important; }
+    .site-tools-panel.motion-running .site-feed-status .status-next { animation:siteStatusNext 4.5s ease infinite!important; }
+    .site-tools-panel.motion-running .site-feed-status .status-back { animation:siteStatusBack 4.5s ease infinite!important; }
+    @keyframes biliFeedRefresh {
+      0%, 10%, 100% { transform: translateY(0); border-color: rgba(93,86,96,0.12); color: #77727a; background: rgba(255,255,255,0.94); }
+      14% { transform: translateY(1px) scale(0.94); border-color: rgba(251,114,153,0.6); color: #fb7299; background: rgba(251,114,153,0.12); }
+      21%, 28% { transform: translateY(0); border-color: rgba(251,114,153,0.4); color: #fb7299; background: rgba(251,114,153,0.08); }
+      34% { border-color: rgba(93,86,96,0.12); color: #77727a; background: rgba(255,255,255,0.94); }
+    }
+    @keyframes biliFeedSpin {
+      0%, 10% { transform: rotate(0deg); }
+      14% { transform: rotate(-18deg); }
+      31% { transform: rotate(342deg); }
+      100% { transform: rotate(360deg); }
+    }
+    @keyframes biliOldBatch {
+      0%, 13% { opacity: 1; transform: translateX(0) scale(1); filter: blur(0); }
+      23%, 46% { opacity: 0; transform: translateX(-12px) scale(0.985); filter: blur(1px); }
+      50% { opacity: 0; transform: translateX(-10px) scale(0.985); filter: blur(1px); }
+      61%, 88% { opacity: 1; transform: translateX(0) scale(1); filter: blur(0); }
+      96%, 100% { opacity: 1; transform: translateX(0) scale(1); filter: blur(0); }
+    }
+    @keyframes biliNewBatch {
+      0%, 15% { opacity: 0; transform: translateX(11px) scale(0.985); filter: blur(1px); }
+      25%, 45% { opacity: 1; transform: translateX(0) scale(1); filter: blur(0); }
+      49% { opacity: 1; transform: translateX(0) scale(1); filter: blur(0); }
+      60%, 100% { opacity: 0; transform: translateX(11px) scale(0.985); filter: blur(1px); }
+    }
+    @keyframes biliPrevButton {
+      0%, 26% { border-color: #d8dadd; color: #b5b8bd; background: rgba(255,255,255,0.88); box-shadow: none; transform: scale(1); }
+      31%, 45% { border-color: rgba(251,114,153,0.72); color: #fb7299; background: rgba(255,255,255,0.98); box-shadow: 0 0 0 0 rgba(251,114,153,0), 0 3px 9px rgba(251,114,153,0.14); transform: scale(1); }
+      48% { border-color: #fb7299; color: #fff; background: #fb7299; box-shadow: 0 0 0 7px rgba(251,114,153,0.14), 0 4px 12px rgba(251,114,153,0.28); transform: scale(0.9); }
+      54% { border-color: #fb7299; color: #fff; background: #fb7299; box-shadow: 0 0 0 12px rgba(251,114,153,0), 0 3px 9px rgba(251,114,153,0.18); transform: scale(1.06); }
+      61%, 87% { border-color: rgba(251,114,153,0.62); color: #fb7299; background: rgba(255,255,255,0.98); box-shadow: 0 3px 9px rgba(251,114,153,0.12); transform: scale(1); }
+      96%, 100% { border-color: #d8dadd; color: #b5b8bd; background: rgba(255,255,255,0.88); box-shadow: none; transform: scale(1); }
+    }
+    @keyframes biliMemoryBadge {
+      0%, 18% { opacity: 0.62; transform: translateY(0); }
+      24%, 46% { opacity: 1; transform: translateY(-1px); color: #d8527c; }
+      52%, 88% { opacity: 1; transform: translateY(0); color: #b7476a; }
+      96%, 100% { opacity: 0.62; transform: translateY(0); }
+    }
+    @keyframes biliHistoryToast {
+      0%, 55% { opacity: 0; transform: translate(-50%, 6px) scale(0.9); }
+      61%, 80% { opacity: 1; transform: translate(-50%, 0) scale(1); }
+      89%, 100% { opacity: 0; transform: translate(-50%, -3px) scale(0.96); }
+    }
+    @keyframes siteStatusCurrent { 0%,18%,72%,100%{opacity:1;transform:translateY(0)} 24%,66%{opacity:0;transform:translateY(-8px)} }
+    @keyframes siteStatusNext { 0%,20%,55%,100%{opacity:0;transform:translateY(8px)} 27%,49%{opacity:1;transform:translateY(0)} 56%{opacity:0;transform:translateY(-8px)} }
+    @keyframes siteStatusBack { 0%,54%,74%,100%{opacity:0;transform:translateY(8px)} 61%,70%{opacity:1;transform:translateY(0)} }
+
+    .site-zhihu-card.target { border:1px solid rgba(220,38,38,.36); background:linear-gradient(135deg,#fff5f5,#ffe8e8); box-shadow:0 8px 24px rgba(220,38,38,.14); }
+    .site-zhihu-card.target > i { background:linear-gradient(135deg,#ef4444,#b91c1c); }
+    .site-zhihu-card.target b { background:#b91c1c; }
+    .site-zhihu-card.target p { background:#fecaca; }
+    .site-zhihu-card.target span { color:#fff; background:#dc2626; box-shadow:0 0 0 4px rgba(220,38,38,.1); }
+    .site-zhihu-placeholder { top:106px; border-color:rgba(53,132,228,.24); color:#2366a8; background:#f1f7fd; box-shadow:0 4px 14px rgba(53,132,228,.06); }
+    .site-zhihu-feed::before { content:''; position:absolute; z-index:7; left:26px; right:26px; top:76px; height:1px; border-radius:99px; background:linear-gradient(90deg,transparent,rgba(0,102,255,.9),transparent); box-shadow:0 0 12px rgba(0,102,255,.55); opacity:0; transform:scaleX(.2); }
+    .site-tools-panel.motion-running .site-zhihu-feed::before { animation:zhihuScan 4.5s ease-in-out infinite!important; }
+    .site-tools-panel.motion-running .site-zhihu-card.target { display:grid!important; animation:siteZhihuTargetLoop 4.5s cubic-bezier(.45,0,.2,1) infinite!important; transform-origin:center; will-change:opacity,transform,height; }
+    .site-tools-panel.motion-running .site-zhihu-card.target span { animation:zhihuBlockMark 4.5s ease-in-out infinite!important; }
+    .site-tools-panel.motion-running .site-zhihu-placeholder { animation:zhihuPlaceholder 4.5s cubic-bezier(.34,1.56,.64,1) infinite!important; will-change:opacity,transform; }
+    .site-tools-panel.motion-running .site-zhihu-placeholder button { animation:zhihuViewAction 4.5s ease-in-out infinite!important; }
+    .site-tools-panel.motion-running .site-privacy-chip { animation:zhihuPrivacyChip 4.5s ease-in-out infinite!important; }
+    .site-tools-panel.motion-running .site-zhihu-card.tail { animation:siteZhihuTailLoop 4.5s cubic-bezier(.45,0,.2,1) infinite!important; will-change:transform; }
+    @keyframes zhihuScan {
+      0%,8% { top:76px;opacity:0;transform:scaleX(.2); }
+      13% { opacity:1;transform:scaleX(.9); }
+      27% { top:164px;opacity:.72;transform:scaleX(1); }
+      32%,100% { top:170px;opacity:0;transform:scaleX(.45); }
+    }
+    @keyframes zhihuBlockMark {
+      0%,18% { opacity:0;transform:translateX(4px) scale(.9); }
+      24%,37% { opacity:1;transform:translateX(0) scale(1); }
+      42%,100% { opacity:0;transform:translateX(0) scale(.94); }
+    }
+    @keyframes siteZhihuTargetLoop {
+      0%,30% { opacity:1;height:96px;transform:scale(1);filter:blur(0); }
+      38% { opacity:.2;height:61px;transform:scale(.985);filter:blur(.5px); }
+      44%,72% { opacity:0;height:61px;transform:scale(.985);filter:blur(1px); }
+      81%,91% { opacity:1;height:96px;transform:scale(1);filter:blur(0); }
+      100% { opacity:1;height:96px;transform:scale(1);filter:blur(0); }
+    }
+    @keyframes zhihuPlaceholder {
+      0%,34% { opacity:0;transform:translateY(5px) scale(.97); }
+      42%,63% { opacity:1;transform:translateY(0) scale(1); }
+      68% { opacity:1;transform:translateY(0) scale(1);border-color:rgba(0,102,255,.36);box-shadow:0 0 0 0 rgba(0,102,255,0),0 5px 14px rgba(48,85,135,.09); }
+      72% { opacity:1;transform:translateY(0) scale(.985);border-color:rgba(0,102,255,.58);box-shadow:0 0 0 7px rgba(0,102,255,.1),0 5px 14px rgba(48,85,135,.11); }
+      78% { opacity:0;transform:translateY(-3px) scale(.98);box-shadow:0 0 0 12px rgba(0,102,255,0),0 5px 14px rgba(48,85,135,.08); }
+      100% { opacity:0;transform:translateY(5px) scale(.97); }
+    }
+    @keyframes zhihuViewAction {
+      0%,62% { background:#fff;color:#1767c0;transform:translateY(0); }
+      68% { background:rgba(0,102,255,.18);color:#005ce6;transform:translateY(0); }
+      72% { background:#0066ff;color:#fff;transform:translateY(1px); }
+      77%,100% { background:#fff;color:#1767c0;transform:translateY(0); }
+    }
+    @keyframes zhihuPrivacyChip {
+      0%,39% { opacity:0;transform:translateY(4px); }
+      47%,66% { opacity:1;transform:translateY(0); }
+      74%,100% { opacity:0;transform:translateY(-2px); }
+    }
+    @keyframes siteZhihuTailLoop {
+      0%,30%,84%,100% { transform:translateY(0); }
+      45%,76% { transform:translateY(-35px); }
+    }
+
+    @media (max-width:1024px) {
+      #ntp .ntp-section { min-height:930px; padding-top:48px; padding-bottom:36px; }
+      #ntp .ntp-section .ss-title { margin-top:18px; }
+      #ntp .ntp-gallery-wrapper { flex-basis:600px; min-height:600px; }
+      #search-box { margin-top:12px!important; }
+      #story-faq { margin-top:32px!important; }
+      .site-tools-section { min-height:0; padding:64px 40px 52px; }
+      .site-tools-stage,.site-tools-panel { min-height:0; }
+      .site-tool-copy { margin-bottom:2px; }
+    }
+
+    /* 内容密度驱动的栏目间距：连续色带紧凑，3D 舞台保留必要净空 */
+    #bili-tool { margin-bottom:32px; }
+    #search-box { margin-top:28px!important; }
+    @media (max-width:1024px) {
+      #bili-tool { margin-bottom:24px; }
+      #search-box { margin-top:22px!important; }
+    }
+
   </style>
 </head>
 <body>
@@ -2085,8 +2366,8 @@
       <span class="nav-brand-name">ECHO 易可</span>
     </a>
     <div class="nav-menu">
+      <a href="#bili-tool" onclick="document.getElementById('bili-tool').scrollIntoView({behavior:'smooth'}); return false;">网站增强</a>
       <a href="#ntp" onclick="document.getElementById('ntp').scrollIntoView({behavior:'smooth'}); return false;">新标签页</a>
-      <a href="#bili-tool" onclick="document.getElementById('bili-tool').scrollIntoView({behavior:'smooth'}); return false;">B站工具</a>
       <a href="#search-box" onclick="document.getElementById('search-box').scrollIntoView({behavior:'smooth'}); return false;">悬浮搜索</a>
       <a href="#efficiency" onclick="document.getElementById('efficiency').scrollIntoView({behavior:'smooth'}); return false;">功能</a>
       <a href="#story-faq" onclick="document.getElementById('story-faq').scrollIntoView({behavior:'smooth'}); return false;">故事</a>
@@ -2158,6 +2439,96 @@
     </div>
   </section>
 
+  <!-- 网站专属增强：沿用原 B站工具大模块 -->
+  <section id="bili-tool" aria-label="网站专属增强" style="position:relative; z-index:2;">
+    <div class="screenshot light bili-tool-section site-tools-section">
+      <div class="ss-title">常用网站，也应该更懂你的习惯</div>
+      <div class="ss-subtitle">为 B站与知乎，补上那些本该顺手的关键体验</div>
+
+      <div class="site-tools-tabs" role="tablist" aria-label="网站增强功能">
+        <button class="site-tools-tab active" type="button" role="tab" aria-selected="true" aria-controls="site-panel-video" id="site-tab-video" data-site-tab="video">
+          <span class="site-tools-tab-index">01</span><strong>B站视频优化</strong><small>旋转 · 反色 · 超级变速</small>
+        </button>
+        <button class="site-tools-tab" type="button" role="tab" aria-selected="false" aria-controls="site-panel-feed" id="site-tab-feed" data-site-tab="feed">
+          <span class="site-tools-tab-index">02</span><strong>B站推荐回退</strong><small>找回上一批推荐</small>
+        </button>
+        <button class="site-tools-tab" type="button" role="tab" aria-selected="false" aria-controls="site-panel-zhihu" id="site-tab-zhihu" data-site-tab="zhihu">
+          <span class="site-tools-tab-index">03</span><strong>知乎黑名单过滤</strong><small>折叠不想再看到的内容</small>
+        </button>
+      </div>
+
+      <div class="site-tools-stage">
+        <div class="site-tools-panel active" id="site-panel-video" role="tabpanel" aria-labelledby="site-tab-video" data-site-panel="video">
+          <div class="site-tool-copy">
+            <span class="site-tool-site bili-site-label">B站 · 视频页</span>
+            <h3>爱看小姐姐，不用歪脖子</h3>
+            <p>默认开启。颜色反转与通道交换、旋转与镜像，<br>支持 0.25× 超慢速和 3.0× 极速播放。</p>
+          </div>
+          <div class="site-tool-demo video-demo-compact">
+            <div class="web-bili-demo">
+              <div class="web-bili-topbar"><span class="web-bili-dot"></span><span class="web-bili-dot"></span><span class="web-bili-dot"></span><div class="web-bili-addr"></div></div>
+              <div class="web-bili-page">
+                <div class="web-bili-capsule">
+                  <div class="web-bili-seg"></div>
+                  <div class="web-bili-seg web-bili-seg-rotate"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg><span class="web-bili-seg-label">旋转</span></div>
+                  <div class="web-bili-seg"></div>
+                  <div class="web-bili-seg web-bili-seg-fill"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/><path d="M15 3v18"/></svg><span class="web-bili-seg-label">适配</span></div>
+                </div>
+                <div class="web-bili-player-shell">
+                  <div class="web-bili-titlebar"><div class="web-bili-skel" style="width:80px"></div><div class="web-bili-skel" style="width:120px;opacity:.6"></div></div>
+                  <div class="web-bili-screen"><div class="web-bili-content"><img src="images/bili.webp" alt="B站视频旋转适配演示" class="web-bili-img"></div><div class="web-bili-progress"><div class="web-bili-progress-bar"></div></div></div>
+                  <div class="web-bili-controls"><div class="web-bili-play-icon"></div><div class="web-bili-skel" style="width:60px"></div><div style="flex:1"></div><div class="web-bili-skel" style="width:20px;opacity:.5"></div></div>
+                </div>
+                <div class="web-bili-recs"><div class="web-bili-rec-card"><div class="web-bili-rec-thumb"></div><div class="web-bili-rec-lines"><div class="web-bili-rec-line" style="width:80px"></div><div class="web-bili-rec-line" style="width:56px"></div></div></div><div class="web-bili-rec-card"><div class="web-bili-rec-thumb"></div><div class="web-bili-rec-lines"><div class="web-bili-rec-line" style="width:72px"></div><div class="web-bili-rec-line" style="width:48px"></div></div></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="site-tools-panel" id="site-panel-feed" role="tabpanel" aria-labelledby="site-tab-feed" data-site-panel="feed" hidden>
+          <div class="site-tool-copy">
+            <span class="site-tool-site bili-site-label">B站 · 首页推荐</span>
+            <h3>换过的推荐，还能找回来</h3>
+            <p>默认开启。在原生「换一换」下方增加上一批、下一批，<br>按标签页保留最近 10 批推荐。</p>
+          </div>
+          <div class="site-tool-demo feed-demo-compact">
+            <div class="site-mini-browser">
+              <div class="site-mini-topbar"><span></span><span></span><span></span><i>bilibili.com</i></div>
+              <div class="site-mini-feed">
+                <div class="site-feed-batch site-feed-old"><article class="f1"><i></i><b></b><small></small></article><article class="f2"><i></i><b></b><small></small></article><article class="f3"><i></i><b></b><small></small></article><article class="f4"><i></i><b></b><small></small></article></div>
+                <div class="site-feed-batch site-feed-new"><article class="n1"><i></i><b></b><small></small></article><article class="n2"><i></i><b></b><small></small></article><article class="n3"><i></i><b></b><small></small></article><article class="n4"><i></i><b></b><small></small></article></div>
+                <div class="site-feed-controls"><button class="site-feed-refresh" tabindex="-1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg><span>换一换</span></button><em>ECHO</em><button class="site-feed-prev" tabindex="-1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="m15 18-6-6 6-6"/></svg><span>上一批</span></button><button tabindex="-1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="m9 18 6-6-6-6"/></svg><span>下一批</span></button></div>
+                <div class="site-feed-status" aria-hidden="true"><span class="status-current">当前推荐 · 第 8 批</span><span class="status-next">换一换 · 第 9 批</span><span class="status-back">已回退 · 第 8 批</span></div>
+                <div class="site-feed-memory">会话内 · 最近 10 批</div>
+                <div class="site-feed-toast">已回到上一批 · 第 8 批</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="site-tools-panel" id="site-panel-zhihu" role="tabpanel" aria-labelledby="site-tab-zhihu" data-site-panel="zhihu" hidden>
+          <div class="site-tool-copy">
+            <span class="site-tool-site zhihu-site-label">知乎 · 回答 / 信息流 / 评论</span>
+            <h3>拉黑之后，内容也安静下来</h3>
+            <p>默认关闭。手动同步知乎官方黑名单，命中后折叠内容；<br>识别失败时保持原样，需要时仍可临时查看。</p>
+          </div>
+          <div class="site-tool-demo zhihu-demo-compact">
+            <div class="site-mini-browser">
+              <div class="site-mini-topbar"><span></span><span></span><span></span><i>zhihu.com</i></div>
+              <div class="site-zhihu-feed">
+                <article class="site-zhihu-card quiet"><i></i><div><b></b><p></p><p></p></div></article>
+                <article class="site-zhihu-card target"><i></i><div><b></b><p></p><p></p><p></p></div><span>黑名单用户</span></article>
+                <div class="site-zhihu-placeholder"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 9 6 6m0-6-6 6"/></svg><div><strong>已折叠黑名单用户内容</strong><small>需要时仍可临时查看</small></div><button tabindex="-1">查看</button></div>
+                <article class="site-zhihu-card tail"><i></i><div><b></b><p></p></div></article>
+                <div class="site-privacy-chip">✓ 名单仅保存在本地</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- Section 2-8: 占位 -->
   <section id="ntp" aria-label="新标签页壁纸" style="position:relative; z-index:2;">
     <div class="screenshot light ntp-section">
@@ -2206,87 +2577,8 @@
     </div>
   </section>
 
-  <!-- B站视频优化工具 -->
-  <section id="bili-tool" aria-label="B站视频优化工具" style="margin-top: 260px; position:relative; z-index:1;">
-    <div class="screenshot light bili-tool-section">
-      <div class="ss-title">爱看小姐姐，不用歪脖子</div>
-      <div class="ss-subtitle">B站视频优化工具，颜色反转、旋转镜像、超级变速，网页悬浮随时使用<br><span style="font-size:12px;color:rgba(251,114,153,0.45);">* 此功能需要 v1.2.0 及以上版本，商店仍在审核中，可通过 GitHub 安装最新版体验</span></div>
 
-      <!-- 演示区：模拟浏览器窗口 -->
-      <div class="web-bili-demo">
-        <!-- 浏览器顶栏 -->
-        <div class="web-bili-topbar">
-          <span class="web-bili-dot"></span>
-          <span class="web-bili-dot"></span>
-          <span class="web-bili-dot"></span>
-          <div class="web-bili-addr"></div>
-        </div>
-        <!-- 网页内容区 -->
-        <div class="web-bili-page">
-        <!-- 胶囊工具条（浮在网页左壁） -->
-        <div class="web-bili-capsule">
-          <div class="web-bili-seg"></div>
-          <div class="web-bili-seg web-bili-seg-rotate"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg><span class="web-bili-seg-label">旋转</span></div>
-          <div class="web-bili-seg"></div>
-          <div class="web-bili-seg web-bili-seg-fill"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/><path d="M15 3v18"/></svg><span class="web-bili-seg-label">适配</span></div>
-        </div>
-        <!-- 右侧播放器外壳 -->
-        <div class="web-bili-player-shell">
-          <!-- 顶部标题骨架 -->
-          <div class="web-bili-titlebar">
-            <div class="web-bili-skel" style="width: 80px;"></div>
-            <div class="web-bili-skel" style="width: 120px; opacity: 0.6;"></div>
-          </div>
-          <!-- 视频区域（固定外壳） -->
-          <div class="web-bili-screen">
-            <!-- 画面内容（旋转动画） -->
-            <div class="web-bili-content">
-              <img src="images/bili.webp" alt="" class="web-bili-img">
-            </div>
-            <!-- 进度条 -->
-            <div class="web-bili-progress">
-              <div class="web-bili-progress-bar"></div>
-            </div>
-          </div>
-          <!-- 底部控件骨架 -->
-          <div class="web-bili-controls">
-            <div class="web-bili-play-icon"></div>
-            <div class="web-bili-skel" style="width: 60px;"></div>
-            <div style="flex:1;"></div>
-            <div class="web-bili-skel" style="width: 20px; opacity: 0.5;"></div>
-            <div class="web-bili-skel" style="width: 20px; opacity: 0.5;"></div>
-          </div>
-        </div>
-        <!-- 骨架推荐卡片（模拟B站右侧推荐） -->
-        <div class="web-bili-recs">
-          <div class="web-bili-rec-card">
-            <div class="web-bili-rec-thumb"></div>
-            <div class="web-bili-rec-lines">
-              <div class="web-bili-rec-line" style="width:80px"></div>
-              <div class="web-bili-rec-line" style="width:56px"></div>
-            </div>
-          </div>
-          <div class="web-bili-rec-card">
-            <div class="web-bili-rec-thumb"></div>
-            <div class="web-bili-rec-lines">
-              <div class="web-bili-rec-line" style="width:72px"></div>
-              <div class="web-bili-rec-line" style="width:48px"></div>
-            </div>
-          </div>
-          <div class="web-bili-rec-card">
-            <div class="web-bili-rec-thumb"></div>
-            <div class="web-bili-rec-lines">
-              <div class="web-bili-rec-line" style="width:88px"></div>
-              <div class="web-bili-rec-line" style="width:60px"></div>
-            </div>
-          </div>
-        </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <section id="search-box" aria-label="悬浮搜索框" style="margin-top:60px; position:relative; z-index:1;">
+  <section id="search-box" aria-label="悬浮搜索框" style="position:relative; z-index:1;">
     <div class="screenshot light">
       <div class="ss-title">呼之即出，以快速搜索</div>
       <div class="ss-subtitle"><span class="ss-key">Ctrl + B</span> 一键唤起搜索框 · 边看边输入 · 回车直接搜</div>
@@ -2367,7 +2659,7 @@
       <div class="ss-subtitle" style="margin-bottom: 40px;">从傲游、360、搜狗时代沉淀的肌肉记忆，无缝引入 Edge</div>
       <div class="preview-grid" id="efficiencyGrid" style="margin-top: 40px;">
         <!-- 第一行 -->
-        <div class="static-feature-card" data-tooltip="拖拽链接直接在新标签打开，拖拽选中的文字直接 Bing 搜索。⚠️ Edge 新版本正在内置类似的拖拽功能，若两者同时启用可能产生冲突。因此此功能默认关闭，如需使用请手动开启。">
+        <div class="static-feature-card" data-tooltip="拖拽链接直接在新标签打开，拖拽选中的文字直接 Bing 搜索。可与 Edge 自带拖拽同时使用、互不冲突；ECHO 还额外支持链接拖拽，因此默认开启。">
           <div class="feature-icon-box" style="background: linear-gradient(135deg, rgba(63,169,245,0.06), rgba(255,255,255,0.4));">
             <svg viewBox="0 0 48 48" fill="none" stroke-linecap="round" stroke-linejoin="round">
               <path d="M6 12v28l8-8h12L6 12z" fill="#4a4a4a" stroke="#4a4a4a" stroke-width="2"/>
@@ -2948,5 +3240,67 @@
     draw();
   })();
   </script>
+
+  <script>
+    // 网站增强屏：当前面板持续循环，切换面板时从头播放。
+    (function () {
+      var root = document.getElementById('bili-tool');
+      var tabs = Array.prototype.slice.call(document.querySelectorAll('[data-site-tab]'));
+      var panels = Array.prototype.slice.call(document.querySelectorAll('[data-site-panel]'));
+      if (!root || !tabs.length) return;
+
+      var activeKey = tabs[0].getAttribute('data-site-tab');
+
+      function restart(panel) {
+        panel.classList.remove('motion-running');
+        void panel.offsetWidth;
+        if (!panel.hidden) panel.classList.add('motion-running');
+      }
+
+      function syncMotion(restartActive) {
+        panels.forEach(function (panel) {
+          var shouldRun = !panel.hidden && panel.getAttribute('data-site-panel') === activeKey;
+          if (shouldRun) {
+            if (restartActive) restart(panel);
+            else panel.classList.add('motion-running');
+          } else {
+            panel.classList.remove('motion-running');
+          }
+        });
+      }
+
+      function activate(tab) {
+        activeKey = tab.getAttribute('data-site-tab');
+        tabs.forEach(function (item) {
+          var active = item === tab;
+          item.classList.toggle('active', active);
+          item.setAttribute('aria-selected', String(active));
+          item.tabIndex = active ? 0 : -1;
+        });
+        panels.forEach(function (panel) {
+          var active = panel.getAttribute('data-site-panel') === activeKey;
+          panel.hidden = !active;
+          panel.classList.toggle('active', active);
+          panel.classList.remove('motion-replay');
+        });
+        syncMotion(true);
+      }
+
+      tabs.forEach(function (tab, index) {
+        tab.addEventListener('click', function () { activate(tab); });
+        tab.addEventListener('keydown', function (event) {
+          if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+          event.preventDefault();
+          var delta = event.key === 'ArrowRight' ? 1 : -1;
+          var next = (index + delta + tabs.length) % tabs.length;
+          activate(tabs[next]);
+          tabs[next].focus();
+        });
+      });
+
+      activate(tabs[0]);
+    })();
+  </script>
+
 </body>
 </html>

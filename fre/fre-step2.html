@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ECHO 易可 - 核心功能</title>
+  <title>ECHO 易可 - 网站专属增强</title>
   <style>
     /* ========== 基础变量 - 与 Step 1 完全一致 ========== */
     :root {
@@ -276,76 +276,6 @@
       .demo-area {
         background: rgba(20,20,25,0.8);
         border-color: rgba(255,255,255,0.08);
-      }
-      /* 拖拽演示 - 深色模式 */
-      .drag-demo .page-content {
-        color: #c0c0c0;
-      }
-      .drag-demo .page-content .highlight {
-        background: rgba(100, 180, 255, 0.3);
-      }
-      .drag-demo .dragged-text {
-        color: #fff;
-        background: rgba(100, 180, 255, 0.4);
-      }
-      .drag-demo .search-popup {
-        background: #2a2a35;
-        color: #e0e0e0;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.4);
-      }
-      /* 手势演示 - 深色模式 */
-      .gesture-demo {
-        background: rgba(30, 41, 59, 0.8) !important;
-      }
-      .gesture-demo .tab-bar {
-        background: #334155 !important;
-      }
-      .gesture-demo .tab {
-        background: #475569 !important;
-      }
-      .gesture-demo .tab-pill {
-        background: #64748B;
-      }
-      .gesture-demo .page-area {
-        background: #1E293B !important;
-        border-color: #334155 !important;
-      }
-      .gesture-demo .right-click-hint {
-        background: rgba(59, 130, 246, 0.2);
-        color: #93C5FD;
-      }
-      .gesture-demo .scroll-wheel-icon {
-        border-color: #60A5FA;
-        background: rgba(59, 130, 246, 0.15);
-      }
-      .gesture-demo .scroll-wheel-icon::before {
-        background: rgba(96, 165, 250, 0.4);
-      }
-      .gesture-demo .scroll-wheel-bar {
-        background: #60A5FA;
-      }
-      /* 保存演示 - 深色模式 */
-      .save-demo .fake-line {
-        background: #3a3a45 !important;
-      }
-      .save-demo .sample-image,
-      .save-demo .image-copy {
-        border-color: rgba(255,255,255,0.15) !important;
-      }
-      .save-demo .download-icon {
-        background: rgba(30, 35, 42, 0.9) !important;
-        border-color: rgba(255,255,255,0.15) !important;
-      }
-      .save-demo .download-icon svg {
-        color: #60a5fa !important;
-      }
-      .save-demo .alt-key {
-        background: rgba(96, 165, 250, 0.15) !important;
-        border-color: #60a5fa !important;
-        color: #60a5fa !important;
-      }
-      .save-demo .alt-hint {
-        color: #60a5fa !important;
       }
     }
 
@@ -719,237 +649,8 @@
       animation: none !important;
     }
 
-    /* 动态元素默认隐藏 */
-    .dragged-text,
-    .search-popup,
-    .select-highlight,
-    .drag-trail,
-    .search-loading,
-    .new-tab,
-    .right-click-mark,
-    .right-click-hint,
-    .scroll-wheel-icon,
-    .scroll-indicator,
-    .save-success,
-    .image-copy {
-      opacity: 0;
-    }
 
-    /* 静态元素默认可见 */
-    .cursor,
-    .sample-image,
-    .tab-bar,
-    .tab,
-    .alt-key,
-    .download-icon {
-      opacity: 1;
-    }
-    
     /* 2. 激活状态下的动画规则 - 仅当 .animating 存在时触发 */
-    
-    /* --- Gesture Demo --- */
-    .active .gesture-demo.animating .tab:nth-child(1) { 
-      animation: tab1-switch 4.5s steps(1) infinite !important; 
-    }
-    .active .gesture-demo.animating .tab:nth-child(2) { 
-      animation: tab2-switch 4.5s steps(1) infinite !important; 
-    }
-    .active .gesture-demo.animating .tab:nth-child(3) { 
-      animation: tab3-switch 4.5s steps(1) infinite !important; 
-    }
-    .active .gesture-demo.animating .tab:nth-child(1) .tab-pill { 
-      animation: pill1-switch 4.5s steps(1) infinite !important; 
-    }
-    .active .gesture-demo.animating .tab:nth-child(2) .tab-pill { 
-      animation: pill2-switch 4.5s steps(1) infinite !important; 
-    }
-    .active .gesture-demo.animating .tab:nth-child(3) .tab-pill { 
-      animation: pill3-switch 4.5s steps(1) infinite !important; 
-    }
-    .active .gesture-demo.animating .right-click-mark { 
-      animation: right-click 4.5s linear infinite !important; 
-    }
-    .active .gesture-demo.animating .scroll-indicator { 
-      animation: scroll-hint 4.5s linear infinite !important; 
-    }
-    .active .gesture-demo.animating .right-click-hint { 
-      animation: right-click 4.5s linear infinite !important; 
-    }
-    .active .gesture-demo.animating .scroll-wheel-icon { 
-      animation: right-click 4.5s linear infinite !important; 
-    }
-    .active .gesture-demo.animating .scroll-wheel-bar { 
-      animation: wheel-roll 4.5s linear infinite !important; 
-    }
-    
-    @keyframes right-click {
-      0%, 10% { opacity: 0; transform: scale(0.5); }
-      15%, 90% { opacity: 1; transform: scale(1); }
-      95%, 100% { opacity: 0; transform: scale(1); }
-    }
-    
-    @keyframes scroll-hint {
-      0%, 20% { opacity: 0; }
-      30%, 90% { opacity: 1; }
-      95%, 100% { opacity: 0; }
-    }
-
-    /* 滚轮滚动完美闭环：20%下滚(Tab1→Tab2)，40%下滚(Tab2→Tab3)，60%上滚(Tab3→Tab2)，80%上滚(Tab2→Tab1) */
-    @keyframes wheel-roll {
-      0%, 15% { top: 14px; }
-      20%, 24% { top: 30px; }
-      28%, 35% { top: 14px; }
-      40%, 44% { top: 30px; }
-      48%, 55% { top: 14px; }
-      60%, 64% { top: 0px; }
-      68%, 75% { top: 14px; }
-      80%, 84% { top: 0px; }
-      88%, 100% { top: 14px; }
-    }
-
-    /* --- Save Demo --- */
-    .active .save-demo.animating .cursor { 
-      animation: cursor-save 4.5s linear infinite !important; 
-    }
-    .active .save-demo.animating .sample-image { 
-      animation: image-flash 4.5s linear infinite !important; 
-    }
-    .active .save-demo.animating .image-copy { 
-      animation: copy-fly 4.5s linear infinite !important; 
-    }
-    .active .save-demo.animating .alt-key { 
-      animation: alt-glow 4.5s linear infinite !important; 
-    }
-    .active .save-demo.animating .save-success { 
-      animation: save-popup 4.5s linear infinite !important; 
-    }
-    .active .save-demo.animating .download-icon { 
-      animation: icon-receive 4.5s linear infinite !important; 
-    }
-    
-    /* 光标：静止在图片上方，点击时下压 */
-    @keyframes cursor-save {
-      0%, 18% { transform: scale(1); }
-      22% { transform: scale(0.85); }
-      28%, 100% { transform: scale(1); }
-    }
-    
-    /* 原图：始终可见，点击时闪烁高亮 */
-    @keyframes image-flash {
-      0%, 18% { 
-        box-shadow: 0 3px 10px rgba(0,0,0,0.1);
-        transform: scale(1);
-      }
-      22%, 30% { 
-        box-shadow: 0 0 0 3px rgba(59,130,246,0.5), 0 4px 16px rgba(59,130,246,0.25);
-        transform: scale(0.98);
-      }
-      38%, 100% { 
-        box-shadow: 0 3px 10px rgba(0,0,0,0.1);
-        transform: scale(1);
-      }
-    }
-    
-    /* 副本：从图片位置飞向右下角下载图标 */
-    @keyframes copy-fly {
-      0%, 32% { 
-        transform: translate(0, 0) scale(1); 
-        opacity: 0;
-      }
-      34% { 
-        transform: translate(0, 0) scale(1); 
-        opacity: 1;
-      }
-      58% { 
-        transform: translate(140px, 80px) scale(0.35); 
-        opacity: 0.9;
-      }
-      66% { 
-        transform: translate(160px, 95px) scale(0.2); 
-        opacity: 0;
-      }
-      100% { 
-        transform: translate(0, 0) scale(1); 
-        opacity: 0;
-      }
-    }
-    
-    /* Alt键：蓝色边框风格，按下时填充 */
-    @keyframes alt-glow {
-      0%, 8% { 
-        opacity: 0.6;
-        background: rgba(59, 130, 246, 0.08);
-        border-color: #3B82F6;
-        color: #3B82F6;
-        transform: translateY(0);
-        box-shadow: none;
-      }
-      12%, 72% { 
-        opacity: 1;
-        background: #3B82F6;
-        border-color: #3B82F6;
-        color: #fff;
-        transform: translateY(2px);
-        box-shadow: 0 0 10px rgba(59,130,246,0.4);
-      }
-      80%, 100% { 
-        opacity: 0.6;
-        background: rgba(59, 130, 246, 0.08);
-        border-color: #3B82F6;
-        color: #3B82F6;
-        transform: translateY(0);
-        box-shadow: none;
-      }
-    }
-    
-    /* 下载图标：接收时脉冲 */
-    @keyframes icon-receive {
-      0%, 60% { 
-        transform: scale(1); 
-        box-shadow: none;
-        border-color: #E2E8F0;
-      }
-      66% { 
-        transform: scale(1.12); 
-        box-shadow: 0 0 14px rgba(59,130,246,0.5);
-        border-color: #3B82F6;
-      }
-      74% { 
-        transform: scale(1); 
-        box-shadow: 0 0 6px rgba(59,130,246,0.2);
-        border-color: #93C5FD;
-      }
-      82%, 100% { 
-        transform: scale(1); 
-        box-shadow: none;
-        border-color: #E2E8F0;
-      }
-    }
-    
-    /* 点击涟漪效果 */
-    @keyframes click-ripple {
-      0%, 20% { opacity: 0; transform: scale(0); }
-      22% { opacity: 0.8; transform: scale(0.5); }
-      32% { opacity: 0.4; transform: scale(3); }
-      38% { opacity: 0; transform: scale(4); }
-      100% { opacity: 0; transform: scale(0); }
-    }
-
-    /* 成功提示 */
-    @keyframes save-popup {
-      0%, 68% { opacity: 0; transform: translateY(5px) scale(0.9); }
-      74%, 88% { opacity: 1; transform: translateY(0) scale(1); }
-      94%, 100% { opacity: 0; transform: translateY(0) scale(1); }
-    }
-    
-    /* 光标通用样式 */
-    .cursor {
-      position: absolute;
-      width: 20px;
-      height: 20px;
-      z-index: 10;
-      pointer-events: none;
-    }
 
     /* ========== B站视频优化工具演示 ========== */
     .bili-demo-fre {
@@ -1133,341 +834,915 @@
       }
     }
 
-    /* ========== 动画 2: 鼠标手势 ========== */
-    .gesture-demo {
-      position: relative;
-      background: #F8FAFC;
-      border-radius: 12px;
-    }
-
-    /* 模拟标签栏 */
-    .gesture-demo .tab-bar {
+    /* ECHO_SITE_DEMOS_START */
+    /* ========== 站点专属演示：共享视觉画布 ========== */
+    .site-demo-window {
       position: absolute;
-      top: 12px;
-      left: 12px;
-      right: 12px;
-      height: 32px;
-      background: #e9ecef;
-      border-radius: 8px 8px 0 0;
-      display: flex;
-      padding: 4px 4px 0;
-      gap: 2px;
+      inset: 11px;
+      overflow: hidden;
+      border: 1px solid rgba(17, 24, 39, 0.08);
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.94);
+      box-shadow:
+        0 12px 28px rgba(31, 41, 55, 0.12),
+        0 2px 6px rgba(31, 41, 55, 0.06),
+        inset 0 1px 0 rgba(255, 255, 255, 0.92);
     }
 
-    .gesture-demo .tab {
-      flex: 1;
-      height: 28px;
-      background: #EAEAEA;
-      border-radius: 6px 6px 0 0;
+    .site-demo-topbar {
+      position: absolute;
+      inset: 0 0 auto;
+      height: 30px;
       display: flex;
       align-items: center;
-      justify-content: center;
-      transition: all 0.3s;
+      gap: 8px;
+      padding: 0 10px;
+      border-bottom: 1px solid rgba(17, 24, 39, 0.07);
+      background: rgba(255, 255, 255, 0.86);
+      backdrop-filter: blur(10px);
+      z-index: 8;
+    }
+
+    .site-demo-wordmark {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      flex: 0 0 auto;
+      font-size: 9px;
+      font-weight: 750;
+      letter-spacing: -0.1px;
+    }
+
+    .site-demo-wordmark svg {
+      width: 15px;
+      height: 15px;
+      flex: 0 0 auto;
+    }
+
+    .site-demo-nav {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      min-width: 0;
+      flex: 1;
+    }
+
+    .site-demo-nav span {
+      height: 4px;
+      border-radius: 99px;
+      background: #e9edf2;
+    }
+
+    .site-demo-nav span:nth-child(1) { width: 34px; }
+    .site-demo-nav span:nth-child(2) { width: 24px; }
+    .site-demo-nav span:nth-child(3) { width: 18px; }
+
+    .site-demo-badge {
+      flex: 0 0 auto;
+      padding: 3px 6px;
+      border-radius: 99px;
+      font-size: 7px;
+      font-weight: 700;
+      letter-spacing: 0.2px;
+    }
+
+    .feature-card:focus-visible {
+      outline: 3px solid rgba(59, 130, 246, 0.34);
+      outline-offset: 5px;
+    }
+
+    /* ========== 动画 2：B站推荐回退 ========== */
+    .bili-feed-demo {
       position: relative;
+      isolation: isolate;
+      background:
+        radial-gradient(circle at 14% 20%, rgba(251, 114, 153, 0.18), transparent 32%),
+        linear-gradient(135deg, #fff8fa 0%, #fcecf2 100%);
     }
 
-    /* 胶囊形状标签标识 */
-    .gesture-demo .tab-pill {
-      width: 28px;
-      height: 8px;
-      border-radius: 4px;
-      background: #C0C0C0;
-      transition: all 0.3s;
-    }
-
-    .gesture-demo .tab:nth-child(1) { animation: tab1-switch 4.5s ease-in-out infinite; }
-    .gesture-demo .tab:nth-child(2) { animation: tab2-switch 4.5s ease-in-out infinite; }
-    .gesture-demo .tab:nth-child(3) { animation: tab3-switch 4.5s ease-in-out infinite; }
-    .gesture-demo .tab:nth-child(1) .tab-pill { animation: pill1-switch 4.5s ease-in-out infinite; }
-    .gesture-demo .tab:nth-child(2) .tab-pill { animation: pill2-switch 4.5s ease-in-out infinite; }
-    .gesture-demo .tab:nth-child(3) .tab-pill { animation: pill3-switch 4.5s ease-in-out infinite; }
-
-    /* 标签切换：Tab1(0-20%) → Tab2(20-40%) → Tab3(40-60%) → Tab2(60-80%) → Tab1(80-100%) 完美闭环 */
-    @keyframes tab1-switch {
-      0%, 19.99% { background: #fff; box-shadow: 0 -2px 0 0 #F08080 inset; }
-      20%, 79.99% { background: #EAEAEA; box-shadow: none; }
-      80%, 100% { background: #fff; box-shadow: 0 -2px 0 0 #F08080 inset; }
-    }
-    @keyframes pill1-switch {
-      0%, 19.99% { background: #F08080; transform: scaleX(1.15); }
-      20%, 79.99% { background: #C0C0C0; transform: scaleX(1); }
-      80%, 100% { background: #F08080; transform: scaleX(1.15); }
-    }
-
-    @keyframes tab2-switch {
-      0%, 19.99% { background: #EAEAEA; box-shadow: none; }
-      20%, 39.99% { background: #fff; box-shadow: 0 -2px 0 0 #5DBB9D inset; }
-      40%, 59.99% { background: #EAEAEA; box-shadow: none; }
-      60%, 79.99% { background: #fff; box-shadow: 0 -2px 0 0 #5DBB9D inset; }
-      80%, 100% { background: #EAEAEA; box-shadow: none; }
-    }
-    @keyframes pill2-switch {
-      0%, 19.99% { background: #C0C0C0; transform: scaleX(1); }
-      20%, 39.99% { background: #5DBB9D; transform: scaleX(1.15); }
-      40%, 59.99% { background: #C0C0C0; transform: scaleX(1); }
-      60%, 79.99% { background: #5DBB9D; transform: scaleX(1.15); }
-      80%, 100% { background: #C0C0C0; transform: scaleX(1); }
-    }
-
-    @keyframes tab3-switch {
-      0%, 39.99% { background: #EAEAEA; box-shadow: none; }
-      40%, 59.99% { background: #fff; box-shadow: 0 -2px 0 0 #5BA4D9 inset; }
-      60%, 100% { background: #EAEAEA; box-shadow: none; }
-    }
-    @keyframes pill3-switch {
-      0%, 39.99% { background: #C0C0C0; transform: scaleX(1); }
-      40%, 59.99% { background: #5BA4D9; transform: scaleX(1.15); }
-      60%, 100% { background: #C0C0C0; transform: scaleX(1); }
-    }
-
-    /* 页面内容区 */
-    .gesture-demo .page-area {
-      position: absolute;
-      top: 44px;
-      left: 12px;
-      right: 12px;
-      bottom: 12px;
-      background: #fff;
-      border-radius: 0 0 8px 8px;
-      border: 1px solid #e9ecef;
-      border-top: none;
-    }
-
-    /* 光标+右键标记 */
-    .gesture-demo .cursor {
-      top: 120px;
-      left: 100px;
-    }
-
-    .gesture-demo .right-click-mark {
-      position: absolute;
-      top: 108px;
-      left: 148px;
-      width: 32px;
-      height: 32px;
-      border: 3px solid #3B82F6;
-      border-radius: 50%;
-      opacity: 0;
-      display: none;
-    }
-
-    @keyframes right-click {
-      0%, 5% { opacity: 0; transform: scale(0.5); }
-      15%, 90% { opacity: 1; transform: scale(1); }
-      100% { opacity: 0; transform: scale(1); }
-    }
-
-    /* 右键按住提示 */
-    .gesture-demo .right-click-hint {
-      position: absolute;
-      top: 100px;
-      left: 200px;
-      font-size: 13px;
-      color: #3B82F6;
-      font-weight: 600;
-      background: rgba(59, 130, 246, 0.12);
-      padding: 4px 10px;
-      border-radius: 4px;
-    }
-
-    /* 滚轮图示 */
-    .gesture-demo .scroll-wheel-icon {
-      position: absolute;
-      top: 100px;
-      left: 145px;
-      width: 46px;
-      height: 76px;
-      border: 2px solid #3B82F6;
-      border-radius: 18px;
-      background: rgba(59, 130, 246, 0.08);
-    }
-
-    /* 右键高亮区域 */
-    .gesture-demo .scroll-wheel-icon::before {
+    .bili-feed-demo::before {
       content: '';
       position: absolute;
-      top: 2px;
-      right: 2px;
-      width: 16px;
-      height: 28px;
-      background: rgba(59, 130, 246, 0.35);
-      border-radius: 0 12px 0 0;
+      width: 160px;
+      height: 160px;
+      right: -70px;
+      bottom: -90px;
+      border-radius: 50%;
+      background: rgba(251, 114, 153, 0.08);
+      filter: blur(1px);
     }
 
-    /* 滚轮内部滚动条 */
-    .gesture-demo .scroll-wheel-bar {
+    .bili-feed-wordmark { color: #fb7299; }
+
+    .bili-feed-stage {
       position: absolute;
-      top: 14px;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 8px;
-      height: 14px;
-      background: #3B82F6;
-      border-radius: 4px;
-    }
-
-    /* ========== 动画 3: 快速保存图片 ========== */
-    .save-demo {
-      position: relative;
-    }
-
-    /* 模拟图片 - 靠左对齐，Low Poly 风格 */
-    .save-demo .sample-image {
-      position: absolute;
-      top: 20px;
-      left: 20px;
-      width: 140px;
-      height: 95px;
-      border-radius: 8px;
-      box-shadow: 0 4px 16px rgba(0,0,0,0.12);
-      border: 2px solid #fff;
+      inset: 30px 0 0;
       overflow: hidden;
-      background: #1a1a2e;
-      z-index: 2;
+      background:
+        linear-gradient(rgba(255,255,255,0.28), rgba(255,255,255,0.28)),
+        radial-gradient(circle at 82% 8%, rgba(251,114,153,0.08), transparent 34%);
     }
 
-    .save-demo .sample-image svg {
-      width: 100%;
-      height: 100%;
-    }
-
-    /* 伪文字胶囊 - 右侧 */
-    .save-demo .fake-text-right {
+    .bili-feed-label {
       position: absolute;
-      top: 28px;
-      left: 175px;
+      top: 7px;
+      left: 10px;
+      z-index: 6;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      color: #5d5660;
+      font-size: 8px;
+      font-weight: 700;
+    }
+
+    .bili-feed-label::before {
+      content: '';
+      width: 3px;
+      height: 9px;
+      border-radius: 99px;
+      background: #fb7299;
+      box-shadow: 0 0 8px rgba(251,114,153,0.45);
+    }
+
+    .bili-feed-memory {
+      position: absolute;
+      top: 6px;
+      right: 51px;
+      z-index: 6;
+      padding: 3px 6px;
+      border: 1px solid rgba(251,114,153,0.2);
+      border-radius: 99px;
+      background: rgba(255,255,255,0.72);
+      color: #d8527c;
+      font-size: 7px;
+      font-weight: 700;
+      box-shadow: 0 2px 8px rgba(251,114,153,0.08);
+    }
+
+    .bili-feed-batch {
+      position: absolute;
+      top: 23px;
+      left: 9px;
+      right: 50px;
+      bottom: 8px;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      grid-template-rows: repeat(2, minmax(0, 1fr));
+      gap: 6px;
+      transform-origin: center;
+      will-change: transform, opacity, filter;
+    }
+
+    .bili-feed-batch--new {
+      opacity: 0;
+      transform: translateX(11px) scale(0.985);
+    }
+
+    .bili-feed-tile {
+      min-width: 0;
+      overflow: hidden;
+      border: 1px solid rgba(31,41,55,0.07);
+      border-radius: 7px;
+      background: rgba(255,255,255,0.92);
+      box-shadow: 0 3px 8px rgba(31,41,55,0.07);
+    }
+
+    .bili-feed-cover {
+      position: relative;
+      height: calc(100% - 15px);
+      min-height: 18px;
+      overflow: hidden;
+      background: var(--feed-cover, linear-gradient(135deg, #dfe7ef, #9aabc0));
+    }
+
+    .bili-feed-cover::before,
+    .bili-feed-cover::after {
+      content: '';
+      position: absolute;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.24);
+    }
+
+    .bili-feed-cover::before {
+      width: 34px;
+      height: 34px;
+      right: -8px;
+      top: -14px;
+    }
+
+    .bili-feed-cover::after {
+      width: 24px;
+      height: 24px;
+      left: 7px;
+      bottom: -13px;
+    }
+
+    .bili-feed-duration {
+      position: absolute;
+      right: 3px;
+      bottom: 3px;
+      padding: 1px 3px;
+      border-radius: 3px;
+      background: rgba(17,24,39,0.62);
+      color: #fff;
+      font-size: 5.5px;
+      font-weight: 650;
+      line-height: 1.3;
+    }
+
+    .bili-feed-meta {
+      height: 15px;
       display: flex;
       flex-direction: column;
-      gap: 10px;
-    }
-
-    .save-demo .fake-line {
-      height: 5px;
-      background: #E8E8E8;
-      border-radius: 3px;
-    }
-
-    /* 图片副本 - 飞出的缩略图，位置与原图相同 */
-    .save-demo .image-copy {
-      position: absolute;
-      top: 20px;
-      left: 20px;
-      width: 140px;
-      height: 95px;
-      border-radius: 8px;
-      border: 2px solid #fff;
-      box-shadow: 0 6px 20px rgba(0,0,0,0.15);
-      overflow: hidden;
-      background: #1a1a2e;
-      opacity: 0;
-      pointer-events: none;
-      z-index: 5;
-    }
-
-    .save-demo .image-copy svg {
-      width: 100%;
-      height: 100%;
-    }
-
-    /* Alt 键 - 左下角，蓝色边框风格 */
-    .save-demo .alt-key {
-      position: absolute;
-      bottom: 15px;
-      left: 20px;
-      width: 38px;
-      height: 38px;
-      background: rgba(59, 130, 246, 0.08);
-      color: #3B82F6;
-      font-size: 12px;
-      font-weight: 600;
-      border-radius: 8px;
-      border: 2px solid #3B82F6;
-      opacity: 0.6;
-      display: flex;
-      align-items: center;
       justify-content: center;
+      gap: 2px;
+      padding: 2px 4px;
     }
 
-    /* Alt 键旁的提示文字 */
-    .save-demo .alt-hint {
+    .bili-feed-title-line,
+    .bili-feed-sub-line {
+      display: block;
+      height: 2.5px;
+      border-radius: 99px;
+    }
+
+    .bili-feed-title-line { width: 84%; background: #8e9299; }
+    .bili-feed-sub-line { width: 52%; background: #d8dbe0; }
+
+    .bili-feed-controls {
       position: absolute;
-      bottom: 23px;
-      left: 63px;
-      font-size: 14px;
-      font-weight: 600;
-      color: #3B82F6;
-      white-space: nowrap;
-    }
-
-    /* 下载图标 - 右下角 */
-    .save-demo .download-icon {
-      position: absolute;
-      bottom: 15px;
-      right: 20px;
-      width: 38px;
-      height: 38px;
-      background: #F8FAFC;
-      border-radius: 8px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border: 2px solid #E2E8F0;
-    }
-
-    .save-demo .download-icon svg {
-      width: 20px;
-      height: 20px;
-      color: #3B82F6;
-    }
-
-    /* 保存成功提示 - 下载图标上方 */
-    .save-demo .save-success {
-      position: absolute;
-      bottom: 58px;
+      top: 21px;
       right: 8px;
-      background: linear-gradient(135deg, #10B981 0%, #059669 100%);
-      color: #fff;
-      font-size: 11px;
-      font-weight: 600;
-      padding: 6px 10px;
-      border-radius: 6px;
-      opacity: 0;
-      white-space: nowrap;
+      bottom: 7px;
+      z-index: 10;
+      width: 34px;
       display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 4px;
+    }
+
+    .bili-refresh-control,
+    .bili-history-button {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid rgba(93,86,96,0.12);
+      background: rgba(255,255,255,0.94);
+      color: #77727a;
+      box-shadow: 0 2px 7px rgba(31,41,55,0.08);
+    }
+
+    .bili-refresh-control {
+      height: 29px;
+      flex-direction: column;
+      gap: 1px;
+      border-radius: 7px;
+      font-size: 6px;
+      font-weight: 650;
+    }
+
+    .bili-refresh-control svg {
+      width: 11px;
+      height: 11px;
+    }
+
+    /* 与真实实现一致：两个批次按钮在「换一换」正下方单列排列 */
+    .bili-history-rail {
+      position: relative;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .bili-history-button {
+      width: 100%;
+      height: 25px;
+      flex: 0 0 25px;
+      border-color: #d8dadd;
+      border-radius: 6px;
+      color: #b5b8bd;
+      box-shadow: none;
+    }
+
+    .bili-history-button svg {
+      width: 11px;
+      height: 11px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2.4;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .bili-history-toast {
+      position: absolute;
+      left: 50%;
+      bottom: 8px;
+      z-index: 14;
+      display: inline-flex;
       align-items: center;
       gap: 4px;
-      box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
-    }
-
-    .save-demo .save-success svg {
-      width: 12px;
-      height: 12px;
-      stroke-width: 3;
-    }
-
-    /* 光标 - 直接定位在图片中心上方 */
-    .save-demo .cursor {
-      top: 60px;
-      left: 75px;
-    }
-
-    /* 点击涟漪效果 */
-    .save-demo .click-ripple {
-      position: absolute;
-      top: 62px;
-      left: 77px;
-      width: 16px;
-      height: 16px;
-      border-radius: 50%;
-      background: rgba(59, 130, 246, 0.6);
+      padding: 5px 8px;
+      border: 1px solid rgba(251,114,153,0.22);
+      border-radius: 99px;
+      background: rgba(255,255,255,0.95);
+      color: #d8527c;
+      font-size: 7px;
+      font-weight: 750;
+      box-shadow: 0 6px 18px rgba(116,45,68,0.16);
       opacity: 0;
-      transform: scale(0);
-      pointer-events: none;
-      z-index: 5;
+      transform: translate(-50%, 6px) scale(0.9);
+      white-space: nowrap;
     }
-    .active .save-demo.animating .click-ripple {
-      animation: click-ripple 4.5s linear infinite !important;
+
+    .bili-history-toast svg {
+      width: 10px;
+      height: 10px;
+      stroke-width: 2.7;
     }
+
+
+    .active .bili-feed-demo.animating .bili-refresh-control {
+      animation: biliFeedRefresh 4.5s ease-in-out infinite !important;
+    }
+
+    .active .bili-feed-demo.animating .bili-refresh-control svg {
+      animation: biliFeedSpin 4.5s ease-in-out infinite !important;
+    }
+
+    .active .bili-feed-demo.animating .bili-feed-batch--old {
+      animation: biliOldBatch 4.5s cubic-bezier(.45,0,.2,1) infinite !important;
+    }
+
+    .active .bili-feed-demo.animating .bili-feed-batch--new {
+      animation: biliNewBatch 4.5s cubic-bezier(.45,0,.2,1) infinite !important;
+    }
+
+    .active .bili-feed-demo.animating .bili-history-button--prev {
+      animation: biliPrevButton 4.5s ease-in-out infinite !important;
+    }
+
+    .active .bili-feed-demo.animating .bili-feed-memory {
+      animation: biliMemoryBadge 4.5s ease-in-out infinite !important;
+    }
+
+    .active .bili-feed-demo.animating .bili-history-toast {
+      animation: biliHistoryToast 4.5s cubic-bezier(.34,1.56,.64,1) infinite !important;
+    }
+
+    @keyframes biliFeedRefresh {
+      0%, 10%, 100% { transform: translateY(0); border-color: rgba(93,86,96,0.12); color: #77727a; background: rgba(255,255,255,0.94); }
+      14% { transform: translateY(1px) scale(0.94); border-color: rgba(251,114,153,0.6); color: #fb7299; background: rgba(251,114,153,0.12); }
+      21%, 28% { transform: translateY(0); border-color: rgba(251,114,153,0.4); color: #fb7299; background: rgba(251,114,153,0.08); }
+      34% { border-color: rgba(93,86,96,0.12); color: #77727a; background: rgba(255,255,255,0.94); }
+    }
+
+    @keyframes biliFeedSpin {
+      0%, 10% { transform: rotate(0deg); }
+      14% { transform: rotate(-18deg); }
+      31% { transform: rotate(342deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    @keyframes biliOldBatch {
+      0%, 13% { opacity: 1; transform: translateX(0) scale(1); filter: blur(0); }
+      23%, 46% { opacity: 0; transform: translateX(-12px) scale(0.985); filter: blur(1px); }
+      50% { opacity: 0; transform: translateX(-10px) scale(0.985); filter: blur(1px); }
+      61%, 88% { opacity: 1; transform: translateX(0) scale(1); filter: blur(0); }
+      96%, 100% { opacity: 1; transform: translateX(0) scale(1); filter: blur(0); }
+    }
+
+    @keyframes biliNewBatch {
+      0%, 15% { opacity: 0; transform: translateX(11px) scale(0.985); filter: blur(1px); }
+      25%, 45% { opacity: 1; transform: translateX(0) scale(1); filter: blur(0); }
+      49% { opacity: 1; transform: translateX(0) scale(1); filter: blur(0); }
+      60%, 100% { opacity: 0; transform: translateX(11px) scale(0.985); filter: blur(1px); }
+    }
+
+    @keyframes biliPrevButton {
+      0%, 26% { border-color: #d8dadd; color: #b5b8bd; background: rgba(255,255,255,0.88); box-shadow: none; transform: scale(1); }
+      31%, 45% { border-color: rgba(251,114,153,0.72); color: #fb7299; background: rgba(255,255,255,0.98); box-shadow: 0 0 0 0 rgba(251,114,153,0), 0 3px 9px rgba(251,114,153,0.14); transform: scale(1); }
+      48% { border-color: #fb7299; color: #fff; background: #fb7299; box-shadow: 0 0 0 7px rgba(251,114,153,0.14), 0 4px 12px rgba(251,114,153,0.28); transform: scale(0.9); }
+      54% { border-color: #fb7299; color: #fff; background: #fb7299; box-shadow: 0 0 0 12px rgba(251,114,153,0), 0 3px 9px rgba(251,114,153,0.18); transform: scale(1.06); }
+      61%, 87% { border-color: rgba(251,114,153,0.62); color: #fb7299; background: rgba(255,255,255,0.98); box-shadow: 0 3px 9px rgba(251,114,153,0.12); transform: scale(1); }
+      96%, 100% { border-color: #d8dadd; color: #b5b8bd; background: rgba(255,255,255,0.88); box-shadow: none; transform: scale(1); }
+    }
+
+    @keyframes biliMemoryBadge {
+      0%, 18% { opacity: 0.62; transform: translateY(0); }
+      24%, 46% { opacity: 1; transform: translateY(-1px); color: #d8527c; }
+      52%, 88% { opacity: 1; transform: translateY(0); color: #b7476a; }
+      96%, 100% { opacity: 0.62; transform: translateY(0); }
+    }
+
+    @keyframes biliHistoryToast {
+      0%, 55% { opacity: 0; transform: translate(-50%, 6px) scale(0.9); }
+      61%, 80% { opacity: 1; transform: translate(-50%, 0) scale(1); }
+      89%, 100% { opacity: 0; transform: translate(-50%, -3px) scale(0.96); }
+    }
+
+
+    /* ========== 动画 3：知乎黑名单内容过滤 ========== */
+    .zhihu-filter-demo {
+      position: relative;
+      isolation: isolate;
+      background:
+        radial-gradient(circle at 84% 14%, rgba(0,102,255,0.14), transparent 31%),
+        linear-gradient(135deg, #f7fbff 0%, #edf5ff 100%);
+    }
+
+    .zhihu-filter-demo::before {
+      content: '';
+      position: absolute;
+      width: 150px;
+      height: 150px;
+      left: -82px;
+      bottom: -88px;
+      border-radius: 50%;
+      background: rgba(0,102,255,0.06);
+    }
+
+    .zhihu-wordmark { color: #0066ff; }
+
+    .zhihu-filter-stage {
+      position: absolute;
+      inset: 30px 0 0;
+      overflow: hidden;
+      padding: 8px 10px;
+      background: rgba(248,250,252,0.48);
+    }
+
+    .zhihu-feed-column {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .zhihu-card {
+      position: relative;
+      flex: 0 0 auto;
+      padding: 7px 8px 6px;
+      overflow: hidden;
+      border: 1px solid rgba(17,24,39,0.07);
+      border-radius: 8px;
+      background: rgba(255,255,255,0.95);
+      box-shadow: 0 3px 9px rgba(31,41,55,0.055);
+    }
+
+    .zhihu-card--quiet {
+      height: 42px;
+      opacity: 0.58;
+    }
+
+    .zhihu-card--target {
+      height: 67px;
+      transform-origin: center;
+      will-change: transform, opacity, height;
+    }
+
+    .zhihu-card--tail {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 115px;
+      height: 42px;
+      opacity: 0.4;
+    }
+
+    .zhihu-author-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      height: 14px;
+    }
+
+    .zhihu-avatar {
+      position: relative;
+      width: 14px;
+      height: 14px;
+      flex: 0 0 auto;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #c7d2fe, #93c5fd);
+      box-shadow: inset 0 0 0 1px rgba(0,102,255,0.08);
+    }
+
+    .zhihu-avatar::before {
+      content: '';
+      position: absolute;
+      width: 4px;
+      height: 4px;
+      left: 5px;
+      top: 3px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.9);
+    }
+
+    .zhihu-avatar::after {
+      content: '';
+      position: absolute;
+      width: 8px;
+      height: 4px;
+      left: 3px;
+      bottom: 2px;
+      border-radius: 8px 8px 5px 5px;
+      background: rgba(255,255,255,0.82);
+    }
+
+    .zhihu-author-name {
+      display: block;
+      width: 38px;
+      height: 3px;
+      border-radius: 99px;
+      background: #8c939d;
+    }
+
+    .zhihu-author-meta {
+      display: block;
+      width: 22px;
+      height: 2.5px;
+      border-radius: 99px;
+      background: #d9dde3;
+    }
+
+    .zhihu-block-mark {
+      margin-left: auto;
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      padding: 2px 5px;
+      border: 1px solid rgba(232,77,87,0.18);
+      border-radius: 99px;
+      background: rgba(232,77,87,0.06);
+      color: #cf4650;
+      font-size: 5.5px;
+      font-weight: 750;
+      opacity: 0;
+      transform: translateX(4px);
+    }
+
+    .zhihu-block-mark svg {
+      width: 7px;
+      height: 7px;
+      stroke-width: 2.4;
+    }
+
+    .zhihu-title-skeleton {
+      width: 82%;
+      height: 4px;
+      margin-top: 6px;
+      border-radius: 99px;
+      background: #555d68;
+    }
+
+    .zhihu-copy-skeleton {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      margin-top: 5px;
+    }
+
+    .zhihu-copy-skeleton span {
+      height: 2.5px;
+      border-radius: 99px;
+      background: #e1e5e9;
+    }
+
+    .zhihu-copy-skeleton span:nth-child(1) { width: 96%; }
+    .zhihu-copy-skeleton span:nth-child(2) { width: 87%; }
+    .zhihu-copy-skeleton span:nth-child(3) { width: 62%; }
+
+    .zhihu-filter-scan {
+      position: absolute;
+      z-index: 7;
+      top: 51px;
+      left: 12px;
+      right: 12px;
+      height: 1px;
+      border-radius: 99px;
+      background: linear-gradient(90deg, transparent, rgba(0,102,255,0.9), transparent);
+      box-shadow: 0 0 12px rgba(0,102,255,0.55);
+      opacity: 0;
+      transform: scaleX(0.2);
+    }
+
+    .zhihu-hidden-placeholder {
+      position: absolute;
+      z-index: 9;
+      left: 10px;
+      right: 10px;
+      top: 56px;
+      height: 31px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      padding: 0 8px;
+      border: 1px solid rgba(0,102,255,0.14);
+      border-radius: 7px;
+      background: linear-gradient(135deg, rgba(248,251,255,0.98), rgba(239,246,255,0.98));
+      color: #64748b;
+      font-size: 6.7px;
+      font-weight: 650;
+      box-shadow: 0 5px 14px rgba(48,85,135,0.09);
+      opacity: 0;
+      transform: translateY(5px) scale(0.97);
+    }
+
+    .zhihu-hidden-placeholder svg {
+      width: 10px;
+      height: 10px;
+      color: #0066ff;
+      flex: 0 0 auto;
+      stroke-width: 2.2;
+    }
+
+    .zhihu-hidden-placeholder strong {
+      color: #175199;
+      font-weight: 750;
+    }
+
+    .zhihu-hidden-placeholder .zhihu-view-action {
+      margin-left: auto;
+      padding: 3px 5px;
+      border-radius: 5px;
+      background: rgba(0,102,255,0.09);
+      color: #0066ff;
+      font-size: 6.2px;
+      white-space: nowrap;
+    }
+
+    .zhihu-privacy-chip {
+      position: absolute;
+      z-index: 10;
+      right: 9px;
+      bottom: 7px;
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      padding: 3px 6px;
+      border: 1px solid rgba(0,102,255,0.14);
+      border-radius: 99px;
+      background: rgba(255,255,255,0.84);
+      color: #4c75a7;
+      font-size: 5.8px;
+      font-weight: 700;
+      opacity: 0;
+      transform: translateY(4px);
+      box-shadow: 0 3px 10px rgba(0,102,255,0.08);
+    }
+
+    .zhihu-privacy-chip svg {
+      width: 8px;
+      height: 8px;
+      stroke-width: 2.2;
+    }
+
+
+
+    .active .zhihu-filter-demo.animating .zhihu-filter-scan {
+      animation: zhihuScan 4.5s ease-in-out infinite !important;
+    }
+
+    .active .zhihu-filter-demo.animating .zhihu-block-mark {
+      animation: zhihuBlockMark 4.5s ease-in-out infinite !important;
+    }
+
+    .active .zhihu-filter-demo.animating .zhihu-card--target {
+      animation: zhihuTargetCard 4.5s cubic-bezier(.45,0,.2,1) infinite !important;
+    }
+
+    .active .zhihu-filter-demo.animating .zhihu-hidden-placeholder {
+      animation: zhihuPlaceholder 4.5s cubic-bezier(.34,1.56,.64,1) infinite !important;
+    }
+
+    .active .zhihu-filter-demo.animating .zhihu-view-action {
+      animation: zhihuViewAction 4.5s ease-in-out infinite !important;
+    }
+
+    .active .zhihu-filter-demo.animating .zhihu-privacy-chip {
+      animation: zhihuPrivacyChip 4.5s ease-in-out infinite !important;
+    }
+
+    @keyframes zhihuScan {
+      0%, 8% { top: 51px; opacity: 0; transform: scaleX(0.2); }
+      13% { opacity: 1; transform: scaleX(0.9); }
+      27% { top: 109px; opacity: 0.72; transform: scaleX(1); }
+      32%, 100% { top: 116px; opacity: 0; transform: scaleX(0.45); }
+    }
+
+    @keyframes zhihuBlockMark {
+      0%, 18% { opacity: 0; transform: translateX(4px) scale(0.9); }
+      24%, 37% { opacity: 1; transform: translateX(0) scale(1); }
+      42%, 100% { opacity: 0; transform: translateX(0) scale(0.94); }
+    }
+
+    @keyframes zhihuTargetCard {
+      0%, 30% { opacity: 1; height: 67px; transform: scale(1); filter: blur(0); }
+      38% { opacity: 0.2; height: 31px; transform: scale(0.985); filter: blur(0.5px); }
+      44%, 65% { opacity: 0; height: 31px; transform: scale(0.985); filter: blur(1px); }
+      72% { opacity: 0; height: 31px; transform: scale(0.985); filter: blur(1px); }
+      81%, 91% { opacity: 1; height: 67px; transform: scale(1); filter: blur(0); }
+      100% { opacity: 1; height: 67px; transform: scale(1); filter: blur(0); }
+    }
+
+    @keyframes zhihuPlaceholder {
+      0%, 34% { opacity: 0; transform: translateY(5px) scale(0.97); }
+      42%, 63% { opacity: 1; transform: translateY(0) scale(1); }
+      68% { opacity: 1; transform: translateY(0) scale(1); border-color: rgba(0,102,255,0.36); box-shadow: 0 0 0 0 rgba(0,102,255,0), 0 5px 14px rgba(48,85,135,0.09); }
+      72% { opacity: 1; transform: translateY(0) scale(0.985); border-color: rgba(0,102,255,0.58); box-shadow: 0 0 0 7px rgba(0,102,255,0.10), 0 5px 14px rgba(48,85,135,0.11); }
+      78% { opacity: 0; transform: translateY(-3px) scale(0.98); box-shadow: 0 0 0 12px rgba(0,102,255,0), 0 5px 14px rgba(48,85,135,0.08); }
+      100% { opacity: 0; transform: translateY(5px) scale(0.97); }
+    }
+
+    @keyframes zhihuViewAction {
+      0%, 62% { background: rgba(0,102,255,0.09); color: #0066ff; transform: translateY(0); }
+      68% { background: rgba(0,102,255,0.18); color: #005ce6; transform: translateY(0); }
+      72% { background: #0066ff; color: #fff; transform: translateY(1px); }
+      77%, 100% { background: rgba(0,102,255,0.09); color: #0066ff; transform: translateY(0); }
+    }
+
+    @keyframes zhihuPrivacyChip {
+      0%, 39% { opacity: 0; transform: translateY(4px); }
+      47%, 66% { opacity: 1; transform: translateY(0); }
+      74%, 100% { opacity: 0; transform: translateY(-2px); }
+    }
+
+    @media (prefers-color-scheme: dark) {
+      .site-demo-window {
+        border-color: rgba(255,255,255,0.09);
+        background: rgba(24,25,31,0.96);
+        box-shadow: 0 14px 30px rgba(0,0,0,0.34), inset 0 1px 0 rgba(255,255,255,0.06);
+      }
+
+      .site-demo-topbar {
+        border-bottom-color: rgba(255,255,255,0.07);
+        background: rgba(30,31,38,0.9);
+      }
+
+      .site-demo-nav span { background: #41434c; }
+
+      .bili-feed-demo {
+        background: radial-gradient(circle at 14% 20%, rgba(251,114,153,0.18), transparent 32%), linear-gradient(135deg, #20161a, #28181f);
+      }
+
+      .bili-feed-stage { background: rgba(22,19,22,0.58); }
+      .bili-feed-label { color: #d2c7cd; }
+      .bili-feed-memory,
+      .bili-history-toast { background: rgba(39,27,33,0.95); color: #ff91b0; }
+      .bili-feed-tile { border-color: rgba(255,255,255,0.06); background: rgba(42,39,43,0.94); }
+      .bili-feed-title-line { background: #b9b3b7; }
+      .bili-feed-sub-line { background: #605a60; }
+      .bili-refresh-control,
+      .bili-history-button { background: rgba(35,32,35,0.96); border-color: #4b4f55; color: #8c8f95; }
+
+      .zhihu-filter-demo {
+        background: radial-gradient(circle at 84% 14%, rgba(0,102,255,0.17), transparent 31%), linear-gradient(135deg, #151b24, #172131);
+      }
+
+      .zhihu-filter-stage { background: rgba(17,24,39,0.34); }
+      .zhihu-card { border-color: rgba(255,255,255,0.07); background: rgba(37,42,52,0.96); }
+      .zhihu-author-name { background: #aaaeb7; }
+      .zhihu-author-meta,
+      .zhihu-copy-skeleton span { background: #4b5260; }
+      .zhihu-title-skeleton { background: #d4d7dd; }
+      .zhihu-hidden-placeholder { border-color: rgba(86,156,255,0.2); background: linear-gradient(135deg, rgba(29,39,55,0.98), rgba(25,35,51,0.98)); color: #a9b8ca; }
+      .zhihu-hidden-placeholder strong { color: #7db2ff; }
+      .zhihu-privacy-chip { background: rgba(28,38,54,0.92); color: #8db7ec; }
+    }
+
+    @media (max-width: 1050px) {
+      .features-container { gap: 18px; }
+      .feature-card { width: 258px; padding-left: 18px; padding-right: 18px; }
+      .feature-card.active { width: 320px; }
+    }
+
+    @media (max-width: 820px) {
+      .content-area { height: auto; }
+      .features-container { width: min(92vw, 520px); flex-direction: column; gap: 16px; }
+      .feature-card,
+      .feature-card.active { width: 100%; }
+      .feature-card:not(.active) { display: none; }
+    }
+
+
+    /* 核心产品演示保持 4.5 秒叙事动画；全局 reduced-motion 仍压缩非关键过渡。 */
+
+    @media (prefers-reduced-motion: reduce) {
+      .active .bili-demo-fre.animating .bili-fre-content,
+      .active .bili-demo-fre.animating .bili-fre-seg-rotate,
+      .active .bili-demo-fre.animating .bili-fre-seg-rotate::after,
+      .active .bili-demo-fre.animating .bili-fre-seg-fill,
+      .active .bili-demo-fre.animating .bili-fre-seg-fill::after,
+      .active .bili-feed-demo.animating .bili-refresh-control,
+      .active .bili-feed-demo.animating .bili-refresh-control svg,
+      .active .bili-feed-demo.animating .bili-feed-batch--old,
+      .active .bili-feed-demo.animating .bili-feed-batch--new,
+      .active .bili-feed-demo.animating .bili-history-button--prev,
+      .active .bili-feed-demo.animating .bili-feed-memory,
+      .active .bili-feed-demo.animating .bili-history-toast,
+      .active .zhihu-filter-demo.animating .zhihu-filter-scan,
+      .active .zhihu-filter-demo.animating .zhihu-block-mark,
+      .active .zhihu-filter-demo.animating .zhihu-card--target,
+      .active .zhihu-filter-demo.animating .zhihu-hidden-placeholder,
+      .active .zhihu-filter-demo.animating .zhihu-view-action,
+      .active .zhihu-filter-demo.animating .zhihu-privacy-chip {
+        animation-duration: 4.5s !important;
+        animation-iteration-count: infinite !important;
+      }
+    }
+    /* ECHO_SITE_DEMOS_END */
+
+    /* CTA_NEXT_NAV_START */
+
+
+    /* 跨页主按钮：明确表达目标页，并以箭头强化前进方向 */
+    .cta-btn {
+      gap: 14px;
+      white-space: nowrap;
+    }
+
+    .cta-next-copy {
+      display: inline-flex;
+      align-items: baseline;
+    }
+
+    .cta-next-prefix {
+      color: rgba(255, 255, 255, 0.68);
+      font-weight: 500;
+    }
+
+    .cta-next-target {
+      color: #fff;
+      font-weight: 650;
+    }
+
+    .cta-next-arrow {
+      width: 32px;
+      height: 32px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex: 0 0 auto;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.09);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+      transition: transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1),
+                  background-color 0.22s ease,
+                  border-color 0.22s ease;
+    }
+
+    .cta-next-arrow svg {
+      width: 17px;
+      height: 17px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2.2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .cta-btn:hover .cta-next-arrow {
+      transform: translateX(4px);
+      border-color: rgba(91, 184, 245, 0.34);
+      background: rgba(91, 184, 245, 0.16);
+    }
+
+    .cta-btn:active .cta-next-arrow {
+      transform: translateX(1px);
+    }
+
+    @media (max-height: 900px) {
+      .cta-next-arrow {
+        width: 30px;
+        height: 30px;
+      }
+    }
+
+    @media (max-height: 700px) {
+      .cta-btn { gap: 11px; }
+      .cta-next-arrow {
+        width: 28px;
+        height: 28px;
+      }
+      .cta-next-arrow svg {
+        width: 15px;
+        height: 15px;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .cta-next-arrow { transition: none; }
+      .cta-btn:hover .cta-next-arrow { transform: none; }
+    }
+    /* CTA_NEXT_NAV_END */
   </style>
   <!-- Low Poly 背景模块（共享） -->
   <script src="../common/lowpoly-bg.js"></script>
@@ -1485,8 +1760,8 @@
     <!-- 主内容区：标题 + 功能卡片 -->
     <div class="main-content">
       <header class="page-header">
-        <h1 class="page-title">核心功能，你一看就会</h1>
-        <p class="page-subtitle">这些操作将大幅提升你的浏览效率</p>
+        <h1 class="page-title">再让常用网站，更懂你的习惯</h1>
+        <p class="page-subtitle">为 B站与知乎，补上那些本该顺手的关键体验</p>
       </header>
 
       <!-- 内容区域 -->
@@ -1494,7 +1769,7 @@
         <!-- 三个功能卡片 -->
         <div class="features-container">
       <!-- 功能 1: B站视频优化工具 -->
-      <div class="feature-card active" data-index="0">
+      <div class="feature-card active" data-index="0" tabindex="0" role="button" aria-label="查看 B站视频优化工具演示">
         <div class="demo-area bili-demo-fre">
           <!-- 迷你胶囊工具条 -->
           <div class="bili-fre-capsule">
@@ -1522,122 +1797,169 @@
             <rect x="2" y="5" width="20" height="14" rx="3"/>
             <path d="M8 2L10 5"/><path d="M16 2L14 5"/>
           </svg>
-          左侧悬浮
+          默认开启 · 左侧悬浮
         </span>
       </div>
 
-      <!-- 功能 2: 鼠标手势 -->
-      <div class="feature-card" data-index="1">
-        <div class="demo-area gesture-demo">
-          <div class="tab-bar">
-            <div class="tab"><span class="tab-pill"></span></div>
-            <div class="tab"><span class="tab-pill"></span></div>
-            <div class="tab"><span class="tab-pill"></span></div>
+      <!-- 功能 2: B站推荐回退 -->
+      <div class="feature-card" data-index="1" tabindex="0" role="button" aria-label="查看 B站推荐回退演示">
+        <div class="demo-area bili-feed-demo" aria-hidden="true">
+          <div class="site-demo-window">
+            <div class="site-demo-topbar">
+              <div class="site-demo-wordmark bili-feed-wordmark">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="2" y="5" width="20" height="14" rx="3" fill="rgba(251,114,153,.08)"/>
+                  <path d="M8 2l2 3M16 2l-2 3"/>
+                  <circle cx="9" cy="11" r="1" fill="currentColor" stroke="none"/>
+                  <circle cx="15" cy="11" r="1" fill="currentColor" stroke="none"/>
+                </svg>
+                <span>B站</span>
+              </div>
+              <div class="site-demo-nav"><span></span><span></span><span></span></div>
+              <div class="site-demo-badge" style="color:#d8527c;background:rgba(251,114,153,.10);">首页</div>
+            </div>
+
+            <div class="bili-feed-stage">
+              <div class="bili-feed-label">首页推荐</div>
+              <div class="bili-feed-memory">会话内 · 最近 10 批</div>
+
+              <div class="bili-feed-batch bili-feed-batch--old">
+                <div class="bili-feed-tile">
+                  <div class="bili-feed-cover" style="--feed-cover:linear-gradient(135deg,#6b8ba4,#d7a88b);"><span class="bili-feed-duration">05:18</span></div>
+                  <div class="bili-feed-meta"><span class="bili-feed-title-line"></span><span class="bili-feed-sub-line"></span></div>
+                </div>
+                <div class="bili-feed-tile">
+                  <div class="bili-feed-cover" style="--feed-cover:linear-gradient(135deg,#708c7b,#c9d9ba);"><span class="bili-feed-duration">12:40</span></div>
+                  <div class="bili-feed-meta"><span class="bili-feed-title-line"></span><span class="bili-feed-sub-line"></span></div>
+                </div>
+                <div class="bili-feed-tile">
+                  <div class="bili-feed-cover" style="--feed-cover:linear-gradient(135deg,#967b92,#e2c6b7);"><span class="bili-feed-duration">08:22</span></div>
+                  <div class="bili-feed-meta"><span class="bili-feed-title-line"></span><span class="bili-feed-sub-line"></span></div>
+                </div>
+                <div class="bili-feed-tile">
+                  <div class="bili-feed-cover" style="--feed-cover:linear-gradient(135deg,#8e9eb3,#d8b9ca);"><span class="bili-feed-duration">18:06</span></div>
+                  <div class="bili-feed-meta"><span class="bili-feed-title-line"></span><span class="bili-feed-sub-line"></span></div>
+                </div>
+              </div>
+
+              <div class="bili-feed-batch bili-feed-batch--new">
+                <div class="bili-feed-tile">
+                  <div class="bili-feed-cover" style="--feed-cover:linear-gradient(135deg,#4d6787,#a3c7d9);"><span class="bili-feed-duration">03:46</span></div>
+                  <div class="bili-feed-meta"><span class="bili-feed-title-line"></span><span class="bili-feed-sub-line"></span></div>
+                </div>
+                <div class="bili-feed-tile">
+                  <div class="bili-feed-cover" style="--feed-cover:linear-gradient(135deg,#bc8e6d,#ead1ad);"><span class="bili-feed-duration">21:15</span></div>
+                  <div class="bili-feed-meta"><span class="bili-feed-title-line"></span><span class="bili-feed-sub-line"></span></div>
+                </div>
+                <div class="bili-feed-tile">
+                  <div class="bili-feed-cover" style="--feed-cover:linear-gradient(135deg,#536e62,#a8c2a6);"><span class="bili-feed-duration">09:31</span></div>
+                  <div class="bili-feed-meta"><span class="bili-feed-title-line"></span><span class="bili-feed-sub-line"></span></div>
+                </div>
+                <div class="bili-feed-tile">
+                  <div class="bili-feed-cover" style="--feed-cover:linear-gradient(135deg,#826f91,#c3afd0);"><span class="bili-feed-duration">14:02</span></div>
+                  <div class="bili-feed-meta"><span class="bili-feed-title-line"></span><span class="bili-feed-sub-line"></span></div>
+                </div>
+              </div>
+
+              <div class="bili-feed-controls">
+                <div class="bili-refresh-control">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/>
+                  </svg>
+                  <span>换一换</span>
+                </div>
+                <div class="bili-history-rail">
+                  <div class="bili-history-button bili-history-button--prev">
+                    <svg viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg>
+                  </div>
+                  <div class="bili-history-button bili-history-button--next">
+                    <svg viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg>
+                  </div>
+                </div>
+              </div>
+
+              <div class="bili-history-toast">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M19 12H5m6 6-6-6 6-6"/></svg>
+                已找回上一批推荐
+              </div>
+            </div>
           </div>
-          <div class="page-area"></div>
-          <div class="right-click-mark"></div>
-          <div class="right-click-hint">按住右键</div>
-          <div class="scroll-wheel-icon">
-            <div class="scroll-wheel-bar"></div>
-          </div>
-          <svg class="cursor" viewBox="0 0 24 24" fill="none">
-            <path d="M4 4l7 17 2.5-6.5L20 12 4 4z" fill="#333" stroke="#fff" stroke-width="1"/>
-          </svg>
         </div>
-        <h3 class="feature-title">鼠标手势强化</h3>
-        <p class="feature-desc">按住右键 + 滚动滚轮<br>快速切换标签页</p>
+        <h3 class="feature-title">B站推荐回退</h3>
+        <p class="feature-desc">找回「换一换」前的推荐<br>最近 10 批，原位前进与后退</p>
         <span class="operation-tag">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="6" y="2" width="12" height="20" rx="6"/>
-            <line x1="12" y1="6" x2="12" y2="10"/>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v6h6"/>
           </svg>
-          右键 + 滚轮
+          默认开启 · 可回退
         </span>
       </div>
 
-      <!-- 功能 3: 快速保存图片 -->
-      <div class="feature-card" data-index="2">
-        <div class="demo-area save-demo">
-          <div class="sample-image">
-            <svg viewBox="0 0 140 95" preserveAspectRatio="xMidYMid slice">
-              <!-- 抽象 Low Poly 几何图案 - 多彩莫兰迪色系 -->
-              <polygon points="0,0 45,0 30,35" fill="#A8B5A0"/>
-              <polygon points="45,0 70,0 55,40 30,35" fill="#D4B8A0"/>
-              <polygon points="70,0 100,0 85,30 55,40" fill="#E8D4C8"/>
-              <polygon points="100,0 140,0 140,25 110,35 85,30" fill="#9EB5C4"/>
-              <polygon points="0,0 0,50 30,35" fill="#8FA088"/>
-              <polygon points="0,50 0,95 35,70 30,35" fill="#B8A0A8"/>
-              <polygon points="30,35 35,70 70,55 55,40" fill="#C8D4C0"/>
-              <polygon points="55,40 70,55 95,45 85,30" fill="#F0E8E0"/>
-              <polygon points="85,30 95,45 110,35" fill="#C4D0D8"/>
-              <polygon points="110,35 140,25 140,60 105,55 95,45" fill="#A0B8C8"/>
-              <polygon points="35,70 0,95 55,95 70,75 70,55" fill="#C0A890"/>
-              <polygon points="70,55 70,75 95,80 95,45" fill="#D8C0B0"/>
-              <polygon points="95,45 95,80 105,55" fill="#B0C8B8"/>
-              <polygon points="105,55 95,80 125,95 140,60" fill="#C8B8C8"/>
-              <polygon points="140,60 140,95 125,95" fill="#8898A8"/>
-              <polygon points="55,95 70,75 95,80 85,95" fill="#D0C0A8"/>
-              <polygon points="85,95 95,80 125,95" fill="#E0D8D0"/>
-            </svg>
+
+      <!-- 功能 3: 知乎黑名单内容过滤 -->
+      <div class="feature-card" data-index="2" tabindex="0" role="button" aria-label="查看知乎黑名单内容过滤演示">
+        <div class="demo-area zhihu-filter-demo" aria-hidden="true">
+          <div class="site-demo-window">
+            <div class="site-demo-topbar">
+              <div class="site-demo-wordmark zhihu-wordmark">
+                <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                  <path d="M4 3h16v18H4z" opacity=".11"/><path d="M7 6h10v2H7zm0 4h10v2H7zm0 4h6v2H7z"/>
+                </svg>
+                <span>知乎</span>
+              </div>
+              <div class="site-demo-nav"><span></span><span></span><span></span></div>
+              <div class="site-demo-badge" style="color:#0066ff;background:rgba(0,102,255,.09);">推荐</div>
+            </div>
+
+            <div class="zhihu-filter-stage">
+              <div class="zhihu-feed-column">
+                <div class="zhihu-card zhihu-card--quiet">
+                  <div class="zhihu-author-row"><span class="zhihu-avatar"></span><span class="zhihu-author-name"></span><span class="zhihu-author-meta"></span></div>
+                  <div class="zhihu-title-skeleton"></div>
+                  <div class="zhihu-copy-skeleton"><span></span><span></span></div>
+                </div>
+
+                <div class="zhihu-card zhihu-card--target">
+                  <div class="zhihu-author-row">
+                    <span class="zhihu-avatar" style="background:linear-gradient(135deg,#fda4af,#f9a8d4);"></span>
+                    <span class="zhihu-author-name"></span>
+                    <span class="zhihu-author-meta"></span>
+                    <span class="zhihu-block-mark">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9"/><path d="m7 7 10 10"/></svg>
+                      黑名单用户
+                    </span>
+                  </div>
+                  <div class="zhihu-title-skeleton" style="width:72%;"></div>
+                  <div class="zhihu-copy-skeleton"><span></span><span></span><span></span></div>
+                </div>
+
+                <div class="zhihu-card zhihu-card--quiet zhihu-card--tail">
+                  <div class="zhihu-author-row"><span class="zhihu-avatar" style="background:linear-gradient(135deg,#86efac,#6ee7b7);"></span><span class="zhihu-author-name"></span><span class="zhihu-author-meta"></span></div>
+                  <div class="zhihu-title-skeleton" style="width:64%;"></div>
+                  <div class="zhihu-copy-skeleton"><span></span><span></span></div>
+                </div>
+              </div>
+
+              <div class="zhihu-filter-scan"></div>
+              <div class="zhihu-hidden-placeholder">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 9 6 6m0-6-6 6"/></svg>
+                <span>已隐藏<strong>黑名单用户</strong>内容</span>
+                <span class="zhihu-view-action">临时查看</span>
+              </div>
+              <div class="zhihu-privacy-chip">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>
+                名单仅保存在本地
+              </div>
+            </div>
           </div>
-          <div class="image-copy">
-            <svg viewBox="0 0 140 95" preserveAspectRatio="xMidYMid slice">
-              <polygon points="0,0 45,0 30,35" fill="#A8B5A0"/>
-              <polygon points="45,0 70,0 55,40 30,35" fill="#D4B8A0"/>
-              <polygon points="70,0 100,0 85,30 55,40" fill="#E8D4C8"/>
-              <polygon points="100,0 140,0 140,25 110,35 85,30" fill="#9EB5C4"/>
-              <polygon points="0,0 0,50 30,35" fill="#8FA088"/>
-              <polygon points="0,50 0,95 35,70 30,35" fill="#B8A0A8"/>
-              <polygon points="30,35 35,70 70,55 55,40" fill="#C8D4C0"/>
-              <polygon points="55,40 70,55 95,45 85,30" fill="#F0E8E0"/>
-              <polygon points="85,30 95,45 110,35" fill="#C4D0D8"/>
-              <polygon points="110,35 140,25 140,60 105,55 95,45" fill="#A0B8C8"/>
-              <polygon points="35,70 0,95 55,95 70,75 70,55" fill="#C0A890"/>
-              <polygon points="70,55 70,75 95,80 95,45" fill="#D8C0B0"/>
-              <polygon points="95,45 95,80 105,55" fill="#B0C8B8"/>
-              <polygon points="105,55 95,80 125,95 140,60" fill="#C8B8C8"/>
-              <polygon points="140,60 140,95 125,95" fill="#8898A8"/>
-              <polygon points="55,95 70,75 95,80 85,95" fill="#D0C0A8"/>
-              <polygon points="85,95 95,80 125,95" fill="#E0D8D0"/>
-            </svg>
-          </div>
-          <!-- 伪文字胶囊 - 右侧 -->
-          <div class="fake-text-right">
-            <div class="fake-line" style="width: 120px;"></div>
-            <div class="fake-line" style="width: 105px;"></div>
-            <div class="fake-line" style="width: 115px;"></div>
-            <div class="fake-line" style="width: 95px;"></div>
-            <div class="fake-line" style="width: 110px;"></div>
-            <div class="fake-line" style="width: 85px;"></div>
-          </div>
-          <div class="alt-key">Alt</div>
-          <div class="alt-hint">+ 点击图片</div>
-          <div class="download-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-              <polyline points="7 10 12 15 17 10"/>
-              <line x1="12" y1="15" x2="12" y2="3"/>
-            </svg>
-          </div>
-          <div class="save-success">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-              <polyline points="20 6 9 17 4 12"/>
-            </svg>
-            已保存
-          </div>
-          <svg class="cursor" viewBox="0 0 24 24" fill="none">
-            <path d="M4 4l7 17 2.5-6.5L20 12 4 4z" fill="#333" stroke="#fff" stroke-width="1"/>
-          </svg>
-          <div class="click-ripple"></div>
         </div>
-        <h3 class="feature-title">快速保存图片</h3>
-        <p class="feature-desc">按住 Alt 点击图片直接保存<br>自动归类到专属文件夹</p>
+        <h3 class="feature-title">知乎黑名单内容过滤</h3>
+        <p class="feature-desc">折叠黑名单用户本人发布的内容<br>需要时仍可临时查看</p>
         <span class="operation-tag">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="4" y="14" width="6" height="6" rx="1"/>
-            <path d="M14 4h6v6"/>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 9l6 6m0-6-6 6"/>
           </svg>
-          Alt + 点击
+          默认关闭 · 手动同步
         </span>
       </div>
         </div>
@@ -1648,7 +1970,12 @@
 
     <!-- 底部导航 -->
     <nav class="nav-footer">
-      <a href="fre-step3.html" class="cta-btn">了解更多</a>
+      <a href="fre-step3.html" class="cta-btn" aria-label="下一页：悬浮搜索">
+        <span class="cta-next-copy"><span class="cta-next-prefix">下一页：</span><span class="cta-next-target">悬浮搜索</span></span>
+        <span class="cta-next-arrow" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><path d="M5 12h14m-6-6 6 6-6 6"/></svg>
+        </span>
+      </a>
     </nav>
   </div>
 
@@ -1664,7 +1991,7 @@
       <span class="step-line"></span>
     </div>
     <div class="step-item active">
-      <span class="step-label active">核心功能</span>
+      <span class="step-label active">网站增强</span>
       <span class="step-line"></span>
     </div>
     <div class="step-item">
@@ -1676,8 +2003,10 @@
     </div>
   </div>
 
-  <!-- FRE 通用脚本（包含卡片轮播逻辑） -->
+  <!-- FRE 通用导航脚本 -->
   <script src="fre.js"></script>
+  <!-- Step 2 页面专属动画控制器：扩展页 CSP 兼容的外部脚本 -->
+  <script src="fre-step2.js"></script>
 
   <!-- 鼠标手势模块 - 右键+滚轮切换标签 -->
   <script src="../common/mouse-gesture.js"></script>
@@ -1685,8 +2014,9 @@
   <script src="../common/super-drag.js"></script>
   <!-- 快捷键增强模块 - 精细缩放 + F2/F3 切换标签 -->
   <script src="../common/keyboard-enhance.js"></script>
-
   <!-- 超级 Bing 悬浮搜索框（Ctrl+B） -->
   <script src="../search-box/search-box.js"></script>
+
 </body>
 </html>
+

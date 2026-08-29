@@ -18,7 +18,7 @@ ECHO adheres to a **"Local First"** development philosophy.
 
 - **Zhihu Blocklist Filter**: If you explicitly enable this feature and start a manual sync, ECHO reads your Zhihu account ID and official blocklist through your existing logged-in Zhihu session. The account ID, blocked-user IDs, URL tokens, sync time, and page author identifiers are processed and stored only in `chrome.storage.local`. They are not uploaded by ECHO, placed in sync storage, or included in ECHO backup exports. Disabling the filter stops page processing; removing the extension clears extension-local storage.
 
-- **Bilibili Feed History**: If enabled, ECHO stores up to 10 structured recommendation batches per Bilibili tab in `chrome.storage.session`, including card links, titles, covers, authors, durations, play counts, and danmaku counts. This data stays in the local browser session, is isolated by tab, is not uploaded or included in backups, and is removed when the tab closes.
+- **Bilibili Feed History**: While this feature is enabled, ECHO stores up to 10 structured recommendation batches per Bilibili tab in `chrome.storage.session`, including card links, titles, covers, authors, durations, play counts, and danmaku counts. This data stays in the local browser session, is isolated by tab, is not uploaded or included in backups, and is removed when the tab closes.
 
 - **Backup & Restore**: ECHO provides an optional export/import feature for data backup. The exported JSON file contains **only** ECHO version number, export timestamp, feature toggle settings, and NTP wallpaper favorites. It does **NOT** contain any personal information, browsing history, bookmarks, passwords, or any other browser data.
 
@@ -28,7 +28,7 @@ To provide enhanced functionality, ECHO requires certain browser permissions:
 
 - **Read and change all your data on the websites you visit (`*://*/*`)**:
   
-  - *Purpose*: Essential for mouse gestures, super drag, and explicitly enabled site enhancements such as Bilibili feed history and Zhihu blocklist filtering.
+  - *Purpose*: Essential for mouse gestures, super drag, and enabled site enhancements such as Bilibili feed history and Zhihu blocklist filtering.
   - *Promise*: Site enhancements inspect only the page structures and identifiers needed for their stated function. This data is processed locally and is not uploaded by ECHO. The separate AI exception is described in Section 3.
 
 - **Read your browsing history / Tabs (`tabs`)**:
@@ -138,7 +138,7 @@ ECHO 遵循 **"Local First"（本地优先）** 的开发原则。
 
 - **知乎黑名单过滤**：仅当您主动开启功能并手动同步时，ECHO 才会通过您现有的知乎登录态读取知乎账号 ID 和官方黑名单。账号 ID、被屏蔽用户 ID、URL Token、同步时间及页面作者标识只在 `chrome.storage.local` 中处理和保存，不会由 ECHO 上传，不进入同步存储，也不包含在 ECHO 备份导出中。关闭功能后停止页面处理；卸载扩展会清除扩展本地存储。
 
-- **B站推荐回退**：仅当您主动开启功能时，ECHO 才会按 B站标签页在 `chrome.storage.session` 中保存最多 10 批结构化推荐，包括卡片链接、标题、封面、作者、时长、播放数和弹幕数。数据只存在于本地浏览器会话，按标签页隔离，不会上传或进入备份，并在标签页关闭时删除。
+- **B站推荐回退**：功能启用期间，ECHO 会按 B站标签页在 `chrome.storage.session` 中保存最多 10 批结构化推荐，包括卡片链接、标题、封面、作者、时长、播放数和弹幕数。数据只存在于本地浏览器会话，按标签页隔离，不会上传或进入备份，并在标签页关闭时删除。
 
 - **备份与恢复**：ECHO 提供可选的数据导出/导入功能，用于防止卸载扩展时数据丢失。导出的 JSON 文件**仅包含** ECHO 插件版本号、导出时间戳、功能开关设置和新标签页 (NTP) 壁纸收藏。**绝不包含**任何个人信息、浏览记录、收藏夹、密码或任何其他浏览器数据。
 
@@ -148,7 +148,7 @@ ECHO 遵循 **"Local First"（本地优先）** 的开发原则。
 
 - **读取和更改所有网站上的数据 (`*://*/*`)**：
   
-  - *用途*：用于「鼠标手势」「超级拖拽」，以及用户主动开启的 B站推荐回退、知乎黑名单过滤等站点增强功能。
+  - *用途*：用于「鼠标手势」「超级拖拽」，以及处于启用状态的 B站推荐回退、知乎黑名单过滤等站点增强功能。
   - *承诺*：站点增强只读取实现其明确功能所需的页面结构和作者标识，数据仅在本地处理，不由 ECHO 上传。第 3 条另行说明 AI 功能的数据处理例外。
 
 - **读取浏览历史 / 标签页 (`tabs`)**：

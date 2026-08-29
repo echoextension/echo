@@ -139,7 +139,7 @@
           <div class="option-info">
             <h3>拖拽链接/文字</h3>
             <p>拖拽链接在新标签打开；拖拽选中文字用 Bing 搜索</p>
-            <p class="note" style="color: #e6a23c;">⚠️ Edge 新版本正在内置类似的拖拽功能，若两者同时启用可能产生冲突。因此此功能默认关闭，如需使用请手动开启</p>
+            <p class="note">💡 可与 Edge 自带拖拽同时使用、互不冲突；ECHO 还额外支持链接拖拽，因此默认开启</p>
           </div>
           <label class="switch">
             <input type="checkbox" id="superDrag">
@@ -512,7 +512,7 @@
         <div class="option">
           <div class="option-info">
             <h3>隐藏黑名单用户发布的内容</h3>
-            <p>在知乎问答、评论和专栏中折叠黑名单用户本人发布的内容，并保留临时查看入口</p>
+            <p>默认关闭。同步官方黑名单后，在支持页面折叠命中作者的内容；识别失败时保持原样</p>
           </div>
           <label class="switch">
             <input type="checkbox" id="zhihuBlocklistFilter">
@@ -522,35 +522,13 @@
         <div class="option sub-option zhihu-sync-option">
           <div class="option-info">
             <h3>手动同步知乎黑名单</h3>
-            <p id="zhihuBlocklistStatus" class="zhihu-sync-status">尚未同步。同步时需要打开并登录 www.zhihu.com</p>
+            <p id="zhihuBlocklistStatus" class="zhihu-sync-status">尚未同步。名单按知乎账号保存在本地，不进入同步或备份</p>
           </div>
           <button type="button" class="backup-btn export-btn zhihu-sync-button" id="zhihuBlocklistSync">同步知乎黑名单</button>
         </div>
       </section>
 
-      <!-- B站推荐回退 -->
-      <section class="card" id="biliFeedHistoryCard">
-        <div class="card-header">
-          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M3 12a9 9 0 1 0 3-6.7"/>
-            <path d="M3 4v6h6"/>
-            <path d="M9 12h6"/>
-          </svg>
-          <h2>B站推荐回退</h2>
-        </div>
-        <div class="option">
-          <div class="option-info">
-            <h3>找回「换一换」前的推荐</h3>
-            <p>在 B站首页的「换一换」下方提供批次导航，按标签页保留最近 10 批推荐；刷新或同标签返回首页后自动恢复</p>
-          </div>
-          <label class="switch">
-            <input type="checkbox" id="biliFeedHistory">
-            <span class="slider"></span>
-          </label>
-        </div>
-      </section>
-
-      <!-- B站视频优化工具 -->
+      <!-- B站专属增强 -->
       <section class="card" id="biliToolCard">
         <div class="card-header">
           <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -558,11 +536,11 @@
             <path d="M8 2L10 5"/>
             <path d="M16 2L14 5"/>
           </svg>
-          <h2>B站视频优化工具</h2>
+          <h2>B站专属增强</h2>
         </div>
         <div class="option">
           <div class="option-info">
-            <h3>颜色变换、旋转镜像、超级变速</h3>
+            <h3>B站视频优化工具</h3>
 
             <!-- 演示动画 + 功能说明 并排 -->
             <div style="display: flex; gap: 14px; margin-top: 14px; align-items: stretch;">
@@ -592,29 +570,72 @@
               </div>
             </div>
 
-            <!-- 功能说明 -->
-            <div style="flex: 1; min-width: 0; padding: 12px; background: rgba(128, 128, 128, 0.05); border-radius: 6px; border: 1px solid rgba(128, 128, 128, 0.1);">
-              <div style="display: flex; gap: 8px; margin-bottom: 8px;">
-                <span style="flex-shrink: 0;">📺</span>
-                <div style="font-size: 13px; color: var(--text); line-height: 1.5;">
-                  在 Bilibili 视频播放页左侧悬浮显示优化工具
-                </div>
-              </div>
-              
-              <div style="margin-left: 24px; padding-top: 8px; border-top: 1px dashed rgba(128, 128, 128, 0.2);">
-                <ul style="margin: 0; padding-left: 16px; font-size: 12px; color: var(--text-secondary); line-height: 1.8; opacity: 0.9;">
-                  <li>颜色反转与通道交换（全色以及分通道调整）</li>
-                  <li>旋转镜像（以及缩放、适配，特别适合看小姐姐，避免歪脖子）</li>
-                  <li>超级变速（0.25× 超慢速和 3.0× 极速播放）</li>
-                </ul>
-                <div style="font-size: 12px; font-weight: 600; color: var(--text-secondary); margin-top: 6px;">完全自由组合，也可以随时关闭或暂时隐藏</div>
-              </div>
-            </div>
+            <p class="bili-option-summary">视频页左侧悬浮工具，颜色、旋转、镜像与倍速可自由组合</p>
 
             </div>
           </div>
           <label class="switch">
             <input type="checkbox" id="biliTool">
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <div class="option">
+          <div class="option-info">
+            <h3>B站推荐回退</h3>
+
+            <div class="bili-feed-option-layout">
+              <div class="options-bili-feed-demo bili-feed-demo" aria-hidden="true">
+                <div class="site-demo-window">
+                  <div class="site-demo-topbar">
+                    <div class="site-demo-wordmark bili-feed-wordmark">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="2" y="5" width="20" height="14" rx="3" fill="rgba(251,114,153,.08)"/>
+                        <path d="M8 2l2 3M16 2l-2 3"/>
+                        <circle cx="9" cy="11" r="1" fill="currentColor" stroke="none"/>
+                        <circle cx="15" cy="11" r="1" fill="currentColor" stroke="none"/>
+                      </svg>
+                      <span>B站</span>
+                    </div>
+                    <div class="site-demo-nav"><span></span><span></span><span></span></div>
+                    <div class="site-demo-badge">首页</div>
+                  </div>
+
+                  <div class="bili-feed-stage">
+                    <div class="bili-feed-label">首页推荐</div>
+                    <div class="bili-feed-memory">会话内 · 最近 10 批</div>
+
+                    <div class="bili-feed-batch bili-feed-batch--old">
+                      <div class="bili-feed-tile"><div class="bili-feed-cover" style="--feed-cover:linear-gradient(135deg,#6b8ba4,#d7a88b);"><span class="bili-feed-duration">05:18</span></div><div class="bili-feed-meta"><span class="bili-feed-title-line"></span><span class="bili-feed-sub-line"></span></div></div>
+                      <div class="bili-feed-tile"><div class="bili-feed-cover" style="--feed-cover:linear-gradient(135deg,#708c7b,#c9d9ba);"><span class="bili-feed-duration">12:40</span></div><div class="bili-feed-meta"><span class="bili-feed-title-line"></span><span class="bili-feed-sub-line"></span></div></div>
+                      <div class="bili-feed-tile"><div class="bili-feed-cover" style="--feed-cover:linear-gradient(135deg,#967b92,#e2c6b7);"><span class="bili-feed-duration">08:22</span></div><div class="bili-feed-meta"><span class="bili-feed-title-line"></span><span class="bili-feed-sub-line"></span></div></div>
+                      <div class="bili-feed-tile"><div class="bili-feed-cover" style="--feed-cover:linear-gradient(135deg,#8e9eb3,#d8b9ca);"><span class="bili-feed-duration">18:06</span></div><div class="bili-feed-meta"><span class="bili-feed-title-line"></span><span class="bili-feed-sub-line"></span></div></div>
+                    </div>
+
+                    <div class="bili-feed-batch bili-feed-batch--new">
+                      <div class="bili-feed-tile"><div class="bili-feed-cover" style="--feed-cover:linear-gradient(135deg,#4d6787,#a3c7d9);"><span class="bili-feed-duration">03:46</span></div><div class="bili-feed-meta"><span class="bili-feed-title-line"></span><span class="bili-feed-sub-line"></span></div></div>
+                      <div class="bili-feed-tile"><div class="bili-feed-cover" style="--feed-cover:linear-gradient(135deg,#bc8e6d,#ead1ad);"><span class="bili-feed-duration">21:15</span></div><div class="bili-feed-meta"><span class="bili-feed-title-line"></span><span class="bili-feed-sub-line"></span></div></div>
+                      <div class="bili-feed-tile"><div class="bili-feed-cover" style="--feed-cover:linear-gradient(135deg,#536e62,#a8c2a6);"><span class="bili-feed-duration">09:31</span></div><div class="bili-feed-meta"><span class="bili-feed-title-line"></span><span class="bili-feed-sub-line"></span></div></div>
+                      <div class="bili-feed-tile"><div class="bili-feed-cover" style="--feed-cover:linear-gradient(135deg,#826f91,#c3afd0);"><span class="bili-feed-duration">14:02</span></div><div class="bili-feed-meta"><span class="bili-feed-title-line"></span><span class="bili-feed-sub-line"></span></div></div>
+                    </div>
+
+                    <div class="bili-feed-controls">
+                      <div class="bili-refresh-control"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg><span>换一换</span></div>
+                      <div class="bili-history-rail"><div class="bili-history-button bili-history-button--prev"><svg viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg></div><div class="bili-history-button bili-history-button--next"><svg viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg></div></div>
+                    </div>
+
+                    <div class="bili-history-toast"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M19 12H5m6 6-6-6 6-6"/></svg>已找回上一批推荐</div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="bili-feed-option-copy">
+                <p>首页「换一换」下方增加批次导航，会话内保留最近 10 批，关闭标签页后清除</p>
+              </div>
+            </div>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="biliFeedHistory">
             <span class="slider"></span>
           </label>
         </div>

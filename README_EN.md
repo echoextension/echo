@@ -16,6 +16,7 @@ This project was built entirely by a **non-technical PM** through AI-assisted pr
 
 #### 🔄 Super Drag
 
+- **Enabled by default**; works alongside Edge's built-in drag feature without conflict and additionally opens dragged links in new tabs
 - **Drag text**: Automatically search with Bing
 - **Drag links**: Open in a new tab
 - Configurable: new tab activates immediately or opens in background
@@ -98,7 +99,7 @@ This project was built entirely by a **non-technical PM** through AI-assisted pr
 
 #### ↩️ Bilibili Feed History
 
-- **Disabled by default**; adds previous/next batch controls beside the homepage refresh control
+- **Enabled by default**; adds previous/next batch controls beside the homepage refresh control
 - Keeps the latest 10 recommendation batches per tab session, restores them after reload or same-tab video navigation, and clears them when the tab closes
 - Renders structured history cards with title, cover, author, duration, play count, and danmaku count without storing Bilibili page HTML
 
@@ -143,7 +144,7 @@ Click the ECHO icon in the Edge toolbar to open settings. All features can be to
 | Floating Search Box | ✅ On          | Ctrl+B toggle                            |
 | AI Related Search   | ❌ Off         | Requires manual opt-in                   |
 | Zhihu Blocklist Filter | ❌ Off      | Requires manual blocklist sync           |
-| Bilibili Feed History | ❌ Off       | Keeps 10 batches per tab session         |
+| Bilibili Feed History | ✅ On        | Keeps 10 batches per tab session         |
 
 ---
 

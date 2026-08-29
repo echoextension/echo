@@ -9,17 +9,18 @@ const SETTING_IDS = [
   'quickMute',
   'fineZoom',
   'fineZoomLargeStep',    // 大比例时加速步进
+  'superDrag',            // 超级拖拽（默认开启）
   'tabSwitchKey',         // F2/F3 切换标签
-  'quickSaveImage'        // Alt+点击快速保存图片
+  'quickSaveImage',       // Alt+点击快速保存图片
+  'biliTool',             // B站视频优化工具（默认开启）
+  'biliFeedHistory'       // B站推荐回退（默认开启）
 ];
 
 // 开关类设置 - 默认关闭（非实验室）
 const SETTING_IDS_DEFAULT_OFF = [
-  'superDrag',                   // 超级拖拽（默认关闭，避免与 Edge 内置拖拽冲突）
   'superDragActivate',         // 拖拽产生的标签立即激活（默认关闭，即后台打开）
   'quickSaveImageDateFolder',  // 按日期创建子文件夹
   'applyToPlusButton',         // 同时应用于「+」新建标签页
-  'biliFeedHistory',           // B站推荐回退
   'zhihuBlocklistFilter'       // 知乎黑名单内容过滤
 ];
 
@@ -33,8 +34,7 @@ const SETTING_IDS_OFF = [
 // 开关类设置 - 默认开启（实验室功能）
 const SETTING_IDS_ON_LAB = [
   'floatingSearchBox',        // 悬浮搜索框（默认开启）
-  'floatingSearchBoxTrending', // 悬浮搜索框热搜榜（默认关闭）
-  'biliTool'                   // B站视频优化工具（默认开启）
+  'floatingSearchBoxTrending' // 悬浮搜索框热搜榜（默认关闭）
 ];
 
 // 单选设置
@@ -52,7 +52,7 @@ const DEFAULT_SETTINGS = {
   quickMute: true,
   fineZoom: true,
   fineZoomLargeStep: true,     // 大比例时加速步进
-  superDrag: false,
+  superDrag: true,
   superDragActivate: false,    // 拖拽产生的标签立即激活（默认关闭，即后台打开）
   tabSwitchKey: true,          // F2/F3 切换标签
   quickSaveImage: true,        // Alt+点击快速保存图片
@@ -61,7 +61,7 @@ const DEFAULT_SETTINGS = {
   floatingSearchBoxAlwaysShow: false,  // 悬浮搜索框常驻显示（默认关闭）
   floatingSearchBoxFollowZoom: false,  // 悬浮搜索框跟随页面缩放（默认关闭）
   biliTool: true,                        // B站视频优化工具（默认开启）
-  biliFeedHistory: false,                // B站推荐回退（默认关闭）
+  biliFeedHistory: true,                 // B站推荐回退（默认开启）
   zhihuBlocklistFilter: false,           // 知乎黑名单内容过滤（默认关闭）
   floatingSearchBoxTrending: false,    // 悬浮搜索框热搜榜（默认关闭）
   relatedSearchRecommend: false, // 网页关联搜索推荐（实验室，默认关闭）
@@ -831,7 +831,7 @@ async function initBookmarkBar() {
 }
 
 // 监听设置变化（包括密度变化、收藏栏开关变化）
-chrome.storage.onChanged.addListener(async (changes, areaName) => {
+globalThis.chrome?.storage?.onChanged?.addListener?.(async (changes, areaName) => {
   if (areaName !== 'sync') return;
   
   // 密度变化时更新高度
@@ -856,7 +856,7 @@ chrome.storage.onChanged.addListener(async (changes, areaName) => {
 });
 
 // 监听来自 background 的消息（书签更新）
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+globalThis.chrome?.runtime?.onMessage?.addListener?.((message, sender, sendResponse) => {
   if (message.action === 'bookmarkBarUpdated' || message.action === 'bookmarkFolderUpdated') {
     if (window.EchoBookmarkBar && window.EchoBookmarkBar.handleMessage) {
       const settings = { customBookmarkBar: true }; // 设置页上已初始化就认为开启了
@@ -1467,6 +1467,47 @@ function initBackToTop() {
   });
 }
 
+function initSiteEnhancementDemos() {
+  const demos = document.querySelectorAll('.bili-demo-stage, .options-bili-feed-demo');
+  if (!demos.length) return;
+
+  const setRunning = (demo, running, restart = false) => {
+    demo.classList.toggle('animating', running);
+    requestAnimationFrame(() => {
+      demo.getAnimations({ subtree: true }).forEach(animation => {
+        if (running) {
+          if (restart) animation.currentTime = 0;
+          animation.play();
+        } else {
+          animation.pause();
+        }
+      });
+    });
+  };
+
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      const running = entry.isIntersecting && entry.intersectionRatio >= 0.15;
+      setRunning(entry.target, running, running);
+    });
+  }, { threshold: [0, 0.15, 0.4] });
+
+  demos.forEach(demo => {
+    observer.observe(demo);
+    const rect = demo.getBoundingClientRect();
+    const visible = rect.bottom > 0 && rect.top < window.innerHeight;
+    setRunning(demo, visible, true);
+  });
+
+  document.addEventListener('visibilitychange', () => {
+    demos.forEach(demo => {
+      const rect = demo.getBoundingClientRect();
+      const visible = rect.bottom > 0 && rect.top < window.innerHeight;
+      setRunning(demo, visible, false);
+    });
+  });
+}
+
 // ============================================
 // 平台检测与快捷键显示适配
 // ============================================
@@ -1525,6 +1566,7 @@ function adaptShortcutsForPlatform() {
 document.addEventListener('DOMContentLoaded', () => {
   initScrollNav();
   initBackToTop();
+  initSiteEnhancementDemos();
   adaptShortcutsForPlatform();
   initBlacklistManager();
 });

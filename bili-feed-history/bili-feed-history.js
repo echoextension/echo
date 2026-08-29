@@ -18,7 +18,7 @@
   const SETTLE_TIMEOUT_MS = 5000;
   const INITIAL_SETTLE_TIMEOUT_MS = 20000;
 
-  let enabled = (await chrome.storage.sync.get({ [SETTING_KEY]: false }))[SETTING_KEY];
+  let enabled = (await chrome.storage.sync.get({ [SETTING_KEY]: true }))[SETTING_KEY];
   let batches = [];
   let currentIndex = -1;
   let nativeButton = null;

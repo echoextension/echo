@@ -1,0 +1,18 @@
+{
+  "name": "ECHO 易可",
+  "short_name": "ECHO",
+  "description": "让 Edge 更懂中国用户",
+  "start_url": "/",
+  "display": "browser",
+  "background_color": "#08151f",
+  "theme_color": "#08151f",
+  "lang": "zh-CN",
+  "icons": [
+    {
+      "src": "icon300.png",
+      "sizes": "300x300",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
