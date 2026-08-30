@@ -139,6 +139,10 @@ function isCustomDate(date) {
   return typeof date === 'string' && date.startsWith('custom:');
 }
 
+function getLatestBingWallpaper() {
+  return wallpaperState.history.find(wallpaper => !isCustomWallpaper(wallpaper)) || null;
+}
+
 /**
  * 生成缩略图 Blob
  */
@@ -700,7 +704,7 @@ async function mergeWallpaperHistory() {
         
         const isLocked = !!wallpaperState.settings.pinnedDate;
         if (wallpaperState.settings.mode === 'daily' && !isLocked) {
-          const latestWp = wallpaperState.history[0];
+          const latestWp = getLatestBingWallpaper();
           if (latestWp && wallpaperState.current?.id !== latestWp.id) {
             displayWallpaper(latestWp);
           }
@@ -859,8 +863,10 @@ function selectWallpaper() {
     if (favorites.length === 0) {
       // 没有收藏，回退到每日模式
       wallpaperState.settings.mode = 'daily';
-      wallpaperState.browseIndex = 0;
-      return history[0];
+      wallpaperState.settings.lastActiveMode = 'daily';
+      const dailyWallpaper = getLatestBingWallpaper();
+      wallpaperState.browseIndex = dailyWallpaper ? history.indexOf(dailyWallpaper) : 0;
+      return dailyWallpaper || history[0];
     }
     
     // 基于日期的稳定随机
@@ -883,6 +889,11 @@ function selectWallpaper() {
   }
   
   // 3. 默认每日模式
+  const dailyWallpaper = getLatestBingWallpaper();
+  if (dailyWallpaper) {
+    wallpaperState.browseIndex = history.indexOf(dailyWallpaper);
+    return dailyWallpaper;
+  }
   wallpaperState.browseIndex = 0;
   return history[0];
 }
@@ -1744,6 +1755,9 @@ function initWallpaperControls() {
           !isLocked &&
           wallpaperState.favorites.length === 0) {
         wallpaperState.settings.mode = 'daily';
+        wallpaperState.settings.lastActiveMode = 'daily';
+        const dailyWallpaper = selectWallpaper();
+        if (dailyWallpaper) displayWallpaper(dailyWallpaper);
         await saveWallpaperSettings();
         updateL2SourceSelector();
       }
@@ -2189,7 +2203,8 @@ function initWallpaperSettings() {
       
       if (value === 'daily') {
         // 切换到必应每日模式
-        // 注意：不清除 collectionPlayMode 和 pinnedDate，保留用户之前的收藏模式设置
+        // 明确选择每日壁纸即退出任何单张锁定；收藏和本地壁纸仍保留在壁纸库
+        wallpaperState.settings.pinnedDate = null;
         wallpaperState.settings.mode = 'daily';
         wallpaperState.settings.lastActiveMode = 'daily';
         wallpaperState.isPreview = false;
@@ -2203,7 +2218,7 @@ function initWallpaperSettings() {
         sourceDivider?.classList.remove('visible');
         collectionBody?.classList.add('disabled');
         
-        const todayWp = wallpaperState.history[0];
+        const todayWp = selectWallpaper();
         if (todayWp) displayWallpaper(todayWp);
         
         await saveWallpaperSettings();
@@ -2258,25 +2273,32 @@ function initWallpaperSettings() {
 function initL2SourceSelector() {
   const sourceDailyRadio = document.getElementById('sourceDaily');
   const sourceCollectionRadio = document.getElementById('sourceCollection');
+  const sourceDailyCard = document.getElementById('sourceDailyCard');
   
   // 根据当前状态初始化选中状态
   updateL2SourceSelector();
   
-  // 必应每日壁纸选择
-  sourceDailyRadio?.addEventListener('change', async (e) => {
-    if (!e.target.checked) return;
-    
+  const switchToDailyWallpaper = async () => {
+    wallpaperState.settings.pinnedDate = null;
     wallpaperState.settings.mode = 'daily';
     wallpaperState.settings.lastActiveMode = 'daily';
     wallpaperState.isPreview = false;
     wallpaperState.browseIndex = 0;
-    
-    const todayWp = wallpaperState.history[0];
+
+    if (sourceDailyRadio) sourceDailyRadio.checked = true;
+    if (sourceCollectionRadio) sourceCollectionRadio.checked = false;
+    const todayWp = selectWallpaper();
     if (todayWp) displayWallpaper(todayWp);
-    
+
     await saveWallpaperSettings();
     updateWallpaperStatusText();
     updateL2SourceSelector();
+  };
+
+  // 使用整张来源卡处理点击，即使底层 mode 已是 daily、radio 已选中，也能解除锁定。
+  sourceDailyCard?.addEventListener('click', (event) => {
+    event.preventDefault();
+    void switchToDailyWallpaper();
   });
   
   // 我的壁纸库选择
@@ -2333,8 +2355,8 @@ function updateL2SourceSelector() {
   }
   
   // 更新 radio 选中状态
-  if (sourceDailyRadio) sourceDailyRadio.checked = (mode === 'daily');
-  if (sourceCollectionRadio) sourceCollectionRadio.checked = (mode === 'collection');
+  if (sourceDailyRadio) sourceDailyRadio.checked = !isLocked && mode === 'daily';
+  if (sourceCollectionRadio) sourceCollectionRadio.checked = !isLocked && mode === 'collection';
   
   // 更新收藏数量显示
   const favCount = wallpaperState.favorites.length;
@@ -2361,7 +2383,8 @@ function updateL2SourceSelector() {
     if (isLocked) {
       const pinnedWp = wallpaperState.history.find(wp => wp.date === pinnedDate);
       if (lockedStatusTitle) {
-        lockedStatusTitle.textContent = pinnedWp?.desc || pinnedDate;
+        lockedStatusTitle.textContent = pinnedWp?.desc
+          || (isCustomDate(pinnedDate) ? '本地上传壁纸' : pinnedDate);
       }
       lockedStatusCard.classList.add('visible');
     } else {
@@ -2745,7 +2768,8 @@ function createWallpaperGridItem(wp, isPinned, isFavorited, isHistoryTab = false
           wallpaperState.settings.mode === 'collection' &&
           !isLocked) {
         wallpaperState.settings.mode = 'daily';
-        const todayWp = wallpaperState.history[0];
+        wallpaperState.settings.lastActiveMode = 'daily';
+        const todayWp = selectWallpaper();
         if (todayWp) displayWallpaper(todayWp);
         await saveWallpaperSettings();
         updateL2SourceSelector();
@@ -2767,7 +2791,8 @@ function createWallpaperGridItem(wp, isPinned, isFavorited, isHistoryTab = false
         wallpaperState.settings.mode === 'collection' &&
         !isLocked) {
       wallpaperState.settings.mode = 'daily';
-      const todayWp = wallpaperState.history[0];
+      wallpaperState.settings.lastActiveMode = 'daily';
+      const todayWp = selectWallpaper();
       if (todayWp) displayWallpaper(todayWp);
       await saveWallpaperSettings();
       updateL2SourceSelector();
@@ -4383,7 +4408,8 @@ chrome.storage.onChanged.addListener(async (changes, areaName) => {
         !wallpaperState.settings.pinnedDate &&
         newFavorites.length === 0) {
       wallpaperState.settings.mode = 'daily';
-      const todayWp = wallpaperState.history[0];
+      wallpaperState.settings.lastActiveMode = 'daily';
+      const todayWp = selectWallpaper();
       if (todayWp) displayWallpaper(todayWp);
       await saveWallpaperSettings();
       updateL2SourceSelector();

@@ -1305,15 +1305,29 @@
       height: 67px;
       transform-origin: center;
       will-change: transform, opacity, height;
+      border-color: rgba(220,38,38,0.36);
+      background: linear-gradient(135deg, #fff5f5, #ffe8e8);
+      box-shadow: 0 8px 24px rgba(220,38,38,0.14);
     }
 
     .zhihu-card--tail {
-      position: absolute;
-      left: 0;
-      right: 0;
-      top: 115px;
       height: 42px;
       opacity: 0.4;
+    }
+
+    .zhihu-card--target .zhihu-avatar {
+      background: linear-gradient(135deg, #ef4444, #b91c1c);
+      box-shadow: inset 0 0 0 1px rgba(127,29,29,0.12);
+    }
+
+    .zhihu-card--target .zhihu-author-name,
+    .zhihu-card--target .zhihu-title-skeleton {
+      background: #b91c1c;
+    }
+
+    .zhihu-card--target .zhihu-author-meta,
+    .zhihu-card--target .zhihu-copy-skeleton span {
+      background: #fecaca;
     }
 
     .zhihu-author-row {
@@ -1377,10 +1391,10 @@
       align-items: center;
       gap: 3px;
       padding: 2px 5px;
-      border: 1px solid rgba(232,77,87,0.18);
+      border: 1px solid #dc2626;
       border-radius: 99px;
-      background: rgba(232,77,87,0.06);
-      color: #cf4650;
+      background: #dc2626;
+      color: #fff;
       font-size: 5.5px;
       font-weight: 750;
       opacity: 0;
@@ -1546,8 +1560,7 @@
     @keyframes zhihuTargetCard {
       0%, 30% { opacity: 1; height: 67px; transform: scale(1); filter: blur(0); }
       38% { opacity: 0.2; height: 31px; transform: scale(0.985); filter: blur(0.5px); }
-      44%, 65% { opacity: 0; height: 31px; transform: scale(0.985); filter: blur(1px); }
-      72% { opacity: 0; height: 31px; transform: scale(0.985); filter: blur(1px); }
+      44%, 72% { opacity: 0; height: 31px; transform: scale(0.985); filter: blur(1px); }
       81%, 91% { opacity: 1; height: 67px; transform: scale(1); filter: blur(0); }
       100% { opacity: 1; height: 67px; transform: scale(1); filter: blur(0); }
     }
@@ -1608,6 +1621,11 @@
 
       .zhihu-filter-stage { background: rgba(17,24,39,0.34); }
       .zhihu-card { border-color: rgba(255,255,255,0.07); background: rgba(37,42,52,0.96); }
+      .zhihu-card--target { border-color: rgba(239,68,68,0.38); background: linear-gradient(135deg, rgba(83,30,34,0.98), rgba(66,27,31,0.98)); box-shadow: 0 8px 24px rgba(220,38,38,0.16); }
+      .zhihu-card--target .zhihu-author-name,
+      .zhihu-card--target .zhihu-title-skeleton { background: #ef4444; }
+      .zhihu-card--target .zhihu-author-meta,
+      .zhihu-card--target .zhihu-copy-skeleton span { background: #7f363b; }
       .zhihu-author-name { background: #aaaeb7; }
       .zhihu-author-meta,
       .zhihu-copy-skeleton span { background: #4b5260; }
@@ -1900,7 +1918,7 @@
 
                 <div class="zhihu-card zhihu-card--target">
                   <div class="zhihu-author-row">
-                    <span class="zhihu-avatar" style="background:linear-gradient(135deg,#fda4af,#f9a8d4);"></span>
+                    <span class="zhihu-avatar"></span>
                     <span class="zhihu-author-name"></span>
                     <span class="zhihu-author-meta"></span>
                     <span class="zhihu-block-mark">
@@ -1922,8 +1940,8 @@
               <div class="zhihu-filter-scan"></div>
               <div class="zhihu-hidden-placeholder">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 9 6 6m0-6-6 6"/></svg>
-                <span>已隐藏<strong>黑名单用户</strong>内容</span>
-                <span class="zhihu-view-action">临时查看</span>
+                <span><strong>已折叠黑名单用户内容</strong></span>
+                <span class="zhihu-view-action">查看</span>
               </div>
               <div class="zhihu-privacy-chip">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>

@@ -2131,19 +2131,15 @@
     .site-zhihu-card p { width: 90%; height: 5px; margin-bottom: 6px; background: #e1e6e9; }
     .site-zhihu-card p:last-child { width: 64%; }
     .site-zhihu-card.quiet { height: 63px; opacity: .56; }
-    .site-zhihu-card.target { height: 96px; margin-top: 9px; animation: siteZhihuTarget 6s ease-in-out infinite; }
+    .site-zhihu-card.target { height: 96px; margin-top: 9px; }
     .site-zhihu-card.target span { position: absolute; right: 10px; top: 9px; padding: 3px 6px; border-radius: 8px; color: #d95151; background: #fff0f0; font-size: 7px; font-weight: 650; }
-    .site-zhihu-card.tail { height: 63px; margin-top: 9px; opacity: .38; animation: siteZhihuTail 6s ease-in-out infinite; }
-    .site-zhihu-placeholder { position: absolute; left: 26px; right: 26px; top: 94px; min-height: 61px; display: grid; grid-template-columns: 28px 1fr auto; gap: 10px; align-items: center; padding: 11px 13px; border: 1px dashed rgba(0,102,255,.42); border-radius: 8px; color: #1767c0; background: #eef6ff; opacity: 0; transform: translateY(7px); animation: siteZhihuPlaceholder 6s ease-in-out infinite; }
+    .site-zhihu-card.tail { height: 63px; margin-top: 9px; opacity: .38; }
+    .site-zhihu-placeholder { position: absolute; left: 26px; right: 26px; top: 94px; min-height: 61px; display: grid; grid-template-columns: 28px 1fr auto; gap: 10px; align-items: center; padding: 11px 13px; border: 1px dashed rgba(0,102,255,.42); border-radius: 8px; color: #1767c0; background: #eef6ff; opacity: 0; transform: translateY(7px); }
     .site-zhihu-placeholder svg { width: 23px; height: 23px; stroke-width: 1.8; }
     .site-zhihu-placeholder strong, .site-zhihu-placeholder small { display:block; }
     .site-zhihu-placeholder strong { font-size: 9px; } .site-zhihu-placeholder small { color:#7297bf;font-size:7px; }
     .site-zhihu-placeholder button { padding: 4px 7px; border: 1px solid rgba(0,102,255,.25); border-radius: 6px; color:#1767c0;background:#fff;font-size:7px; }
     .site-privacy-chip { position:absolute;right:15px;bottom:12px;padding:5px 8px;border-radius:12px;color:#1767c0;background:#fff;border:1px solid rgba(0,102,255,.16);font-size:8px;font-weight:650; }
-    @keyframes siteZhihuTarget { 0%,23% { opacity:1;transform:none } 39%,100% { opacity:0;transform:scaleY(.55) } }
-    @keyframes siteZhihuPlaceholder { 0%,32% { opacity:0;transform:translateY(7px) } 44%,88% { opacity:1;transform:none } 100% { opacity:0 } }
-    @keyframes siteZhihuTail { 0%,25% { transform:none } 43%,100% { transform:translateY(-46px) } }
-
     .site-tools-tab:focus-visible { outline: 3px solid rgba(243,12,95,.28); outline-offset: 2px; }
     @media (max-width: 1024px) {
       .site-tools-section { min-height: 900px; }
@@ -2267,7 +2263,7 @@
     .site-zhihu-card.target b { background:#b91c1c; }
     .site-zhihu-card.target p { background:#fecaca; }
     .site-zhihu-card.target span { color:#fff; background:#dc2626; box-shadow:0 0 0 4px rgba(220,38,38,.1); }
-    .site-zhihu-placeholder { top:106px; border-color:rgba(53,132,228,.24); color:#2366a8; background:#f1f7fd; box-shadow:0 4px 14px rgba(53,132,228,.06); }
+    .site-zhihu-placeholder { top:94px; border-color:rgba(53,132,228,.24); color:#2366a8; background:#f1f7fd; box-shadow:0 4px 14px rgba(53,132,228,.06); }
     .site-zhihu-feed::before { content:''; position:absolute; z-index:7; left:26px; right:26px; top:76px; height:1px; border-radius:99px; background:linear-gradient(90deg,transparent,rgba(0,102,255,.9),transparent); box-shadow:0 0 12px rgba(0,102,255,.55); opacity:0; transform:scaleX(.2); }
     .site-tools-panel.motion-running .site-zhihu-feed::before { animation:zhihuScan 4.5s ease-in-out infinite!important; }
     .site-tools-panel.motion-running .site-zhihu-card.target { display:grid!important; animation:siteZhihuTargetLoop 4.5s cubic-bezier(.45,0,.2,1) infinite!important; transform-origin:center; will-change:opacity,transform,height; }
@@ -2275,7 +2271,6 @@
     .site-tools-panel.motion-running .site-zhihu-placeholder { animation:zhihuPlaceholder 4.5s cubic-bezier(.34,1.56,.64,1) infinite!important; will-change:opacity,transform; }
     .site-tools-panel.motion-running .site-zhihu-placeholder button { animation:zhihuViewAction 4.5s ease-in-out infinite!important; }
     .site-tools-panel.motion-running .site-privacy-chip { animation:zhihuPrivacyChip 4.5s ease-in-out infinite!important; }
-    .site-tools-panel.motion-running .site-zhihu-card.tail { animation:siteZhihuTailLoop 4.5s cubic-bezier(.45,0,.2,1) infinite!important; will-change:transform; }
     @keyframes zhihuScan {
       0%,8% { top:76px;opacity:0;transform:scaleX(.2); }
       13% { opacity:1;transform:scaleX(.9); }
@@ -2313,11 +2308,6 @@
       47%,66% { opacity:1;transform:translateY(0); }
       74%,100% { opacity:0;transform:translateY(-2px); }
     }
-    @keyframes siteZhihuTailLoop {
-      0%,30%,84%,100% { transform:translateY(0); }
-      45%,76% { transform:translateY(-35px); }
-    }
-
     @media (max-width:1024px) {
       #ntp .ntp-section { min-height:930px; padding-top:48px; padding-bottom:36px; }
       #ntp .ntp-section .ss-title { margin-top:18px; }

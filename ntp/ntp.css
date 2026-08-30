@@ -1044,17 +1044,27 @@ body:not(.wallpaper-mode) .wp-action-btn:hover {
  * 锁定状态时上方选项置灰（表示暂时失效）
  * ============================================ */
 .wallpaper-sub-settings.is-locked .source-selector {
+  opacity: 1;
+}
+
+.wallpaper-sub-settings.is-locked #sourceCollectionCard {
   opacity: 0.45;
   pointer-events: none;
   filter: grayscale(0.3);
 }
 
-.wallpaper-sub-settings.is-locked .source-card-content {
+.wallpaper-sub-settings.is-locked #sourceDailyCard {
+  opacity: 1;
+  pointer-events: auto;
+  filter: none;
+}
+
+.wallpaper-sub-settings.is-locked #sourceCollectionCard .source-card-content {
   border-color: rgba(255, 255, 255, 0.06) !important;
   background: rgba(255, 255, 255, 0.02) !important;
 }
 
-.wallpaper-sub-settings.is-locked .source-card input:checked + .source-card-content {
+.wallpaper-sub-settings.is-locked #sourceCollectionCard input:checked + .source-card-content {
   border-color: rgba(255, 255, 255, 0.08) !important;
   background: rgba(255, 255, 255, 0.03) !important;
 }
