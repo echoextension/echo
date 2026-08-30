@@ -4,7 +4,7 @@
 
 > ⚠️ **非官方作品声明**：本项目为个人饭制（Fan-made），与 Microsoft 或 Edge 团队无关，以个人身份独立开发和维护。
 
-**ECHO 易可** 是一款专为中国 Edge 用户打造的浏览器增强扩展，从标签管理到手势操作，从新标签页美化到 AI 辅助搜索，全方位提升你的浏览体验。完全开源，完全免费，无广告、无弹窗、无打扰；除用户明确开启的第三方 AI 功能外，功能数据均在浏览器本地处理。
+**ECHO 易可** 是一款专为中国 Edge 用户打造的浏览器增强扩展，从标签管理到手势操作，再到新标签页美化，全方位提升你的浏览体验。完全开源，完全免费，无广告、无弹窗、无打扰；功能数据均在浏览器本地处理。
 
 本项目由一名 **不懂代码的 PM** 通过 AI 辅助编程（Vibe Coding）独立完成。它不完美，但每一行代码背后都是真实的产品思考和无数轮的测试迭代。
 
@@ -82,14 +82,6 @@
 - Shadow DOM 完全隔离，不干扰任何网页样式
 - 页面缩放时自动反向补偿，保持固定大小
 
-#### 🤖 AI 关联搜索推荐（实验性）
-
-- **默认关闭**，需手动开启并二次确认
-- 自动提取网页正文，通过 AI 生成 4-6 个相关搜索关键词
-- 智能过滤：自动跳过首页、搜索引擎、内网页面、敏感域名（.gov/.mil/.edu 等）
-- 网站级黑名单：可对特定网站永久关闭，支持撤销
-- Shadow DOM 浮窗，可拖拽定位，不影响网页
-
 #### 🛡️ 知乎黑名单内容过滤
 
 - **默认关闭**，由用户手动同步知乎官方黑名单
@@ -142,7 +134,6 @@
 | 新标签位置     | 当前标签右侧 | 可选最右侧         |
 | 关闭标签激活    | 左侧     | 可选右侧（浏览器默认）   |
 | 悬浮搜索框     | ✅ 开启   | Ctrl+B 唤出     |
-| AI 关联搜索   | ❌ 关闭   | 需手动开启+二次确认    |
 | 知乎黑名单过滤 | ❌ 关闭   | 需手动同步官方黑名单    |
 | B站推荐回退    | ✅ 开启   | 标签会话保留最近10批    |
 
@@ -153,9 +144,8 @@
 ```
 ECHO/
 ├── manifest.json           # MV3 清单文件
-├── background.js           # Service Worker（标签管理、消息路由、AI 代理等）
+├── background.js           # Service Worker（标签管理、消息路由等）
 ├── content.js              # 内容脚本（手势、拖拽、缩放）
-├── net_rules.json          # 请求头修改规则
 ├── ntp/
 │   ├── ntp.html / ntp.js   # 新标签页（壁纸系统、热搜）
 │   └── ntp.css
@@ -163,10 +153,8 @@ ECHO/
 │   └── wallpaper-data.json # Bing 壁纸历史数据（官网远程源 + 扩展本地兜底）
 ├── search-box/
 │   └── search-box.js       # 悬浮搜索框
-├── related-search/
 ├── zhihu-tool/             # 知乎黑名单同步与内容过滤
 ├── bili-feed-history/      # B站首页推荐批次回退
-│   └── related-search.js   # AI 关联搜索推荐
 ├── common/
 │   ├── mouse-gesture.js    # 鼠标手势模块
 │   ├── super-drag.js       # 超级拖拽模块
@@ -181,9 +169,9 @@ ECHO/
 ```
 
 - **Manifest V3**：使用 Service Worker 架构
-- **Shadow DOM**：搜索框和关联搜索使用 Closed Shadow DOM，完全不污染宿主页面
+- **Shadow DOM**：悬浮搜索框使用 Closed Shadow DOM，不污染宿主页面
 - **IndexedDB**：壁纸 Blob 离线缓存（7 天 TTL）
-- **declarativeNetRequest**：修改特定请求头以解决 CORS
+- **declarativeNetRequest**：按需为快速保存图片临时调整请求头
 
 ---
 
@@ -191,9 +179,7 @@ ECHO/
 
 ECHO 严格遵循 **"Local First"（本地优先）** 原则：
 
-- 所有核心功能完全在本地运行，不上传任何用户数据
-- AI 关联搜索为实验功能，默认关闭，开启后采用**完全匿名调用**（无 Token、无 Cookie、无用户标识）
-- 自动跳过内网页面和敏感域名（.gov/.mil/.edu/.corp/.internal）
+- 所有功能数据均在本地处理，不上传浏览历史或页面内容
 
 📄 完整隐私政策：[PRIVACY_POLICY.md](PRIVACY_POLICY.md)
 
@@ -208,8 +194,6 @@ ECHO 严格遵循 **"Local First"（本地优先）** 原则：
 | [Bing 每日壁纸](https://cn.bing.com)           | NTP 壁纸来源     | 公开 API     |
 | [百度热搜](https://top.baidu.com)              | NTP 热搜榜单     | 公开 API     |
 | [今日头条热榜](https://www.toutiao.com)          | 悬浮搜索框热搜      | 公开 API     |
-| [Pollinations.ai](https://pollinations.ai) | AI 关键词提取（主）  | HTTPS，匿名调用 |
-| Ollama 公共测试服务                              | AI 关键词提取（备用） | HTTP，匿名调用  |
 
 ---
 

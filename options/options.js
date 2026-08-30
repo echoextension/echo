@@ -16,21 +16,20 @@ const SETTING_IDS = [
   'biliFeedHistory'       // B站推荐回退（默认开启）
 ];
 
-// 开关类设置 - 默认关闭（非实验室）
+// 开关类设置 - 默认关闭
 const SETTING_IDS_DEFAULT_OFF = [
   'superDragActivate',         // 拖拽产生的标签立即激活（默认关闭，即后台打开）
   'quickSaveImageDateFolder',  // 按日期创建子文件夹
   'applyToPlusButton'          // 同时应用于「+」新建标签页
 ];
 
-// 开关类设置 - 默认关闭（实验室功能）
+// 开关类设置 - 默认关闭
 const SETTING_IDS_OFF = [
   'floatingSearchBoxAlwaysShow',  // 悬浮搜索框常驻显示（默认关闭）
-  'floatingSearchBoxFollowZoom',  // 悬浮搜索框跟随页面缩放（默认关闭）
-  'relatedSearchFollowZoom'       // 关联搜索推荐跟随页面缩放（默认关闭）
+  'floatingSearchBoxFollowZoom'   // 悬浮搜索框跟随页面缩放（默认关闭）
 ];
 
-// 开关类设置 - 默认开启（实验室功能）
+// 开关类设置 - 默认开启
 const SETTING_IDS_ON_LAB = [
   'floatingSearchBox',        // 悬浮搜索框（默认开启）
   'floatingSearchBoxTrending' // 悬浮搜索框热搜榜（默认关闭）
@@ -44,7 +43,7 @@ const RADIO_SETTINGS = [
 ];
 
 // 默认设置（与 background.js 保持一致）
-// 注意：所有开关默认开启，实验室功能默认关闭
+// 注意：大部分开关默认开启，个别功能默认关闭
 const DEFAULT_SETTINGS = {
   mouseGesture: true,
   bossKey: true,
@@ -63,8 +62,6 @@ const DEFAULT_SETTINGS = {
   biliFeedHistory: true,                 // B站推荐回退（默认开启）
   zhihuBlocklistFilter: false,           // 知乎黑名单内容过滤（默认关闭）
   floatingSearchBoxTrending: false,    // 悬浮搜索框热搜榜（默认关闭）
-  relatedSearchRecommend: false, // 网页关联搜索推荐（实验室，默认关闭）
-  relatedSearchFollowZoom: false,  // 关联搜索推荐跟随页面缩放（默认关闭）
   customBookmarkBar: false,    // 自绘书签栏（已隐藏，默认关闭）
   bookmarkOpenInNewTab: false, // 收藏栏点击链接新标签打开（已隐藏，默认关闭）
   bookmarkBarPinned: true,     // 收藏栏常驻显示（已隐藏）
@@ -88,7 +85,7 @@ async function loadSettings() {
     }
   });
   
-  // 加载开关状态（默认关闭的 - 非实验室）
+  // 加载开关状态（默认关闭的）
   SETTING_IDS_DEFAULT_OFF.forEach(id => {
     const checkbox = document.getElementById(id);
     if (checkbox) {
@@ -96,7 +93,7 @@ async function loadSettings() {
     }
   });
   
-  // 加载开关状态（默认关闭的 - 实验室）
+  // 加载其他默认关闭的开关状态
   SETTING_IDS_OFF.forEach(id => {
     const checkbox = document.getElementById(id);
     if (checkbox) {
@@ -104,13 +101,7 @@ async function loadSettings() {
     }
   });
 
-  // 加载关联搜索推荐（单独处理）
-  const relatedSearchCheckbox = document.getElementById('relatedSearchRecommend');
-  if (relatedSearchCheckbox) {
-    relatedSearchCheckbox.checked = settings['relatedSearchRecommend'];
-  }
-  
-  // 加载开关状态（实验室子功能，默认开启的）
+  // 加载开关状态（默认开启的）
   SETTING_IDS_ON_LAB.forEach(id => {
     const checkbox = document.getElementById(id);
     if (checkbox) {
@@ -140,9 +131,6 @@ async function loadSettings() {
   
   // 更新精细缩放子选项状态
   updateFineZoomOptionState(settings.fineZoom);
-  
-  // 更新关联搜索推荐子选项状态
-  updateRelatedSearchOptionState(settings.relatedSearchRecommend);
   
   // 初始化动画演示
   initDemos(settings);
@@ -177,22 +165,6 @@ function updateFloatingSearchBoxOptionState(floatingSearchBox) {
     if (alwaysShowOption) alwaysShowOption.style.display = 'none';
     if (trendingOption) trendingOption.style.display = 'none';
     if (followZoomOption) followZoomOption.style.display = 'none';
-  }
-}
-
-/**
- * 更新关联搜索推荐子选项的可用状态（显示/隐藏）
- */
-function updateRelatedSearchOptionState(relatedSearchRecommend) {
-  const followZoomOption = document.getElementById('relatedSearchFollowZoomOption');
-  const blacklistOption = document.getElementById('relatedSearchBlacklistOption');
-  
-  if (relatedSearchRecommend) {
-    if (followZoomOption) followZoomOption.style.display = 'flex';
-    if (blacklistOption) blacklistOption.style.display = 'flex';
-  } else {
-    if (followZoomOption) followZoomOption.style.display = 'none';
-    if (blacklistOption) blacklistOption.style.display = 'none';
   }
 }
 
@@ -570,16 +542,6 @@ function saveSetting(key, value) {
 }
 
 const CONFIRMATION_CONTENT = {
-  relatedSearch: {
-    primary: '您即将开启「网页关联搜索推荐」实验性功能。',
-    secondary: 'You are enabling the "Related Search" experimental feature.',
-    risks: [
-      ['🌐', '数据交互 / Data Interaction', '访问网页时，部分纯文本片段将被发送至第三方 AI 服务 (Pollinations.ai 及备选服务)。<br>Text snippets will be sent to 3rd-party AI providers.'],
-      ['⚡', '服务波动 / Instability', '使用免费公共接口，可能出现请求失败。<br>Service may be unstable due to free public API.']
-    ],
-    footer: '我们承诺仅进行匿名传输且不留存数据，但您需自行评估第三方服务交互的风险。',
-    confirmText: '确认开启 Enable'
-  },
   zhihuBlocklist: {
     primary: '您即将授权 ECHO 同步知乎官方黑名单。',
     secondary: '确认后将打开独立知乎窗口并立即开始读取，请在完成前保持窗口开启。',
@@ -695,7 +657,7 @@ function initializeEventListeners() {
     }
   });
   
-  // 监听开关变化（默认关闭的 - 非实验室）
+  // 监听开关变化（默认关闭的）
   SETTING_IDS_DEFAULT_OFF.forEach(id => {
     const checkbox = document.getElementById(id);
     if (checkbox) {
@@ -705,7 +667,7 @@ function initializeEventListeners() {
     }
   });
   
-  // 监听开关变化（默认关闭的 - 实验室）
+  // 监听其他默认关闭的开关变化
   SETTING_IDS_OFF.forEach(id => {
     const checkbox = document.getElementById(id);
     if (checkbox) {
@@ -715,7 +677,7 @@ function initializeEventListeners() {
     }
   });
   
-  // 监听开关变化（实验室功能，默认开启的）
+  // 监听开关变化（默认开启的）
   SETTING_IDS_ON_LAB.forEach(id => {
     const checkbox = document.getElementById(id);
     if (checkbox) {
@@ -729,24 +691,6 @@ function initializeEventListeners() {
       });
     }
   });
-  
-  // 监听关联搜索推荐开关（单独处理，需要隐私确认）
-  const relatedSearchCheckbox = document.getElementById('relatedSearchRecommend');
-  if (relatedSearchCheckbox) {
-    relatedSearchCheckbox.addEventListener('click', async (e) => {
-      if (e.target.checked) {
-        e.preventDefault();
-        relatedSearchCheckbox.checked = false;
-        const confirmed = await showConfirmationModal(CONFIRMATION_CONTENT.relatedSearch);
-        relatedSearchCheckbox.checked = confirmed;
-        await saveSetting('relatedSearchRecommend', confirmed);
-        updateRelatedSearchOptionState(confirmed);
-      } else {
-        await saveSetting('relatedSearchRecommend', false);
-        updateRelatedSearchOptionState(false);
-      }
-    });
-  }
   
   // 监听 radio 按钮变化
   RADIO_SETTINGS.forEach(name => {
@@ -1371,110 +1315,12 @@ function showZoomIndicator(zoom) {
 })();
 
 // ============================================
-// 黑名单管理
-// ============================================
-
-/**
- * 初始化黑名单管理功能
- */
-async function initBlacklistManager() {
-  const container = document.getElementById('blacklistContainer');
-  const itemsDiv = document.getElementById('blacklistItems');
-  const emptyDiv = document.getElementById('blacklistEmpty');
-  const clearBtn = document.getElementById('blacklistClearBtn');
-  
-  if (!container || !itemsDiv || !emptyDiv || !clearBtn) return;
-  
-  // 加载并渲染黑名单
-  await renderBlacklist();
-  
-  // 监听 storage 变化，实时更新
-  chrome.storage.onChanged.addListener((changes, namespace) => {
-    if (namespace === 'sync' && changes.relatedSearchBlacklist) {
-      renderBlacklist();
-    }
-  });
-  
-  // 清空按钮点击事件
-  clearBtn.addEventListener('click', async () => {
-    if (confirm('确定要清空所有已屏蔽的网站吗？')) {
-      await chrome.storage.sync.set({ relatedSearchBlacklist: [] });
-      renderBlacklist();
-    }
-  });
-}
-
-/**
- * 渲染黑名单列表
- */
-async function renderBlacklist() {
-  const itemsDiv = document.getElementById('blacklistItems');
-  const emptyDiv = document.getElementById('blacklistEmpty');
-  const clearBtn = document.getElementById('blacklistClearBtn');
-  
-  if (!itemsDiv || !emptyDiv || !clearBtn) return;
-  
-  // 获取黑名单数据
-  const { relatedSearchBlacklist = [] } = await chrome.storage.sync.get('relatedSearchBlacklist');
-  
-  // 清空现有内容
-  itemsDiv.innerHTML = '';
-  
-  if (relatedSearchBlacklist.length === 0) {
-    // 显示空状态
-    emptyDiv.style.display = 'flex';
-    itemsDiv.style.display = 'none';
-    clearBtn.style.display = 'none';
-  } else {
-    // 显示列表
-    emptyDiv.style.display = 'none';
-    itemsDiv.style.display = 'flex';
-    clearBtn.style.display = 'inline-flex';
-    
-    // 渲染每个域名
-    relatedSearchBlacklist.forEach(domain => {
-      const item = document.createElement('div');
-      item.className = 'blacklist-item';
-      item.innerHTML = `
-        <span class="domain-text" title="${domain}">${domain}</span>
-        <button class="remove-btn" title="移除此网站">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="18" y1="6" x2="6" y2="18"/>
-            <line x1="6" y1="6" x2="18" y2="18"/>
-          </svg>
-        </button>
-      `;
-      
-      // 点击移除按钮
-      const removeBtn = item.querySelector('.remove-btn');
-      removeBtn.addEventListener('click', async (e) => {
-        e.stopPropagation();
-        await removeDomainFromBlacklist(domain);
-      });
-      
-      itemsDiv.appendChild(item);
-    });
-  }
-}
-
-/**
- * 从黑名单中移除指定域名
- * @param {string} domain - 要移除的域名
- */
-async function removeDomainFromBlacklist(domain) {
-  const { relatedSearchBlacklist = [] } = await chrome.storage.sync.get('relatedSearchBlacklist');
-  const newList = relatedSearchBlacklist.filter(d => d !== domain);
-  await chrome.storage.sync.set({ relatedSearchBlacklist: newList });
-  renderBlacklist();
-}
-
-// ============================================
 // 滚动跟随导航
 // ============================================
 
 /**
  * 初始化滚动跟随导航。
- * 只跟踪左侧已有的五个目标；实验室不属于导航，进入该区域后保持备份项激活。
+ * 只跟踪左侧已有的五个目标。
  */
 function initScrollNav() {
   if (initScrollNav.initialized) return;
@@ -1725,7 +1571,6 @@ function adaptShortcutsForPlatform() {
 document.addEventListener('DOMContentLoaded', () => {
   initSiteEnhancementDemos();
   adaptShortcutsForPlatform();
-  initBlacklistManager();
 });
 
 // ============================================

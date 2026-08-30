@@ -4,7 +4,7 @@
 
 > ⚠️ **Unofficial & Fan-made**: This is a personal side project, not affiliated with Microsoft or the Edge team. Independently developed and maintained.
 
-**ECHO 易可** is a browser enhancement extension built specifically for Chinese Edge users. From tab management to mouse gestures, from a beautiful New Tab Page to AI-powered search recommendations — it's designed to elevate every aspect of your browsing experience. It is fully open-source, free, and ad-free. Except for explicitly enabled third-party AI features, feature data is processed locally in the browser.
+**ECHO 易可** is a browser enhancement extension built specifically for Chinese Edge users. From tab management to mouse gestures and a beautiful New Tab Page, it's designed to elevate every aspect of your browsing experience. It is fully open-source, free, and ad-free, with feature data processed locally in the browser.
 
 This project was built entirely by a **non-technical PM** through AI-assisted programming (Vibe Coding). It's not perfect, but every line of code represents real product thinking and countless rounds of testing.
 
@@ -82,14 +82,6 @@ This project was built entirely by a **non-technical PM** through AI-assisted pr
 - Shadow DOM isolation — zero interference with page styles
 - Auto zoom compensation at any page zoom level
 
-#### 🤖 AI Related Search (Experimental)
-
-- **Disabled by default** — requires manual opt-in with secondary confirmation
-- Automatically extracts page content, generates 4-6 related search keywords via AI
-- Smart filtering: auto-skips homepages, search engines, intranet pages, and sensitive domains (.gov/.mil/.edu, etc.)
-- Per-site blacklist with undo support
-- Shadow DOM floating widget, draggable, non-intrusive
-
 #### 🛡️ Zhihu Blocklist Content Filter
 
 - **Disabled by default**; the official Zhihu blocklist is synchronized manually
@@ -142,7 +134,6 @@ Click the ECHO icon in the Edge toolbar to open settings. All features can be to
 | New Tab Position    | After current | Or: at end                               |
 | Close Tab Activate  | Left tab      | Or: right (browser default)              |
 | Floating Search Box | ✅ On          | Ctrl+B toggle                            |
-| AI Related Search   | ❌ Off         | Requires manual opt-in                   |
 | Zhihu Blocklist Filter | ❌ Off      | Requires manual blocklist sync           |
 | Bilibili Feed History | ✅ On        | Keeps 10 batches per tab session         |
 
@@ -153,9 +144,8 @@ Click the ECHO icon in the Edge toolbar to open settings. All features can be to
 ```
 ECHO/
 ├── manifest.json           # MV3 manifest
-├── background.js           # Service Worker (tab management, messaging, AI proxy, etc.)
+├── background.js           # Service Worker (tab management, messaging, etc.)
 ├── content.js              # Content script (gestures, drag, zoom)
-├── net_rules.json          # Request header modification rules
 ├── ntp/
 │   ├── ntp.html / ntp.js   # New Tab Page (wallpaper system, trending)
 │   └── ntp.css
@@ -163,8 +153,6 @@ ECHO/
 │   └── wallpaper-data.json # Bing wallpaper history data (remote website source + local extension fallback)
 ├── search-box/
 │   └── search-box.js       # Floating search box
-├── related-search/
-│   └── related-search.js   # AI related search recommendations
 ├── common/
 │   ├── mouse-gesture.js    # Mouse gesture module
 │   ├── super-drag.js       # Super drag module
@@ -179,9 +167,9 @@ ECHO/
 ```
 
 - **Manifest V3**: Service Worker architecture
-- **Shadow DOM**: Search box and related search use Closed Shadow DOM for complete style isolation
+- **Shadow DOM**: The floating search box uses Closed Shadow DOM for complete style isolation
 - **IndexedDB**: Wallpaper blob offline caching with 7-day TTL
-- **declarativeNetRequest**: Targeted header modifications for CORS resolution
+- **declarativeNetRequest**: Temporary request-header adjustments for Quick Save Image when needed
 
 ---
 
@@ -189,9 +177,7 @@ ECHO/
 
 ECHO strictly follows a **"Local First"** principle:
 
-- All core features run entirely locally — no user data is uploaded
-- AI Related Search is experimental, disabled by default, and uses **fully anonymous API calls** (no tokens, no cookies, no user identifiers)
-- Automatically skips intranet pages and sensitive domains (.gov/.mil/.edu/.corp/.internal)
+- Feature data is processed locally; browsing history and page content are not uploaded
 
 📄 Full privacy policy: [PRIVACY_POLICY.md](PRIVACY_POLICY.md)
 
@@ -206,8 +192,6 @@ This extension uses the following public services, all accessed via public APIs.
 | [Bing Daily Wallpaper](https://cn.bing.com)  | NTP wallpaper source             | Public API       |
 | [Baidu Hot Search](https://top.baidu.com)    | NTP trending lists               | Public API       |
 | [Toutiao Hot Board](https://www.toutiao.com) | Search box trending              | Public API       |
-| [Pollinations.ai](https://pollinations.ai)   | AI keyword extraction (primary)  | HTTPS, anonymous |
-| Ollama Public Test Server                    | AI keyword extraction (fallback) | HTTP, anonymous  |
 
 ---
 

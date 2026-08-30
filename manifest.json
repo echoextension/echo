@@ -6,15 +6,6 @@
   "homepage_url": "https://www.echoextension.com",
   "description": "__MSG_extDescription__",
   "permissions": ["tabs", "storage", "downloads", "scripting", "declarativeNetRequest"],
-  "declarative_net_request": {
-    "rule_resources": [
-      {
-        "id": "ruleset_1",
-        "enabled": true,
-        "path": "net_rules.json"
-      }
-    ]
-  },
   "action": {
     "default_title": "ECHO 设置",
     "default_icon": {

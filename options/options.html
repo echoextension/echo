@@ -695,132 +695,6 @@
 
     </div>
 
-    <!-- ===== 实验室 ===== -->
-    <div class="settings-section" id="labSection">
-      <h2 class="section-watermark">实验室</h2>
-
-      <section class="card lab-card" id="labCard">
-        <div class="card-header">
-          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="11" cy="11" r="8"/>
-            <line x1="21" y1="21" x2="16.65" y2="16.65"/>
-          </svg>
-          <h2>搜索推荐</h2>
-          <span class="lab-badge">测试中</span>
-        </div>
-        
-        <!-- 网页关联搜索推荐 (AI) -->
-        <div class="lab-feature-group" id="labRelatedSearch">
-          <div class="option lab-option lab-main-option">
-            <div class="option-info">
-              <h3>启用基于 AI 能力的网页关联搜索推荐</h3>
-              <p>实验性功能。智能分析当前网页内容，在右下角提供相关搜索推荐。</p>
-
-              <!-- 演示动画 + 隐私说明 并排 -->
-              <div style="display: flex; gap: 14px; margin-top: 14px; align-items: stretch;">
-
-              <!-- 功能效果演示动画 -->
-              <div class="demo-stage">
-                <!-- 模拟页面文本行 -->
-                <div class="demo-page-lines">
-                  <div class="demo-page-line"></div>
-                  <div class="demo-page-line"></div>
-                  <div class="demo-page-line"></div>
-                  <div class="demo-page-line"></div>
-                  <div class="demo-page-line"></div>
-                </div>
-                <!-- Peek 竖条 -->
-                <div class="demo-peek"></div>
-                <!-- 骨架屏标签 -->
-                <div class="demo-tags">
-                  <div class="demo-tag"></div>
-                  <div class="demo-tag"></div>
-                  <div class="demo-tag"></div>
-                </div>
-                <!-- 胶囊按钮 -->
-                <div class="demo-capsule">
-                  搜索推荐
-                  <svg class="demo-capsule-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
-                </div>
-              </div>
-              
-              <div style="flex: 1; min-width: 0; padding: 12px; background: rgba(128, 128, 128, 0.05); border-radius: 6px; border: 1px solid rgba(128, 128, 128, 0.1);">
-                <div style="display: flex; gap: 8px; margin-bottom: 8px;">
-                  <span style="flex-shrink: 0; color: #e6a23c;">⚠️</span>
-                  <div style="font-size: 13px; color: var(--text); line-height: 1.5;">
-                    需将少量纯文本片段发送至第三方 AI 服务 (Pollinations.ai 等)。<br>
-                    <span style="opacity: 0.7; font-size: 12px;">因使用的是免费公共接口，服务并不稳定，可能随时提取失败。</span>
-                  </div>
-                </div>
-                
-                <div style="margin-left: 24px; padding-top: 8px; border-top: 1px dashed rgba(128, 128, 128, 0.2);">
-                  <div style="font-size: 12px; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px;">隐私保护机制：</div>
-                  <ul style="margin: 0; padding-left: 16px; font-size: 12px; color: var(--text-secondary); line-height: 1.6; opacity: 0.9;">
-                    <li><strong>严格过滤：</strong> 绝不解析 localhost、内网 IP (192.168.x)、敏感域名（.gov/.edu/.mil/.corp）等</li>
-                    <li><strong>匿名传输：</strong> 仅传输纯文本，不含任何 Cookie 或用户标识</li>
-                  </ul>
-                </div>
-
-                <a href="../docs-viewer.html?file=PRIVACY_POLICY.md" target="_blank" style="display: inline-block; margin-top: 8px; margin-left: 24px; font-size: 12px; color: var(--primary); text-decoration: none; opacity: 0.9;">
-                  详细技术细节与隐私指引 →
-                </a>
-              </div>
-
-              </div><!-- /flex row -->
-
-            </div>
-            <label class="switch">
-              <input type="checkbox" id="relatedSearchRecommend">
-              <span class="slider"></span>
-            </label>
-          </div>
-          
-          <div class="option lab-option lab-sub-option" id="relatedSearchFollowZoomOption">
-            <div class="option-info">
-              <h3>跟随页面缩放</h3>
-              <p>关闭后挂件保持固定大小，不随页面缩放变化（默认）；开启后跟随页面缩放</p>
-            </div>
-            <label class="switch">
-              <input type="checkbox" id="relatedSearchFollowZoom">
-              <span class="slider"></span>
-            </label>
-          </div>
-          
-          <!-- 黑名单管理子选项 -->
-          <div class="option lab-option lab-sub-option" id="relatedSearchBlacklistOption">
-            <div class="option-info">
-              <h3>已手动屏蔽的网站</h3>
-              <p>以下网站您已设置不会显示搜索推荐，点击可移除</p>
-              
-              <!-- 黑名单列表 -->
-              <div class="blacklist-container" id="blacklistContainer">
-                <div class="blacklist-empty" id="blacklistEmpty">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                    <circle cx="12" cy="12" r="10"/>
-                    <path d="M8 12h8"/>
-                  </svg>
-                  <span>暂无屏蔽网站</span>
-                </div>
-                <div class="blacklist-items" id="blacklistItems">
-                  <!-- JS 动态生成 -->
-                </div>
-              </div>
-              
-              <!-- 清空按钮 -->
-              <button class="blacklist-clear-btn" id="blacklistClearBtn" style="display: none;">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <polyline points="3 6 5 6 21 6"/>
-                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-                </svg>
-                清空所有
-              </button>
-            </div>
-          </div>
-        </div>
-      </section>
-
-    </div>
-
   </main>
   </div><!-- /.page-wrapper -->
 
@@ -831,7 +705,7 @@
     </svg>
   </button>
 
-  <!-- AI 与知乎功能共用的授权确认模态框 -->
+  <!-- 知乎授权确认模态框 -->
   <div id="item-modal-overlay" class="modal-overlay" style="display: none; opacity: 0;">
     <div class="modal-container" role="dialog" aria-modal="true" aria-labelledby="modal-title">
       <div class="modal-header">

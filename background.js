@@ -18,7 +18,7 @@ const DEFAULT_SETTINGS = {
   superDrag: true,
   superDragActivate: false,    // 拖拽产生的标签是否立即激活，默认关闭（即后台打开）
   tabSwitchKey: true,          // F2/F3 切换标签，默认开启
-  floatingSearchBox: true,     // 悬浮搜索框（实验室），默认开启
+  floatingSearchBox: true,     // 悬浮搜索框，默认开启
   floatingSearchBoxAlwaysShow: false,  // 悬浮搜索框常驻显示，默认关闭
   floatingSearchBoxTrending: false,    // 悬浮搜索框热搜榜，默认关闭
   biliTool: true,                      // B站视频优化工具，默认开启
@@ -1325,84 +1325,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true;
   }
 
-  // 处理关键词提取请求 (解决 CSP 问题)
-  // 双备份方案：优先 Pollinations.ai，失败后 fallback 到 OllamaFreeAPI
-  if (message.action === 'analyzeText') {
-    (async () => {
-      const TIMEOUT_MS = 30000;
-      const prompt = message.prompt;
-      
-      const fetchWithTimeout = (url, options, timeout) => {
-        return Promise.race([
-          fetch(url, options),
-          new Promise((_, reject) => 
-            setTimeout(() => reject(new Error('Request timeout')), timeout)
-          )
-        ]);
-      };
-      
-      // 方案1: Pollinations.ai
-      const tryPollinations = async () => {
-        const response = await fetchWithTimeout('https://text.pollinations.ai/', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            messages: [
-              { role: 'system', content: 'You are a helpful assistant that extracts keywords as JSON arrays.' },
-              { role: 'user', content: prompt }
-            ],
-            model: 'openai'
-          })
-        }, TIMEOUT_MS);
-        
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}`);
-        }
-        return await response.text();
-      };
-      
-      // 方案2: OllamaFreeAPI 公开服务器
-      const tryOllama = async () => {
-        const response = await fetchWithTimeout('http://172.236.213.60:11434/api/generate', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            model: 'llama3.2:latest',
-            prompt: prompt,
-            stream: false,
-            options: {
-              num_predict: 300,
-              temperature: 0.7
-            }
-          })
-        }, TIMEOUT_MS);
-        
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}`);
-        }
-        const json = await response.json();
-        return json.response || '';
-      };
-      
-      // 执行：先 Pollinations，失败后 Ollama
-      try {
-        const text = await tryPollinations();
-        sendResponse({ success: true, data: text });
-      } catch (pollinationsError) {
-        console.warn('[ECHO Background DEBUG] Pollinations failed:', pollinationsError.message);
-        try {
-          const text = await tryOllama();
-          sendResponse({ success: true, data: text });
-        } catch (ollamaError) {
-          console.error('[ECHO Background DEBUG] Both services failed.');
-          console.error('  Pollinations:', pollinationsError.message);
-          console.error('  Ollama:', ollamaError.message);
-          sendResponse({ error: 'All AI services unavailable' });
-        }
-      }
-    })();
-    return true;
-  }
 });
 
 /**
@@ -2005,75 +1927,6 @@ async function isInBookmarkBar(bookmarkId) {
 
   return false;
 }
-
-// ============================================
-// 动态注入 Related Search 脚本
-// ============================================
-
-const SEARCH_ENGINES = ['google.com', 'baidu.com', 'sogou.com', 'so.com', 'duckduckgo.com', 'yahoo.com', 'bing.com'];
-
-function isHomePage(url) {
-  try {
-    const urlObj = new URL(url);
-    const path = urlObj.pathname;
-    const search = urlObj.search;
-    
-    // 典型首页路径模式
-    const homePatterns = [
-      /^\/?$/,                    // 空或单个斜杠: "/" 或 ""
-      /^\/index\.html?$/i,       // /index.html 或 /index.htm
-      /^\/home\.html?$/i,        // /home.html
-      /^\/default\.html?$/i,     // /default.html
-      /^\/index\.php$/i,         // /index.php
-      /^\/index\.aspx?$/i,       // /index.asp 或 /index.aspx
-      /^\/home\/?$/i,            // /home 或 /home/
-      /^\/main\/?$/i             // /main 或 /main/
-    ];
-    
-    const isHomeByPath = homePatterns.some(pattern => pattern.test(path));
-    
-    if (isHomeByPath) {
-      const allowedParams = ['utm_source', 'utm_medium', 'utm_campaign', 'ref', 'from'];
-      const params = new URLSearchParams(search);
-      const hasContentParam = [...params.keys()].some(key => !allowedParams.includes(key.toLowerCase()));
-      
-      if (!hasContentParam) {
-        return true;
-      }
-    }
-    return false;
-  } catch (e) {
-    return false;
-  }
-}
-
-// ============================================
-// 关联搜索注入模块
-// ============================================
-chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
-  if (changeInfo.status === 'complete' && tab.url && tab.url.startsWith('http')) {
-    const settings = await chrome.storage.sync.get({ relatedSearchRecommend: false });
-    if (!settings.relatedSearchRecommend) return;
-
-    const url = tab.url;
-    
-    // 检查是否是搜索引擎
-    if (SEARCH_ENGINES.some(se => url.includes(se))) return;
-    
-    // 检查是否是首页
-    if (isHomePage(url)) return;
-
-    // 注入脚本
-    try {
-      await chrome.scripting.executeScript({
-        target: { tabId: tabId },
-        files: ['related-search/related-search.js']
-      });
-    } catch (e) {
-      console.error('[ECHO Background] Failed to inject related-search.js:', e);
-    }
-  }
-});
 
 // ============================================
 // 知乎黑名单同步长连接

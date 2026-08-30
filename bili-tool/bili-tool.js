@@ -1188,7 +1188,7 @@
       });
     }
 
-    // 缩放补偿（参考 related-search.js）
+    // 页面缩放补偿
 
     // 统一的位置 + transform 管理入口
     function applyLogicalTop(logicalTop) {
