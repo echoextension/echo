@@ -3138,8 +3138,6 @@ const TRENDING_CATEGORIES = [
   { tab: 'finance',    name: '财经榜', icon: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M3.5 18.49l6-6.01 4 4L22 6.92l-1.41-1.41-7.09 7.97-4-4L2 16.99z"/></svg>' },
   { tab: 'sports',     name: '体育榜', icon: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17.93c-3.94-.49-7-3.85-7-7.93s3.05-7.44 7-7.93v15.86zm2-15.86c1.03.13 2 .45 2.87.93H13v-.93zM13 7h5.24c.25.31.48.65.68 1H13V7zm0 3h6.74c.08.33.15.66.19 1H13v-1zm0 9.93V19h2.87c-.87.48-1.84.8-2.87.93zM18.24 17H13v-1h5.92c-.2.35-.43.69-.68 1zm1.5-3H13v-1h6.93c-.04.34-.11.67-.19 1z"/></svg>' },
   { tab: 'games',      name: '游戏榜', icon: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M21 6H3c-1.1 0-2 .9-2 2v8c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm-10 7H8v3H6v-3H3v-2h3V8h2v3h3v2zm4.5 2c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm4-3c-.83 0-1.5-.67-1.5-1.5S18.67 9 19.5 9s1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/></svg>' },
-  { tab: 'movie',      name: '电影榜', icon: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M18 4l2 4h-3l-2-4h-2l2 4h-3l-2-4H8l2 4H7L5 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4h-4z"/></svg>' },
-  { tab: 'teleplay',   name: '剧集榜', icon: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M21 3H3c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h5v2h8v-2h5c1.1 0 1.99-.9 1.99-2L23 5c0-1.1-.9-2-2-2zm0 14H3V5h18v12z"/></svg>' },
   { tab: 'novel',      name: '小说榜', icon: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M18 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 4h5v8l-2.5-1.5L6 12V4z"/></svg>' },
   { tab: 'car',        name: '汽车榜', icon: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z"/></svg>' },
   { tab: 'drama',      name: '短剧榜', icon: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3c-4.97 0-9 4.03-9 9v7c0 1.1.9 2 2 2h4v-8H5v-1c0-3.87 3.13-7 7-7s7 3.13 7 7v1h-4v8h4c1.1 0 2-.9 2-2v-7c0-4.97-4.03-9-9-9z"/></svg>' }
@@ -3149,6 +3147,31 @@ const TRENDING_CATEGORIES = [
 const disabledCategories = new Set();
 
 let currentCategoryIndex = 0;
+
+const LEGACY_TRENDING_CATEGORY_TABS = [
+  'realtime', 'livelihood', 'finance', 'sports', 'games',
+  'movie', 'teleplay', 'novel', 'car', 'drama'
+];
+
+async function loadStoredTrendingCategory() {
+  const stored = await chrome.storage.local.get(TRENDING_CATEGORY_KEY);
+  const value = stored[TRENDING_CATEGORY_KEY];
+  let tab = 'realtime';
+
+  if (typeof value === 'number' && Number.isInteger(value)) {
+    tab = LEGACY_TRENDING_CATEGORY_TABS[value] || 'realtime';
+  } else if (typeof value === 'string') {
+    tab = value;
+  }
+  if (tab === 'movie' || tab === 'teleplay') tab = 'realtime';
+
+  const index = TRENDING_CATEGORIES.findIndex(category => category.tab === tab);
+  currentCategoryIndex = index >= 0 ? index : 0;
+  const stableValue = TRENDING_CATEGORIES[currentCategoryIndex].tab;
+  if (value !== undefined && value !== stableValue) {
+    await chrome.storage.local.set({ [TRENDING_CATEGORY_KEY]: stableValue });
+  }
+}
 
 /**
  * 初始化热搜开关
@@ -3176,10 +3199,7 @@ async function initTrendingToggle() {
     // 热榜开启时移除可能由 blank-init 预设的 class
     document.documentElement.classList.remove('trending-hidden');
     // 恢复用户上次选择的分类
-    const categoryStored = await chrome.storage.local.get(TRENDING_CATEGORY_KEY);
-    if (categoryStored[TRENDING_CATEGORY_KEY] !== undefined) {
-      currentCategoryIndex = categoryStored[TRENDING_CATEGORY_KEY];
-    }
+    await loadStoredTrendingCategory();
     initTrendingDots();
     loadTrendingData();
   }
@@ -3202,10 +3222,7 @@ async function initTrendingToggle() {
       document.body.classList.remove('trending-hidden');
       document.documentElement.classList.remove('trending-hidden');
       // 恢复用户上次选择的分类
-      const categoryStored = await chrome.storage.local.get(TRENDING_CATEGORY_KEY);
-      if (categoryStored[TRENDING_CATEGORY_KEY] !== undefined) {
-        currentCategoryIndex = categoryStored[TRENDING_CATEGORY_KEY];
-      }
+      await loadStoredTrendingCategory();
       initTrendingDots();
       loadTrendingData();
     } else {
@@ -3343,7 +3360,9 @@ function switchCategory(index, direction = 'right') {
     await loadTrendingData(false, targetIndex);
     
     // 保存用户选择的分类
-    chrome.storage.local.set({ [TRENDING_CATEGORY_KEY]: targetIndex });
+    chrome.storage.local.set({
+      [TRENDING_CATEGORY_KEY]: TRENDING_CATEGORIES[currentCategoryIndex].tab
+    });
     
     if (grid) {
       // 第二步：移除飞出类，设置新内容的起始位置
@@ -3381,6 +3400,9 @@ function markCategoryDisabled(categoryIndex) {
     if (nextValid !== categoryIndex) {
       currentCategoryIndex = nextValid;
       updateDotsActiveState();
+      chrome.storage.local.set({
+        [TRENDING_CATEGORY_KEY]: TRENDING_CATEGORIES[nextValid].tab
+      });
       loadTrendingData(false, nextValid);
     }
   }
@@ -3458,7 +3480,7 @@ async function loadTrendingData(forceRefresh = false, targetIndex = null) {
     if (result && result.success && result.data?.success && Array.isArray(baiduData)) {
       // 注意：不同分类使用不同字段名
       // realtime/livelihood/finance/sports/games 使用 'word'
-      // movie/teleplay/novel/car/drama 使用 'title'
+      // novel/car/drama 使用 'title'
       const trendingData = baiduData.slice(0, 20).map(item => ({
         title: item.word || item.title || ''
       })).filter(item => item.title);

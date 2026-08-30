@@ -20,8 +20,7 @@ const SETTING_IDS = [
 const SETTING_IDS_DEFAULT_OFF = [
   'superDragActivate',         // 拖拽产生的标签立即激活（默认关闭，即后台打开）
   'quickSaveImageDateFolder',  // 按日期创建子文件夹
-  'applyToPlusButton',         // 同时应用于「+」新建标签页
-  'zhihuBlocklistFilter'       // 知乎黑名单内容过滤
+  'applyToPlusButton'          // 同时应用于「+」新建标签页
 ];
 
 // 开关类设置 - 默认关闭（实验室功能）
@@ -567,7 +566,85 @@ document.addEventListener('visibilitychange', async () => {
  * 保存单个设置
  */
 function saveSetting(key, value) {
-  chrome.storage.sync.set({ [key]: value });
+  return chrome.storage.sync.set({ [key]: value });
+}
+
+const CONFIRMATION_CONTENT = {
+  relatedSearch: {
+    primary: '您即将开启「网页关联搜索推荐」实验性功能。',
+    secondary: 'You are enabling the "Related Search" experimental feature.',
+    risks: [
+      ['🌐', '数据交互 / Data Interaction', '访问网页时，部分纯文本片段将被发送至第三方 AI 服务 (Pollinations.ai 及备选服务)。<br>Text snippets will be sent to 3rd-party AI providers.'],
+      ['⚡', '服务波动 / Instability', '使用免费公共接口，可能出现请求失败。<br>Service may be unstable due to free public API.']
+    ],
+    footer: '我们承诺仅进行匿名传输且不留存数据，但您需自行评估第三方服务交互的风险。',
+    confirmText: '确认开启 Enable'
+  },
+  zhihuBlocklist: {
+    primary: '您即将授权 ECHO 同步知乎官方黑名单。',
+    secondary: '确认后将打开独立知乎窗口并立即开始读取，请在完成前保持窗口开启。',
+    risks: [
+      ['🔐', '读取与保存', 'ECHO 将读取知乎官方黑名单，并在当前设备保存匹配所需的稳定账号标识、同步时间和人数。'],
+      ['💻', '仅限本机', '名单只保存在扩展本地存储中，不进入浏览器同步或 ECHO 备份，也不会发送给 ECHO 或第三方服务。']
+    ],
+    footer: '同步完整成功后才会开启内容过滤；黑名单为 0 人也视为一次有效同步。',
+    confirmText: '同意并同步'
+  }
+};
+
+let confirmationPending = false;
+
+function showConfirmationModal(content) {
+  if (confirmationPending) return Promise.resolve(false);
+  const modal = document.getElementById('item-modal-overlay');
+  const confirmBtn = document.getElementById('modal-confirm-btn');
+  const cancelBtn = document.getElementById('modal-cancel-btn');
+  const primary = document.getElementById('modal-text-primary');
+  const secondary = document.getElementById('modal-text-secondary');
+  const riskBox = document.getElementById('modal-risk-box');
+  const footer = document.getElementById('modal-text-footer');
+  if (!modal || !confirmBtn || !cancelBtn || !primary || !secondary || !riskBox || !footer) {
+    return Promise.resolve(false);
+  }
+
+  confirmationPending = true;
+  primary.textContent = content.primary;
+  secondary.textContent = content.secondary;
+  riskBox.innerHTML = content.risks.map(([icon, title, description]) => `
+    <div class="risk-item">
+      <span class="risk-icon">${icon}</span>
+      <div class="risk-desc"><strong>${title}</strong><p>${description}</p></div>
+    </div>
+  `).join('');
+  footer.textContent = content.footer;
+  confirmBtn.textContent = content.confirmText;
+  cancelBtn.textContent = '取消 Cancel';
+  modal.style.opacity = '';
+  modal.style.display = 'flex';
+  requestAnimationFrame(() => {
+    modal.classList.add('show');
+    confirmBtn.focus();
+  });
+
+  return new Promise((resolve) => {
+    let settled = false;
+    const finish = (confirmed) => {
+      if (settled) return;
+      settled = true;
+      modal.classList.remove('show');
+      setTimeout(() => {
+        if (!modal.classList.contains('show')) modal.style.display = 'none';
+      }, 300);
+      confirmBtn.removeEventListener('click', onConfirm);
+      cancelBtn.removeEventListener('click', onCancel);
+      confirmationPending = false;
+      resolve(confirmed);
+    };
+    const onConfirm = () => finish(true);
+    const onCancel = () => finish(false);
+    confirmBtn.addEventListener('click', onConfirm);
+    cancelBtn.addEventListener('click', onCancel);
+  });
 }
 
 /**
@@ -576,6 +653,7 @@ function saveSetting(key, value) {
 async function resetToDefaults() {
   // 保存默认设置
   await chrome.storage.sync.set(DEFAULT_SETTINGS);
+  await chrome.storage.local.set({ zhihuBlocklistFilter: false });
   
   // 重新加载 UI
   await loadSettings();
@@ -655,70 +733,19 @@ function initializeEventListeners() {
   // 监听关联搜索推荐开关（单独处理，需要隐私确认）
   const relatedSearchCheckbox = document.getElementById('relatedSearchRecommend');
   if (relatedSearchCheckbox) {
-    // 使用 'click' 事件以更好拦截状态改变
-    relatedSearchCheckbox.addEventListener('click', (e) => {
-      // 如果当前是选中状态，说明用户刚点击想开启（点击前是未选中，点击后浏览器置为选中）
+    relatedSearchCheckbox.addEventListener('click', async (e) => {
       if (e.target.checked) {
-        e.preventDefault(); // 阻止复选框状态改变（保持未选中）
-        
-        // 显示模态框
-        const modal = document.getElementById('item-modal-overlay');
-        const confirmBtn = document.getElementById('modal-confirm-btn');
-        const cancelBtn = document.getElementById('modal-cancel-btn');
-        
-        if (modal) {
-          // 清除可能存在的 inline opacity (关键修复：解决 opacity: 0 覆盖 CSS 问题)
-          modal.style.opacity = ''; 
-          modal.style.display = 'flex';
-          
-          // 强制重绘
-          requestAnimationFrame(() => {
-             modal.classList.add('show');
-          });
-
-          // Defines callbacks
-          let onConfirm, onCancel;
-
-          // 清理函数
-          const cleanup = () => {
-             modal.classList.remove('show');
-             // 这里的延时最好配合 CSS transition 时间
-             setTimeout(() => {
-                if (!modal.classList.contains('show')) { // 双重检查防止快速切换
-                    modal.style.display = 'none';
-                }
-             }, 300);
-             
-             confirmBtn.removeEventListener('click', onConfirm);
-             cancelBtn.removeEventListener('click', onCancel);
-          };
-
-          // 确认开启
-          onConfirm = () => {
-             relatedSearchCheckbox.checked = true; // 程序化勾选
-             saveSetting('relatedSearchRecommend', true);
-             updateRelatedSearchOptionState(true);
-             cleanup();
-          };
-
-          // 取消/拒绝
-          onCancel = () => {
-             // 保持未选中
-             // saveSetting 确保状态为 false
-             saveSetting('relatedSearchRecommend', false);
-             updateRelatedSearchOptionState(false);
-             cleanup();
-          };
-
-          confirmBtn.addEventListener('click', onConfirm);
-          cancelBtn.addEventListener('click', onCancel);
-        }
+        e.preventDefault();
+        relatedSearchCheckbox.checked = false;
+        const confirmed = await showConfirmationModal(CONFIRMATION_CONTENT.relatedSearch);
+        relatedSearchCheckbox.checked = confirmed;
+        await saveSetting('relatedSearchRecommend', confirmed);
+        updateRelatedSearchOptionState(confirmed);
       } else {
-        // 用户想关闭 -> 直接允许，并保存
-        saveSetting('relatedSearchRecommend', false);
+        await saveSetting('relatedSearchRecommend', false);
         updateRelatedSearchOptionState(false);
       }
-    }); // End of listener
+    });
   }
   
   // 监听 radio 按钮变化
@@ -909,84 +936,150 @@ document.addEventListener('DOMContentLoaded', async () => {
   
   // 初始化备份与恢复
   initBackupRestore();
-  
-  // 如果 URL hash 指向某个 section，滚动到对应位置
-  if (window.location.hash) {
-    const targetId = window.location.hash.slice(1);
-    setTimeout(() => {
-      const el = document.getElementById(targetId);
-      if (el) {
-        el.scrollIntoView({ behavior: 'smooth' });
-        // 短暂高亮提示
-        el.style.transition = 'box-shadow 0.3s';
-        el.style.boxShadow = '0 0 0 2px #fb7299';
-        setTimeout(() => { el.style.boxShadow = ''; }, 2000);
-      }
-    }, 300);
-  }
 });
 
 async function initZhihuBlocklistSync() {
+  const checkbox = document.getElementById('zhihuBlocklistFilter');
   const button = document.getElementById('zhihuBlocklistSync');
   const status = document.getElementById('zhihuBlocklistStatus');
-  if (!button || !status) return;
+  const title = document.getElementById('zhihuBlocklistSyncTitle');
+  const syncOption = document.getElementById('zhihuBlocklistSyncOption');
+  if (!checkbox || !button || !status || !title || !syncOption) return;
 
-  const snapshotStore = await chrome.storage.local.get('echoZhihuBlocklistV1');
-  const snapshot = snapshotStore.echoZhihuBlocklistV1;
-  const active = snapshot?.accounts?.[snapshot.activeAccountId];
-  if (active) {
-    const date = new Date(active.syncedAt).toLocaleString();
-    status.textContent = `已同步 ${active.total} 人 · ${date}`;
-    status.dataset.state = 'success';
-  }
+  let taskState = { phase: 'idle' };
+  let validSnapshot = null;
+  let authorized = false;
 
-  let port = null;
-  const finish = () => {
-    button.disabled = false;
-    button.textContent = '同步知乎黑名单';
-    port?.disconnect();
-    port = null;
+  const saveZhihuSetting = (enabled) => chrome.storage.local.set({
+    zhihuBlocklistFilter: Boolean(enabled)
+  });
+
+  const readValidSnapshot = async () => {
+    const { echoZhihuBlocklistV1: root } = await chrome.storage.local.get('echoZhihuBlocklistV1');
+    const active = root?.accounts?.[root.activeAccountId];
+    if (!active || active.accountId !== root.activeAccountId || !Array.isArray(active.records)
+        || !Number.isFinite(active.syncedAt) || active.syncedAt <= 0
+        || !Number.isInteger(active.total) || active.total !== active.records.length) return null;
+    const ids = new Set();
+    const tokens = new Set();
+    for (const record of active.records) {
+      if (!record?.id || !record?.urlToken || ids.has(record.id) || tokens.has(record.urlToken)) return null;
+      ids.add(record.id);
+      tokens.add(record.urlToken);
+    }
+    return active;
   };
 
-  button.addEventListener('click', () => {
-    if (port) {
-      button.disabled = true;
+  const refreshLocalState = async () => {
+    validSnapshot = await readValidSnapshot();
+    const localSettings = await chrome.storage.local.get([
+      'zhihuBlocklistFilter',
+      'zhihuBlocklistAuthorized'
+    ]);
+    authorized = Boolean(localSettings.zhihuBlocklistAuthorized || validSnapshot);
+    let requestedEnabled = localSettings.zhihuBlocklistFilter;
+    if (requestedEnabled === undefined) {
+      const legacySettings = await chrome.storage.sync.get({ zhihuBlocklistFilter: false });
+      requestedEnabled = Boolean(legacySettings.zhihuBlocklistFilter);
+      await saveZhihuSetting(Boolean(requestedEnabled && validSnapshot));
+    }
+    if (requestedEnabled && !validSnapshot) {
+      requestedEnabled = false;
+      await saveZhihuSetting(false);
+    }
+    checkbox.checked = Boolean(requestedEnabled && validSnapshot);
+  };
+
+  const render = () => {
+    const running = ['opening', 'connecting', 'syncing', 'cancelling'].includes(taskState.phase);
+    syncOption.hidden = !(authorized || validSnapshot || running);
+    checkbox.disabled = running;
+    title.textContent = validSnapshot ? '手动同步知乎黑名单' : '同步知乎黑名单';
+
+    if (taskState.phase === 'opening') {
+      status.textContent = '正在打开独立知乎窗口...';
+      status.dataset.state = 'working';
+      button.textContent = '取消同步';
+      button.disabled = false;
+    } else if (taskState.phase === 'connecting') {
+      status.textContent = taskState.message || '正在连接独立知乎窗口...';
+      status.dataset.state = 'working';
+      button.textContent = '取消同步';
+      button.disabled = false;
+    } else if (taskState.phase === 'syncing') {
+      status.textContent = `正在读取 ${taskState.current ?? 0} / ${taskState.total ?? '...'} 人`;
+      status.dataset.state = 'working';
+      button.textContent = '取消同步';
+      button.disabled = false;
+    } else if (taskState.phase === 'cancelling') {
+      status.textContent = '正在取消，已读取的数据不会保存...';
+      status.dataset.state = 'working';
       button.textContent = '正在取消';
-      port.postMessage({ action: 'cancel' });
+      button.disabled = true;
+    } else if (taskState.phase === 'failed' || taskState.phase === 'cancelled') {
+      status.textContent = taskState.message || '读取未完成，请重新同步';
+      status.dataset.state = 'error';
+      button.textContent = '重新同步';
+      button.disabled = false;
+    } else if (validSnapshot) {
+      status.textContent = `已同步 ${validSnapshot.total} 人 · ${new Date(validSnapshot.syncedAt).toLocaleString()}`;
+      status.dataset.state = 'success';
+      button.textContent = '同步知乎黑名单';
+      button.disabled = false;
+    } else {
+      status.textContent = '尚未同步。名单按知乎账号保存在本地，不进入同步或备份';
+      status.dataset.state = '';
+      button.textContent = '同步知乎黑名单';
+      button.disabled = false;
+    }
+  };
+
+  const connection = chrome.runtime.connect({ name: 'echo-zhihu-blocklist-sync' });
+  connection.onMessage.addListener((message) => {
+    if (message?.type !== 'state') return;
+    taskState = message.state || { phase: 'idle' };
+    void refreshLocalState().then(render);
+  });
+
+  checkbox.addEventListener('click', async (event) => {
+    if (!event.target.checked) {
+      await saveZhihuSetting(false);
       return;
     }
-    button.disabled = false;
-    button.textContent = '取消同步';
-    status.textContent = '正在连接已登录的知乎页面...';
-    status.dataset.state = 'working';
-    port = chrome.runtime.connect({ name: 'echo-zhihu-blocklist-sync' });
-    port.onMessage.addListener((message) => {
-      if (message.type === 'status') {
-        status.textContent = message.message;
-        status.dataset.state = 'working';
-      } else if (message.type === 'progress') {
-        status.textContent = `正在同步 ${message.current} / ${message.total || '...'} 人`;
-      } else if (message.type === 'complete') {
-        status.textContent = `已同步 ${message.total} 人 · ${new Date(message.syncedAt).toLocaleString()}`;
-        status.dataset.state = 'success';
-        finish();
-      } else if (message.type === 'error' || message.type === 'cancelled') {
-        status.textContent = message.message || '同步已取消，仍保留上次成功名单';
-        status.dataset.state = 'error';
-        finish();
-      }
-    });
-    port.onDisconnect.addListener(() => {
-      if (port) {
-        status.textContent = '同步连接已中断，仍保留上次成功名单';
-        status.dataset.state = 'error';
-        button.disabled = false;
-        button.textContent = '同步知乎黑名单';
-        port = null;
-      }
-    });
-    port.postMessage({ action: 'start' });
+    event.preventDefault();
+    checkbox.checked = false;
+    validSnapshot = await readValidSnapshot();
+    if (validSnapshot) {
+      await saveZhihuSetting(true);
+      checkbox.checked = true;
+      syncOption.hidden = false;
+      return;
+    }
+    const confirmed = await showConfirmationModal(CONFIRMATION_CONTENT.zhihuBlocklist);
+    if (!confirmed) {
+      await saveZhihuSetting(false);
+      return;
+    }
+    authorized = true;
+    await chrome.storage.local.set({ zhihuBlocklistAuthorized: true });
+    render();
+    connection.postMessage({ action: 'start', mode: 'first' });
   });
+
+  button.addEventListener('click', () => {
+    if (['opening', 'connecting', 'syncing'].includes(taskState.phase)) {
+      connection.postMessage({ action: 'cancel' });
+    } else {
+      connection.postMessage({ action: 'start', mode: validSnapshot ? 'manual' : 'first' });
+    }
+  });
+  chrome.storage.onChanged.addListener((changes, areaName) => {
+    if (areaName !== 'local') return;
+    if (changes.zhihuBlocklistFilter || changes.echoZhihuBlocklistV1
+        || changes.zhihuBlocklistAuthorized) void refreshLocalState().then(render);
+  });
+  await refreshLocalState();
+  render();
 }
 
 // ============================================
@@ -1380,62 +1473,128 @@ async function removeDomainFromBlacklist(domain) {
 // ============================================
 
 /**
- * 初始化滚动跟随导航
- * 使用 Intersection Observer 监听分区进入视口
+ * 初始化滚动跟随导航。
+ * 只跟踪左侧已有的五个目标；实验室不属于导航，进入该区域后保持备份项激活。
  */
 function initScrollNav() {
-  const navItems = document.querySelectorAll('.scroll-nav-item');
-  const sections = document.querySelectorAll('.settings-section[id]');
-  
-  if (!navItems.length || !sections.length) return;
-  
-  // 点击导航项时平滑滚动到对应分区
-  navItems.forEach(item => {
-    item.addEventListener('click', (e) => {
-      e.preventDefault();
-      const targetId = item.getAttribute('data-target');
-      const targetSection = document.getElementById(targetId);
-      
-      if (targetSection) {
-        // 计算滚动位置，考虑顶部间距
-        const offsetTop = targetSection.offsetTop - 48;
-        window.scrollTo({
-          top: offsetTop,
-          behavior: 'smooth'
-        });
-        
-        // 立即更新激活状态
-        navItems.forEach(nav => nav.classList.remove('active'));
-        item.classList.add('active');
+  if (initScrollNav.initialized) return;
+  initScrollNav.initialized = true;
+
+  const navItems = [...document.querySelectorAll('.scroll-nav-item[data-target]')];
+  const targets = navItems.map(item => ({
+    item,
+    section: document.getElementById(item.dataset.target)
+  })).filter(target => target.section);
+
+  if (!targets.length) return;
+
+  let frameId = 0;
+  let pendingTargetId = null;
+  let pendingTimer = 0;
+
+  const getTopOffset = () => {
+    const bookmarkHeight = parseFloat(getComputedStyle(document.documentElement)
+      .getPropertyValue('--bookmark-bar-height')) || 0;
+    const settings = document.querySelector('.settings');
+    const settingsStyle = settings ? getComputedStyle(settings) : null;
+    const paddingTop = parseFloat(settingsStyle?.paddingTop) || 0;
+    const zoom = parseFloat(getComputedStyle(document.documentElement).zoom) || 1;
+    return bookmarkHeight + paddingTop * zoom;
+  };
+
+  const setActive = (targetId) => {
+    navItems.forEach(item => item.classList.toggle('active', item.dataset.target === targetId));
+  };
+
+  const updateFromPosition = () => {
+    frameId = 0;
+    const activationLine = getTopOffset() + 8;
+    if (pendingTargetId) {
+      const pending = document.getElementById(pendingTargetId);
+      if (pending && Math.abs(pending.getBoundingClientRect().top - getTopOffset()) <= 3) {
+        clearTimeout(pendingTimer);
+        pendingTargetId = null;
+      } else {
+        return;
       }
-    });
-  });
-  
-  // 使用 Intersection Observer 监听分区可见性
-  const observerOptions = {
-    root: null,
-    rootMargin: '-10% 0px -70% 0px', // 当分区进入视口上部时触发
-    threshold: 0
+    }
+
+    let activeId = targets[0].section.id;
+    for (const target of targets) {
+      if (target.section.getBoundingClientRect().top <= activationLine) {
+        activeId = target.section.id;
+      } else {
+        break;
+      }
+    }
+    setActive(activeId);
+  };
+
+  const scheduleUpdate = () => {
+    if (!frameId) frameId = requestAnimationFrame(updateFromPosition);
+  };
+
+  const scrollToTarget = (target, behavior = 'smooth') => {
+    pendingTargetId = target.section.id;
+    clearTimeout(pendingTimer);
+    setActive(pendingTargetId);
+    const top = window.scrollY + target.section.getBoundingClientRect().top - getTopOffset();
+    window.scrollTo({ top, behavior });
+    pendingTimer = setTimeout(() => {
+      pendingTargetId = null;
+      scheduleUpdate();
+    }, behavior === 'smooth' ? 2000 : 0);
   };
   
-  const observer = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-      if (entry.isIntersecting) {
-        const sectionId = entry.target.id;
-        
-        // 更新导航激活状态
-        navItems.forEach(nav => {
-          if (nav.getAttribute('data-target') === sectionId) {
-            navItems.forEach(n => n.classList.remove('active'));
-            nav.classList.add('active');
-          }
-        });
-      }
+  // 点击导航项时平滑滚动到对应分区
+  targets.forEach(target => {
+    const { item } = target;
+    item.addEventListener('click', (e) => {
+      e.preventDefault();
+      history.replaceState(null, '', `#${target.section.id}`);
+      scrollToTarget(target);
     });
-  }, observerOptions);
-  
-  // 观察所有分区
-  sections.forEach(section => observer.observe(section));
+  });
+
+  window.addEventListener('scroll', scheduleUpdate, { passive: true });
+  window.addEventListener('resize', scheduleUpdate);
+  window.addEventListener('wheel', () => {
+    if (!pendingTargetId) return;
+    clearTimeout(pendingTimer);
+    pendingTargetId = null;
+    scheduleUpdate();
+  }, { passive: true });
+  window.addEventListener('touchstart', () => {
+    if (!pendingTargetId) return;
+    clearTimeout(pendingTimer);
+    pendingTargetId = null;
+    scheduleUpdate();
+  }, { passive: true });
+  document.addEventListener('pointerdown', () => {
+    if (!pendingTargetId) return;
+    clearTimeout(pendingTimer);
+    pendingTargetId = null;
+    scheduleUpdate();
+  }, { passive: true, capture: true });
+  document.addEventListener('keydown', (event) => {
+    if (!pendingTargetId || !['ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'End', ' '].includes(event.key)) return;
+    clearTimeout(pendingTimer);
+    pendingTargetId = null;
+    scheduleUpdate();
+  }, true);
+  window.addEventListener('scrollend', () => {
+    if (!pendingTargetId) return;
+    clearTimeout(pendingTimer);
+    pendingTargetId = null;
+    scheduleUpdate();
+  });
+
+  const hashTarget = targets.find(target => `#${target.section.id}` === window.location.hash);
+  if (hashTarget) {
+    setTimeout(() => scrollToTarget(hashTarget), 300);
+  } else {
+    scheduleUpdate();
+  }
 }
 
 // ============================================
@@ -1564,8 +1723,6 @@ function adaptShortcutsForPlatform() {
 
 // 页面加载完成后初始化
 document.addEventListener('DOMContentLoaded', () => {
-  initScrollNav();
-  initBackToTop();
   initSiteEnhancementDemos();
   adaptShortcutsForPlatform();
   initBlacklistManager();

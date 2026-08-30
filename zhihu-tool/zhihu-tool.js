@@ -19,7 +19,11 @@
   const TASK_TIMEOUT_MS = 10 * 60 * 1000;
   const REQUEST_DELAY_MS = 250;
 
-  let enabled = (await chrome.storage.sync.get({ [SETTING_KEY]: false }))[SETTING_KEY];
+  const localSetting = await chrome.storage.local.get(SETTING_KEY);
+  let hasLocalSetting = Object.prototype.hasOwnProperty.call(localSetting, SETTING_KEY);
+  let enabled = hasLocalSetting
+    ? Boolean(localSetting[SETTING_KEY])
+    : Boolean((await chrome.storage.sync.get({ [SETTING_KEY]: false }))[SETTING_KEY]);
   let observer = null;
   let styleElement = null;
   let blockedIds = null;
@@ -31,8 +35,46 @@
   let syncCancelled = false;
   let syncOwnerPort = null;
   let filterVersion = 0;
+  let syncWindowOverlay = null;
 
   const sleep = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));
+
+  function showSyncWindowOverlay() {
+    if (syncWindowOverlay) return;
+    syncWindowOverlay = document.createElement('div');
+    syncWindowOverlay.id = 'echo-zhihu-sync-window-overlay';
+    syncWindowOverlay.innerHTML = `
+      <div class="echo-zhihu-sync-window-card">
+        <div class="echo-zhihu-sync-window-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg>
+        </div>
+        <h1>ECHO 正在读取知乎官方黑名单</h1>
+        <p>请在 ECHO 设置页查看进度。</p>
+        <p>完成前请勿关闭此窗口；读取完成后窗口将自动关闭。</p>
+      </div>
+    `;
+    const style = document.createElement('style');
+    style.id = 'echo-zhihu-sync-window-style';
+    style.textContent = `
+      #echo-zhihu-sync-window-overlay{position:fixed;inset:0;z-index:2147483647;display:flex;align-items:center;justify-content:center;padding:32px;background:rgba(246,248,251,.96);backdrop-filter:blur(12px);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#1f2329}
+      .echo-zhihu-sync-window-card{width:min(520px,100%);padding:48px 40px;text-align:center;border:1px solid rgba(0,102,255,.12);border-radius:20px;background:#fff;box-shadow:0 18px 60px rgba(31,35,41,.12)}
+      .echo-zhihu-sync-window-icon{width:64px;height:64px;margin:0 auto 22px;display:grid;place-items:center;border-radius:50%;background:rgba(0,102,255,.08);color:#1677ff}
+      .echo-zhihu-sync-window-icon svg{width:32px;height:32px;animation:echoZhihuSyncSpin 1.3s linear infinite}
+      .echo-zhihu-sync-window-card h1{margin:0 0 18px;font-size:24px;line-height:1.35}
+      .echo-zhihu-sync-window-card p{margin:7px 0;color:#646a73;font-size:16px;line-height:1.65}
+      @keyframes echoZhihuSyncSpin{to{transform:rotate(360deg)}}
+      @media(prefers-color-scheme:dark){#echo-zhihu-sync-window-overlay{background:rgba(24,26,31,.96);color:#f2f3f5}.echo-zhihu-sync-window-card{background:#25272d;border-color:rgba(80,150,255,.2);box-shadow:0 18px 60px rgba(0,0,0,.35)}.echo-zhihu-sync-window-card p{color:#b8bcc5}}
+      @media(prefers-reduced-motion:reduce){.echo-zhihu-sync-window-icon svg{animation:none}}
+    `;
+    document.documentElement.appendChild(style);
+    document.documentElement.appendChild(syncWindowOverlay);
+  }
+
+  function removeSyncWindowOverlay() {
+    syncWindowOverlay?.remove();
+    document.getElementById('echo-zhihu-sync-window-style')?.remove();
+    syncWindowOverlay = null;
+  }
 
   function getViewerFromInitialData() {
     try {
@@ -113,7 +155,7 @@
     });
     try {
       const accountId = await getViewerId();
-      if (!accountId) throw new Error('无法确认知乎登录账号');
+      if (!accountId) throw new Error('未检测到已登录的知乎账号，请先登录知乎后重新同步');
 
       const records = [];
       const ids = new Set();
@@ -148,10 +190,12 @@
       }
 
       if (!completed) throw new Error('同步超过最大页数，未替换旧快照');
+      if (syncCancelled) throw new DOMException('同步已取消', 'AbortError');
       if (expectedTotal !== null && records.length !== expectedTotal) {
         throw new Error(`同步人数 ${records.length} 与官方总数 ${expectedTotal} 不一致`);
       }
       const confirmedAccountId = await getViewerId();
+      if (syncCancelled) throw new DOMException('同步已取消', 'AbortError');
       if (confirmedAccountId !== accountId) throw new Error('同步期间知乎账号发生变化');
 
       const stored = await chrome.storage.local.get(STORE_KEY);
@@ -161,15 +205,17 @@
       root.activeAccountId = accountId;
       root.accounts ||= {};
       root.accounts[accountId] = { accountId, syncedAt, total: records.length, records };
+      if (syncCancelled) throw new DOMException('同步已取消', 'AbortError');
       await chrome.storage.local.set({ [STORE_KEY]: root });
       post({ type: 'complete', total: records.length, syncedAt });
     } catch (error) {
       if (error?.name === 'AbortError') {
-        post({ type: 'cancelled', message: '同步已取消，仍保留上次成功名单' });
+        post({ type: 'cancelled', message: '同步已取消，本次已读取的数据未保存' });
       } else {
         post({ type: 'error', message: error.message || '同步失败，仍保留上次成功名单' });
       }
     } finally {
+      removeSyncWindowOverlay();
       syncRunning = false;
       syncCancelled = false;
       syncOwnerPort = null;
@@ -178,6 +224,7 @@
 
   chrome.runtime.onConnect.addListener((port) => {
     if (port.name !== 'echo-zhihu-blocklist-worker' || location.hostname !== 'www.zhihu.com') return;
+    showSyncWindowOverlay();
     port.onMessage.addListener((message) => {
       if (message?.type === 'ping') {
         port.postMessage({ type: 'ready' });
@@ -186,6 +233,7 @@
       if (message?.action === 'start') syncBlocklist(port);
       if (message?.action === 'cancel') syncCancelled = true;
     });
+    port.onDisconnect.addListener(removeSyncWindowOverlay);
     port.postMessage({ type: 'ready' });
   });
 
@@ -309,7 +357,11 @@
     const accountId = await getViewerId();
     if (!accountId) return false;
     const snapshot = root?.accounts?.[accountId];
-    if (!snapshot?.records?.length) return false;
+    if (!snapshot || snapshot.accountId !== accountId || !Array.isArray(snapshot.records)
+      || !Number.isInteger(snapshot.total) || snapshot.total !== snapshot.records.length
+      || !Number.isFinite(snapshot.syncedAt) || snapshot.syncedAt <= 0) return false;
+    const validRecords = snapshot.records.every((item) => item?.id && item?.urlToken);
+    if (!validRecords) return false;
     currentSnapshot = snapshot;
     blockedIds = new Set(snapshot.records.map((item) => String(item.id)));
     return true;
@@ -354,7 +406,13 @@
   }
 
   chrome.storage.onChanged.addListener((changes, areaName) => {
-    if (areaName === 'sync' && changes[SETTING_KEY]) {
+    if (areaName === 'local' && changes[SETTING_KEY]) {
+      hasLocalSetting = true;
+      enabled = Boolean(changes[SETTING_KEY].newValue);
+      if (enabled) startFilter();
+      else stopFilter();
+    }
+    if (areaName === 'sync' && changes[SETTING_KEY] && !hasLocalSetting) {
       enabled = Boolean(changes[SETTING_KEY].newValue);
       if (enabled) startFilter();
       else stopFilter();

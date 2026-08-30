@@ -18,7 +18,7 @@
 
     // 热榜关闭时提前设置布局位置，避免首帧跳动
     const trendingValue = localStorage.getItem('echo_ntp_trending');
-    if (trendingValue === 'false') {
+    if (trendingValue !== 'true') {
       document.documentElement.classList.add('trending-hidden');
     }
   } catch (error) {

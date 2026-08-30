@@ -519,9 +519,9 @@
             <span class="slider"></span>
           </label>
         </div>
-        <div class="option sub-option zhihu-sync-option">
+        <div class="option sub-option zhihu-sync-option" id="zhihuBlocklistSyncOption" hidden>
           <div class="option-info">
-            <h3>手动同步知乎黑名单</h3>
+            <h3 id="zhihuBlocklistSyncTitle">同步知乎黑名单</h3>
             <p id="zhihuBlocklistStatus" class="zhihu-sync-status">尚未同步。名单按知乎账号保存在本地，不进入同步或备份</p>
           </div>
           <button type="button" class="backup-btn export-btn zhihu-sync-button" id="zhihuBlocklistSync">同步知乎黑名单</button>
@@ -570,7 +570,15 @@
               </div>
             </div>
 
-            <p class="bili-option-summary">视频页左侧悬浮工具，颜色、旋转、镜像与倍速可自由组合</p>
+            <div class="bili-option-summary">
+              <p>在 Bilibili 视频播放页左侧悬浮显示优化工具。</p>
+              <ul>
+                <li>画面反色与 RGB 通道交换</li>
+                <li>旋转、镜像，以及适应、填充和画面位置调整</li>
+                <li>0.25× 超慢速与 3× 极速播放</li>
+                <li>上述画面能力可组合使用，工具可随时恢复或关闭</li>
+              </ul>
+            </div>
 
             </div>
           </div>
@@ -630,7 +638,12 @@
               </div>
 
               <div class="bili-feed-option-copy">
-                <p>首页「换一换」下方增加批次导航，会话内保留最近 10 批，关闭标签页后清除</p>
+                <p>在 B站首页使用原生「换一换」后记录推荐批次，可通过上一批、下一批找回内容。</p>
+                <ul>
+                  <li>每个标签页会话最多保留最近 10 批</li>
+                  <li>刷新首页或同标签进入视频再返回时可恢复</li>
+                  <li>关闭标签页或关闭此功能后清除</li>
+                </ul>
               </div>
             </div>
           </div>
@@ -818,9 +831,9 @@
     </svg>
   </button>
 
-  <!-- 自定义确认模态框 -->
+  <!-- AI 与知乎功能共用的授权确认模态框 -->
   <div id="item-modal-overlay" class="modal-overlay" style="display: none; opacity: 0;">
-    <div class="modal-container">
+    <div class="modal-container" role="dialog" aria-modal="true" aria-labelledby="modal-title">
       <div class="modal-header">
         <div class="modal-icon-wrapper">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -829,31 +842,16 @@
             <line x1="12" y1="17" x2="12.01" y2="17"/>
           </svg>
         </div>
-        <h3 class="modal-title">开启确认 / Confirmation</h3>
+        <h3 class="modal-title" id="modal-title">开启确认 / Confirmation</h3>
       </div>
       
       <div class="modal-content">
-        <p class="modal-text-primary">您即将开启「网页关联搜索推荐」实验性功能。</p>
-        <p class="modal-text-secondary">You are enabling the "Related Search" experimental feature.</p>
+        <p class="modal-text-primary" id="modal-text-primary"></p>
+        <p class="modal-text-secondary" id="modal-text-secondary"></p>
         
-        <div class="modal-risk-box">
-          <div class="risk-item">
-            <span class="risk-icon">🌐</span>
-            <div class="risk-desc">
-              <strong>数据交互 / Data Interaction</strong>
-              <p>访问网页时，部分纯文本片段将被发送至第三方 AI 服务 (Pollinations.ai 及备选服务)。<br>Text snippets will be sent to 3rd-party AI providers.</p>
-            </div>
-          </div>
-          <div class="risk-item">
-            <span class="risk-icon">⚡</span>
-            <div class="risk-desc">
-              <strong>服务波动 / Instability</strong>
-              <p>使用免费公共接口，可能出现请求失败。<br>Service may be unstable due to free public API.</p>
-            </div>
-          </div>
-        </div>
+        <div class="modal-risk-box" id="modal-risk-box"></div>
 
-        <p class="modal-text-footer">我们承诺仅进行匿名传输且不留存数据，但您需自行评估第三方服务交互的风险。</p>
+        <p class="modal-text-footer" id="modal-text-footer"></p>
       </div>
 
       <div class="modal-actions">

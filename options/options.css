@@ -1902,6 +1902,10 @@ input:disabled + .slider {
   transform: translateY(-1px);
 }
 
+.zhihu-sync-option[hidden] {
+  display: none;
+}
+
 /* ============================================
    黑名单管理样式
    ============================================ */
@@ -3010,7 +3014,8 @@ input:disabled + .slider {
   flex: 1;
   min-width: 0;
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  justify-content: center;
   padding: 12px;
   border: 1px solid rgba(128,128,128,0.1);
   border-radius: 6px;
@@ -3018,7 +3023,9 @@ input:disabled + .slider {
 }
 
 .bili-feed-option-copy p,
-.bili-option-summary {
+.bili-feed-option-copy li,
+.bili-option-summary p,
+.bili-option-summary li {
   margin: 0;
   color: var(--text-secondary);
   font-size: 13px;
@@ -3029,11 +3036,18 @@ input:disabled + .slider {
   flex: 1;
   min-width: 0;
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  justify-content: center;
   padding: 12px;
   border: 1px solid rgba(128,128,128,0.1);
   border-radius: 6px;
   background: rgba(128,128,128,0.05);
+}
+
+.bili-option-summary ul,
+.bili-feed-option-copy ul {
+  margin: 6px 0 0;
+  padding-left: 18px;
 }
 
 @media (prefers-color-scheme: dark) {

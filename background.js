@@ -38,6 +38,11 @@ const DEFAULT_SETTINGS = {
 
 // 初始化设置（含旧设置迁移）+ 首次安装 FRE
 chrome.runtime.onInstalled.addListener(async (details) => {
+  // NTP 热搜只对全新安装默认关闭。升级用户缺少该 key 时仍沿用旧版默认开启。
+  if (details.reason === 'install') {
+    await chrome.storage.local.set({ echo_ntp_trending: false });
+  }
+
   // 设置初始化/迁移
   chrome.storage.sync.get(null, (items) => {
     const newSettings = { ...DEFAULT_SETTINGS, ...items };
@@ -2074,205 +2079,176 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
 // 知乎黑名单同步长连接
 // ============================================
 
-let zhihuSyncInProgress = false;
-let zhihuSyncOwnerPort = null;
+const zhihuSyncSubscribers = new Set();
+let zhihuSyncTask = null;
+let zhihuSyncState = { phase: 'idle' };
+
+function publishZhihuSyncState(patch) {
+  zhihuSyncState = { ...zhihuSyncState, ...patch, updatedAt: Date.now() };
+  for (const port of zhihuSyncSubscribers) {
+    try { port.postMessage({ type: 'state', state: zhihuSyncState }); } catch (e) {}
+  }
+}
+
+function closeZhihuSyncWindow(task) {
+  if (!task?.windowId) return;
+  const windowId = task.windowId;
+  task.windowId = null;
+  chrome.windows.remove(windowId).catch(() => {});
+}
+
+async function finishZhihuSyncTask(task, phase, message = '') {
+  if (zhihuSyncTask !== task || task.finished) return;
+  task.finished = true;
+  try {
+    if (phase === 'completed' && task.mode === 'first') {
+      await chrome.storage.local.set({ zhihuBlocklistFilter: true });
+    }
+  } catch (error) {
+    phase = 'failed';
+    message = '名单已读取，但无法保存开启状态，请重新同步';
+  }
+  publishZhihuSyncState({ phase, message });
+  closeZhihuSyncWindow(task);
+  try { task.workerPort?.disconnect(); } catch (e) {}
+  zhihuSyncTask = null;
+}
+
+function connectZhihuSyncWorker(tabId) {
+  return new Promise((resolve, reject) => {
+    const port = chrome.tabs.connect(tabId, { name: 'echo-zhihu-blocklist-worker' });
+    let settled = false;
+    const timer = setTimeout(() => finish(new Error('知乎同步窗口未响应')), 10000);
+    const finish = (result) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      port.onMessage.removeListener(onMessage);
+      port.onDisconnect.removeListener(onDisconnect);
+      result instanceof Error ? reject(result) : resolve(port);
+    };
+    const onMessage = (message) => {
+      if (message?.type === 'ready') finish(port);
+    };
+    const onDisconnect = () => finish(new Error('知乎同步窗口连接已中断'));
+    port.onMessage.addListener(onMessage);
+    port.onDisconnect.addListener(onDisconnect);
+    try { port.postMessage({ type: 'ping' }); } catch (error) { finish(error); }
+  });
+}
+
+async function startZhihuSyncTask(mode) {
+  if (zhihuSyncTask) return;
+  const task = {
+    id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+    mode,
+    windowId: null,
+    tabId: null,
+    workerPort: null,
+    finished: false,
+    cancelRequested: false
+  };
+  zhihuSyncTask = task;
+  publishZhihuSyncState({ phase: 'opening', mode, current: 0, total: null, message: '' });
+
+  try {
+    const createdWindow = await chrome.windows.create({
+      url: 'https://www.zhihu.com/',
+      type: 'popup',
+      focused: true,
+      width: 720,
+      height: 720
+    });
+    if (!createdWindow?.id || !createdWindow.tabs?.[0]?.id) throw new Error('无法打开独立知乎同步窗口');
+    task.windowId = createdWindow.id;
+    task.tabId = createdWindow.tabs[0].id;
+    if (task.cancelRequested || task.finished || zhihuSyncTask !== task) {
+      closeZhihuSyncWindow(task);
+      throw new DOMException('同步已取消', 'AbortError');
+    }
+    publishZhihuSyncState({ phase: 'connecting', message: '正在连接独立知乎窗口...' });
+
+    const startedAt = Date.now();
+    let lastError = null;
+    while (!task.cancelRequested && Date.now() - startedAt < 30000) {
+      try {
+        task.workerPort = await connectZhihuSyncWorker(task.tabId);
+        break;
+      } catch (error) {
+        lastError = error;
+        await new Promise((resolve) => setTimeout(resolve, 300));
+      }
+    }
+    if (task.cancelRequested) throw new DOMException('同步已取消', 'AbortError');
+    if (!task.workerPort) throw lastError || new Error('独立知乎同步窗口无法启动');
+
+    task.workerPort.onMessage.addListener((message) => {
+      if (zhihuSyncTask !== task || task.finished) return;
+      if (message.type === 'status') {
+        publishZhihuSyncState({ phase: 'connecting', message: message.message });
+      } else if (message.type === 'progress') {
+        publishZhihuSyncState({ phase: 'syncing', current: message.current, total: message.total ?? null });
+      } else if (message.type === 'complete') {
+        publishZhihuSyncState({ current: message.total, total: message.total, syncedAt: message.syncedAt });
+        void finishZhihuSyncTask(task, 'completed');
+      } else if (message.type === 'cancelled') {
+        const cancelMessage = task.mode === 'manual'
+          ? '同步已取消，本次数据未保存，仍使用上次成功同步的名单'
+          : '同步已取消，本次已读取的数据未保存，请重新同步';
+        void finishZhihuSyncTask(task, 'cancelled', cancelMessage);
+      } else if (message.type === 'error') {
+        void finishZhihuSyncTask(task, 'failed', message.message || '同步失败，未保存本次数据');
+      }
+    });
+    task.workerPort.onDisconnect.addListener(() => {
+      if (zhihuSyncTask === task && !task.finished) {
+        void finishZhihuSyncTask(task, 'failed', '独立知乎同步窗口已关闭或发生跳转，请重新同步');
+      }
+    });
+    task.workerPort.postMessage({ action: 'start', taskId: task.id });
+  } catch (error) {
+    const phase = error?.name === 'AbortError' ? 'cancelled' : 'failed';
+    const message = phase === 'cancelled'
+      ? '同步已取消，未保存本次数据'
+      : (error.message || '无法启动知乎同步');
+    await finishZhihuSyncTask(task, phase, message);
+  }
+}
 
 chrome.runtime.onConnect.addListener((optionsPort) => {
   if (optionsPort.name !== 'echo-zhihu-blocklist-sync') return;
-
-  let workerPort = null;
-  let temporaryTabId = null;
-  let disconnected = false;
-  let cancelRequested = false;
-  let workerFinished = false;
-
-  const post = (message) => {
-    if (!disconnected) {
-      try { optionsPort.postMessage(message); } catch (e) {}
-    }
-  };
-
-  const closeTemporaryTab = () => {
-    if (!temporaryTabId) return;
-    const tabId = temporaryTabId;
-    temporaryTabId = null;
-    chrome.tabs.remove(tabId).catch(() => {});
-  };
-
-  const connectWorker = (tabId) => new Promise((resolve, reject) => {
-    const port = chrome.tabs.connect(tabId, { name: 'echo-zhihu-blocklist-worker' });
-    let settled = false;
-    let timer = null;
-
-    const finish = (outcome) => {
-      if (settled) return;
-      settled = true;
-      if (timer) clearTimeout(timer);
-      port.onMessage.removeListener(onMessage);
-      port.onDisconnect.removeListener(onDisconnect);
-      if (outcome instanceof Error) reject(outcome);
-      else resolve(port);
-    };
-
-    const onMessage = (message) => {
-      if (message?.type === 'ready') {
-        finish(port);
-      }
-    };
-
-    const onDisconnect = () => {
-      finish(new Error(chrome.runtime.lastError?.message || '知乎页面无法接收同步连接'));
-    };
-
-    port.onMessage.addListener(onMessage);
-    port.onDisconnect.addListener(onDisconnect);
-    timer = setTimeout(() => {
-      try { port.disconnect(); } catch (e) {}
-      finish(new Error('知乎页面未响应同步连接'));
-    }, 3000);
-    try {
-      port.postMessage({ type: 'ping' });
-    } catch (error) {
-      finish(error);
-    }
-  });
-
-  const waitForTabReady = async (tabId) => {
-    const tab = await chrome.tabs.get(tabId);
-    if (tab.status === 'complete') return;
-    await new Promise((resolve, reject) => {
-      let timer = null;
-      const cleanup = () => {
-        if (timer) clearTimeout(timer);
-        chrome.tabs.onUpdated.removeListener(onUpdated);
-        chrome.tabs.onRemoved.removeListener(onRemoved);
-      };
-      const onUpdated = (updatedTabId, changeInfo) => {
-        if (updatedTabId !== tabId || changeInfo.status !== 'complete') return;
-        cleanup();
-        resolve();
-      };
-      const onRemoved = (removedTabId) => {
-        if (removedTabId !== tabId) return;
-        cleanup();
-        reject(new Error('自动打开的知乎页面已被关闭'));
-      };
-      chrome.tabs.onUpdated.addListener(onUpdated);
-      chrome.tabs.onRemoved.addListener(onRemoved);
-      timer = setTimeout(() => {
-        cleanup();
-        reject(new Error('自动打开知乎页面超时'));
-      }, 30000);
-    });
-  };
-
-  const acquireWorker = async () => {
-    const tabs = await chrome.tabs.query({ url: ['https://www.zhihu.com/*'] });
-    tabs.sort((left, right) => Number(right.active) - Number(left.active)
-      || (right.lastAccessed || 0) - (left.lastAccessed || 0));
-    for (const tab of tabs) {
-      if (!tab.id || cancelRequested || disconnected) continue;
-      try {
-        return await connectWorker(tab.id);
-      } catch (error) {}
-    }
-
-    if (cancelRequested || disconnected) throw new DOMException('同步已取消', 'AbortError');
-    post({ type: 'status', message: '正在自动打开知乎同步页面...' });
-    const tab = await chrome.tabs.create({ url: 'https://www.zhihu.com/', active: false });
-    if (!tab.id) throw new Error('无法自动打开知乎同步页面');
-    temporaryTabId = tab.id;
-    await waitForTabReady(tab.id);
-    const startedAt = Date.now();
-    let lastError = null;
-    while (!cancelRequested && !disconnected && Date.now() - startedAt < 10000) {
-      try {
-        return await connectWorker(tab.id);
-      } catch (error) {
-        lastError = error;
-        await new Promise((resolve) => setTimeout(resolve, 250));
-      }
-    }
-    if (cancelRequested || disconnected) throw new DOMException('同步已取消', 'AbortError');
-    throw lastError || new Error('自动打开的知乎页面无法启动同步组件');
-  };
-
-  optionsPort.onMessage.addListener(async (message) => {
-    if (message?.action === 'cancel') {
-      cancelRequested = true;
-      if (zhihuSyncOwnerPort === optionsPort) {
-        try { workerPort?.postMessage({ action: 'cancel' }); } catch (e) {}
-      }
-      return;
-    }
-    if (message?.action !== 'start') return;
-    if (zhihuSyncInProgress) {
-      post({ type: 'error', message: '已有同步任务正在运行' });
-      return;
-    }
-    zhihuSyncInProgress = true;
-    zhihuSyncOwnerPort = optionsPort;
-    cancelRequested = false;
-    workerFinished = false;
-    try {
-      workerPort = await acquireWorker();
-      if (cancelRequested || disconnected) {
-        workerFinished = true;
-        zhihuSyncInProgress = false;
-        zhihuSyncOwnerPort = null;
-        try { workerPort.disconnect(); } catch (e) {}
-        closeTemporaryTab();
-        if (!disconnected) post({ type: 'cancelled', message: '同步已取消，仍保留上次成功名单' });
-        return;
-      }
-      workerPort.onMessage.addListener((workerMessage) => {
-        post(workerMessage);
-        if (zhihuSyncOwnerPort === optionsPort && ['complete', 'error', 'cancelled'].includes(workerMessage?.type)) {
-          workerFinished = true;
-          zhihuSyncInProgress = false;
-          zhihuSyncOwnerPort = null;
-          closeTemporaryTab();
-        }
-      });
-      workerPort.onDisconnect.addListener(() => {
-        if (zhihuSyncOwnerPort === optionsPort) {
-          zhihuSyncInProgress = false;
-          zhihuSyncOwnerPort = null;
-        }
-        if (!disconnected && !workerFinished) {
-          post({ type: 'error', message: '同步执行页面已关闭，仍保留上次成功名单' });
-        }
-        closeTemporaryTab();
-        workerPort = null;
-      });
-      workerPort.postMessage({ action: 'start' });
-    } catch (error) {
-      if (zhihuSyncOwnerPort === optionsPort) {
-        zhihuSyncInProgress = false;
-        zhihuSyncOwnerPort = null;
-      }
-      closeTemporaryTab();
-      if (error?.name === 'AbortError') {
-        post({ type: 'cancelled', message: '同步已取消，仍保留上次成功名单' });
+  zhihuSyncSubscribers.add(optionsPort);
+  optionsPort.postMessage({ type: 'state', state: zhihuSyncState });
+  optionsPort.onMessage.addListener((message) => {
+    if (message?.action === 'start') {
+      if (zhihuSyncTask) {
+        optionsPort.postMessage({ type: 'state', state: zhihuSyncState });
       } else {
-        post({ type: 'error', message: error.message || '无法启动知乎同步' });
+        void startZhihuSyncTask(message.mode === 'manual' ? 'manual' : 'first');
+      }
+    } else if (message?.action === 'cancel' && zhihuSyncTask) {
+      const task = zhihuSyncTask;
+      task.cancelRequested = true;
+      publishZhihuSyncState({ phase: 'cancelling' });
+      try { task.workerPort?.postMessage({ action: 'cancel' }); } catch (e) {}
+      if (!task.workerPort) {
+        const cancelMessage = task.mode === 'manual'
+          ? '同步已取消，本次数据未保存，仍使用上次成功同步的名单'
+          : '同步已取消，本次已读取的数据未保存，请重新同步';
+        void finishZhihuSyncTask(task, 'cancelled', cancelMessage);
       }
     }
   });
-
   optionsPort.onDisconnect.addListener(() => {
-    disconnected = true;
-    cancelRequested = true;
-    workerFinished = true;
-    if (zhihuSyncOwnerPort === optionsPort) {
-      zhihuSyncInProgress = false;
-      zhihuSyncOwnerPort = null;
-      try { workerPort?.postMessage({ action: 'cancel' }); } catch (e) {}
-    }
-    workerPort?.disconnect();
-    workerPort = null;
-    closeTemporaryTab();
+    zhihuSyncSubscribers.delete(optionsPort);
   });
+});
+
+chrome.windows.onRemoved.addListener((windowId) => {
+  const task = zhihuSyncTask;
+  if (!task || task.finished || task.windowId !== windowId) return;
+  task.windowId = null;
+  void finishZhihuSyncTask(task, 'failed', '独立知乎同步窗口已关闭，请重新同步');
 });
 
 // ============================================
