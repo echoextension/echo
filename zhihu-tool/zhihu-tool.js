@@ -19,6 +19,10 @@
   const TASK_TIMEOUT_MS = 10 * 60 * 1000;
   const REQUEST_DELAY_MS = 250;
 
+  function isSearchResultsPage() {
+    return location.hostname === 'www.zhihu.com' && /^\/search(?:\/|$)/.test(location.pathname);
+  }
+
   const localSetting = await chrome.storage.local.get(SETTING_KEY);
   let hasLocalSetting = Object.prototype.hasOwnProperty.call(localSetting, SETTING_KEY);
   let enabled = hasLocalSetting
@@ -368,10 +372,10 @@
   }
 
   async function startFilter() {
-    if (!enabled || observer) return;
+    if (!enabled || observer || isSearchResultsPage()) return;
     const version = ++filterVersion;
     if (!(await loadSnapshot())) return;
-    if (!enabled || version !== filterVersion) return;
+    if (!enabled || version !== filterVersion || isSearchResultsPage()) return;
     ensureStyles();
     scanRoot(document.body);
     observer = new MutationObserver((mutations) => {
@@ -404,6 +408,13 @@
     styleElement?.remove();
     styleElement = null;
   }
+
+  function refreshFilterForPage() {
+    if (isSearchResultsPage()) stopFilter();
+    else startFilter();
+  }
+
+  window.navigation?.addEventListener('navigatesuccess', refreshFilterForPage);
 
   chrome.storage.onChanged.addListener((changes, areaName) => {
     if (areaName === 'local' && changes[SETTING_KEY]) {
