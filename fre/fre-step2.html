@@ -532,18 +532,14 @@
         width: 335px; /* 对应缩小展开尺寸 (350 -> 335) */
       }
       
-      /* === 魔法修正：高 CSS 像素 + 低 Zoom === */
-      /* 原理：用 0.75 的缩放率，把 220px 的内容缩放到 165px 显示 */
-      /* 结果：视觉上只占 165px (不撑破布局)，但逻辑上有 220px (内容不重叠) */
       .demo-area {
-        zoom: 0.75;     /* 进一步缩小比例 */
-        width: 133%;    /* 100% / 0.75 = 133% 宽度补偿 */
-        height: 220px;  /* 逻辑高度充足，确保上下元素不打架 */
+        width: 100%;
+        height: 165px;
         margin-bottom: 16px; 
       }
       
       .feature-card.active .demo-area {
-        height: 280px;  /* 逻辑高度充足 */
+        height: 210px;
       }
       
       .feature-title {
@@ -570,7 +566,7 @@
       }
       
       .nav-footer {
-        margin-top: 32px;
+        margin-top: 24px;
       }
     }
 
@@ -1758,7 +1754,7 @@
     <!-- 主内容区：标题 + 功能卡片 -->
     <div class="main-content">
       <header class="page-header">
-        <h1 class="page-title">再让常用网站，更懂你的习惯</h1>
+        <h1 class="page-title">常用网站，更懂你的习惯</h1>
         <p class="page-subtitle">为 B站与知乎，补上那些本该顺手的关键体验</p>
       </header>
 
@@ -1795,7 +1791,7 @@
             <rect x="2" y="5" width="20" height="14" rx="3"/>
             <path d="M8 2L10 5"/><path d="M16 2L14 5"/>
           </svg>
-          默认开启 · 左侧悬浮
+          视频页左侧悬浮
         </span>
       </div>
 
@@ -1889,7 +1885,7 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v6h6"/>
           </svg>
-          默认开启 · 可回退
+          首页换一换下方
         </span>
       </div>
 
@@ -1957,7 +1953,7 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 9l6 6m0-6-6 6"/>
           </svg>
-          默认关闭 · 手动同步
+          信息流里减少打扰
         </span>
       </div>
         </div>

@@ -2469,4 +2469,205 @@ input:disabled + .slider {
   .options-bili-feed-demo { width: 100%; min-width: 0; }
 }
 
+@media (min-width: 1200px) and (max-height: 900px) {
+  .sidebar {
+    width: 390px;
+  }
+
+  .sidebar-inner {
+    padding: 30px 32px;
+  }
+
+  .brand {
+    margin-bottom: 20px;
+  }
+
+  .brand-header {
+    gap: 12px;
+    margin-bottom: 10px;
+  }
+
+  .logo-icon {
+    width: 50px;
+    height: 50px;
+  }
+
+  .brand h1,
+  .brand-cn {
+    font-size: 29px;
+  }
+
+  .brand .description {
+    margin-top: 8px;
+    font-size: 16px;
+  }
+
+  .scroll-nav {
+    flex: 0 0 auto;
+    gap: 6px;
+    margin-top: 18px;
+    overflow-y: visible;
+  }
+
+  .scroll-nav-item {
+    gap: 12px;
+    padding: 12px 16px;
+    font-size: 17px;
+  }
+
+  .nav-icon {
+    width: 22px;
+    height: 22px;
+  }
+
+  .sidebar-footer {
+    padding-top: 14px;
+  }
+
+  .sidebar-doc-links {
+    gap: 6px;
+    padding-left: 20px;
+  }
+
+  .sidebar-doc-links + div {
+    margin-top: 12px !important;
+  }
+
+  .sidebar-footer .guide-link {
+    margin-bottom: 9px;
+    padding: 11px 18px;
+    font-size: 14px;
+  }
+
+  .sidebar-footer .reset-button {
+    margin-bottom: 10px;
+    padding: 10px 16px;
+  }
+
+  .settings {
+    margin-left: 390px;
+    padding: 40px 64px 88px;
+  }
+
+  .settings-section {
+    margin-bottom: 52px;
+  }
+
+  .section-watermark {
+    margin-bottom: 16px;
+    font-size: 38px;
+  }
+
+  .card {
+    margin-bottom: 24px;
+    padding: 30px;
+  }
+}
+
+@media (min-width: 1200px) and (max-height: 780px) {
+  .sidebar {
+    width: 350px;
+  }
+
+  .sidebar-inner {
+    padding: 22px 28px;
+  }
+
+  .brand {
+    margin-bottom: 14px;
+  }
+
+  .brand-header {
+    margin-bottom: 6px;
+  }
+
+  .logo-icon {
+    width: 44px;
+    height: 44px;
+  }
+
+  .brand h1,
+  .brand-cn {
+    font-size: 27px;
+  }
+
+  .brand .description {
+    margin-top: 6px;
+    font-size: 15px;
+  }
+
+  .scroll-nav {
+    gap: 4px;
+    margin-top: 12px;
+  }
+
+  .scroll-nav-item {
+    gap: 10px;
+    padding: 9px 14px;
+    font-size: 15px;
+  }
+
+  .nav-icon {
+    width: 20px;
+    height: 20px;
+  }
+
+  .sidebar-footer {
+    padding-top: 8px;
+  }
+
+  .sidebar-doc-links {
+    gap: 3px;
+    padding-left: 12px;
+  }
+
+  .sidebar-footer .doc-link {
+    font-size: 12px;
+  }
+
+  .sidebar-doc-links + div {
+    margin-top: 6px !important;
+  }
+
+  .sidebar-footer .guide-link {
+    margin-bottom: 6px;
+    padding: 9px 14px;
+    font-size: 13px;
+  }
+
+  .sidebar-footer .reset-button {
+    margin-bottom: 6px;
+    padding: 8px 12px;
+    font-size: 12px;
+  }
+
+  .sidebar-footer .footer-text {
+    font-size: 12px;
+  }
+
+  .settings {
+    margin-left: 350px;
+    padding: 28px 48px 72px;
+  }
+
+  .settings-section {
+    margin-bottom: 44px;
+  }
+
+  .section-watermark {
+    margin-bottom: 14px;
+    font-size: 34px;
+  }
+
+  .card {
+    margin-bottom: 20px;
+    padding: 26px;
+  }
+
+  .card-header {
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+  }
+}
+
 
