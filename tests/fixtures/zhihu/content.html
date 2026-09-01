@@ -1,0 +1,26 @@
+<!doctype html>
+<html>
+  <head><title>Zhihu fixture</title></head>
+  <body>
+    <main>
+      <article class="TopstoryItem" id="blocked-card">
+        <div data-za-extra-module='{"card":{"content":{"author_member_hash_id":"blocked-id"}}}'>Blocked card</div>
+      </article>
+      <article class="TopstoryItem" id="allowed-card">
+        <div data-za-extra-module='{"card":{"content":{"author_member_hash_id":"allowed-id"}}}'>Allowed card</div>
+      </article>
+      <section data-id="blocked-comment" id="blocked-comment">
+        <header><div><a href="/people/blocked-id">Blocked author</a></div></header>
+        <div class="CommentContent">Blocked comment</div>
+      </section>
+      <section data-id="allowed-comment" id="allowed-comment">
+        <header><div><a href="/people/allowed-id">Allowed author</a></div></header>
+        <div class="CommentContent">Allowed comment</div>
+      </section>
+      <section data-id="ambiguous-comment" id="ambiguous-comment">
+        <header><div><a href="/people/blocked-id">One</a><a href="/people/other-id">Two</a></div></header>
+        <div class="CommentContent">Ambiguous comment</div>
+      </section>
+    </main>
+  </body>
+</html>

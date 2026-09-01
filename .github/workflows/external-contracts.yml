@@ -1,0 +1,59 @@
+name: External Contract Monitoring
+
+on:
+  schedule:
+    - cron: '20 3 * * 2,5'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: external-contract-monitor
+  cancel-in-progress: true
+
+jobs:
+  public-contracts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install development dependencies
+        run: npm ci
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Probe public APIs and selectors
+        id: contracts
+        continue-on-error: true
+        run: npm run test:external
+
+      - name: Record non-blocking result
+        if: always()
+        shell: bash
+        run: |
+          echo "## External contract monitor" >> "$GITHUB_STEP_SUMMARY"
+          echo "Result: ${{ steps.contracts.outcome }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "Failures indicate a third-party compatibility signal and do not by themselves prove an ECHO product defect." >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload external contract report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: external-contract-report-${{ github.run_id }}
+          path: |
+            external-contract-report.json
+            external-playwright-report/
+            test-results/external/
+          if-no-files-found: warn
+          retention-days: 14

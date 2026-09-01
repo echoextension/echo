@@ -9,6 +9,10 @@
 (function() {
   'use strict';
 
+  const MESSAGE_ACTIONS = EchoMessages.ACTIONS;
+  const inputContext = EchoInputContext;
+  const inputPolicy = EchoInputPolicy;
+
   // 避免重复初始化
   if (window.__echoKeyboardEnhanceInitialized) return;
   window.__echoKeyboardEnhanceInitialized = true;
@@ -19,7 +23,7 @@
 
   async function getCurrentZoom() {
     return new Promise(resolve => {
-      chrome.runtime.sendMessage({ action: 'getZoom' }, (response) => {
+      chrome.runtime.sendMessage({ action: MESSAGE_ACTIONS.GET_ZOOM }, (response) => {
         resolve(response?.zoom || 1);
       });
     });
@@ -27,7 +31,7 @@
 
   async function setZoom(zoomFactor) {
     return new Promise(resolve => {
-      chrome.runtime.sendMessage({ action: 'setZoom', zoom: zoomFactor }, resolve);
+      chrome.runtime.sendMessage({ action: MESSAGE_ACTIONS.SET_ZOOM, zoom: zoomFactor }, resolve);
     });
   }
 
@@ -74,39 +78,17 @@
   // Ctrl + 滚轮 (Windows) / Cmd + 滚轮 (Mac) 精细缩放
   document.addEventListener('wheel', async (e) => {
     const isCtrlOrCmd = e.ctrlKey || e.metaKey;
-    if (!isCtrlOrCmd) return;
+    if (!isCtrlOrCmd || !inputContext.isEnabled('fineZoom')) return;
     
     e.preventDefault();
     e.stopPropagation();
     
     const currentZoom = await getCurrentZoom();
-    const currentZoomRounded = Math.round(currentZoom * 100);
-    const isZoomingIn = e.deltaY < 0;
-    
-    let newZoom;
-    
-    // 大比例加速步进：175% 以上 25% 步进
-    if (isZoomingIn) {
-      if (currentZoomRounded >= 175) {
-        newZoom = currentZoom + 0.25;
-        newZoom = Math.round(newZoom * 4) / 4;
-      } else {
-        newZoom = currentZoom + 0.05;
-        newZoom = Math.round(newZoom * 20) / 20;
-      }
-    } else {
-      if (currentZoomRounded > 175) {
-        newZoom = currentZoom - 0.25;
-        newZoom = Math.round(newZoom * 4) / 4;
-        if (newZoom < 1.75) newZoom = 1.75;
-      } else {
-        newZoom = currentZoom - 0.05;
-        newZoom = Math.round(newZoom * 20) / 20;
-      }
-    }
-    
-    // 限制范围 25% - 500%
-    newZoom = Math.max(0.25, Math.min(5.0, newZoom));
+    const newZoom = inputPolicy.nextZoom(
+      currentZoom,
+      e.deltaY < 0 ? 'in' : 'out',
+      inputContext.isEnabled('fineZoomLargeStep')
+    );
     
     await setZoom(newZoom);
     showZoomIndicator(Math.round(newZoom * 100));
@@ -117,17 +99,10 @@
   // ============================================
   
   document.addEventListener('keydown', (e) => {
-    if (e.key !== 'F2' && e.key !== 'F3') return;
+    if (!inputContext.isEnabled('tabSwitchKey') || (e.key !== 'F2' && e.key !== 'F3')) return;
     
     // 不在输入框中触发
-    const activeEl = document.activeElement;
-    const isInInput = activeEl && (
-      activeEl.tagName === 'INPUT' ||
-      activeEl.tagName === 'TEXTAREA' ||
-      activeEl.isContentEditable
-    );
-    
-    if (isInInput) return;
+    if (inputPolicy.isEditable(document.activeElement)) return;
     
     // 阻止默认行为（F3 是浏览器查找）
     e.preventDefault();
@@ -135,7 +110,8 @@
     e.stopImmediatePropagation();
     
     const direction = e.key === 'F2' ? 'left' : 'right';
-    chrome.runtime.sendMessage({ action: 'switchTab', direction, source: 'keyboard' });
+    const source = inputContext.mode === 'demo' ? 'demo' : 'keyboard';
+    chrome.runtime.sendMessage({ action: MESSAGE_ACTIONS.SWITCH_TAB, direction, source });
     return false;
   }, true);  // 捕获阶段
 })();

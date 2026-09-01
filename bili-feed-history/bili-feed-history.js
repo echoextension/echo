@@ -6,6 +6,8 @@
 (async function() {
   'use strict';
 
+  const MESSAGE_ACTIONS = EchoMessages.ACTIONS;
+
   if (window !== window.top || window.__ECHO_BILI_FEED_HISTORY_ACTIVE__) return;
   window.__ECHO_BILI_FEED_HISTORY_ACTIVE__ = true;
 
@@ -18,7 +20,9 @@
   const SETTLE_TIMEOUT_MS = 5000;
   const INITIAL_SETTLE_TIMEOUT_MS = 20000;
 
-  let enabled = (await chrome.storage.sync.get({ [SETTING_KEY]: true }))[SETTING_KEY];
+  let enabled = (await chrome.storage.sync.get({
+    [SETTING_KEY]: EchoSettings.getDefault(SETTING_KEY)
+  }))[SETTING_KEY];
   let batches = [];
   let currentIndex = -1;
   let nativeButton = null;
@@ -254,7 +258,7 @@
 
   async function restoreSessionState() {
     try {
-      const response = await chrome.runtime.sendMessage({ action: 'loadBiliFeedHistory' });
+      const response = await chrome.runtime.sendMessage({ action: MESSAGE_ACTIONS.LOAD_BILI_FEED_HISTORY });
       if (!response?.ok || !isValidStoredState(response.state)) return;
       batches = response.state.batches.slice(-MAX_BATCHES);
       currentIndex = Math.max(0, Math.min(Number(response.state.currentIndex) || 0, batches.length - 1));
@@ -270,7 +274,7 @@
     persistTimer = setTimeout(() => {
       persistTimer = 0;
       chrome.runtime.sendMessage({
-        action: 'saveBiliFeedHistory',
+        action: MESSAGE_ACTIONS.SAVE_BILI_FEED_HISTORY,
         state: {
           schemaVersion: SCHEMA_VERSION,
           batches,
@@ -284,7 +288,7 @@
   function clearPersistedState() {
     if (persistTimer) clearTimeout(persistTimer);
     persistTimer = 0;
-    chrome.runtime.sendMessage({ action: 'clearBiliFeedHistory' }).catch(() => {});
+    chrome.runtime.sendMessage({ action: MESSAGE_ACTIONS.CLEAR_BILI_FEED_HISTORY }).catch(() => {});
   }
 
   function positionOverlay() {

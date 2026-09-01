@@ -1,0 +1,29 @@
+{
+  "name": "echo-edge-extension",
+  "version": "1.4.0",
+  "private": true,
+  "type": "module",
+  "description": "Development tooling and automated checks for the ECHO Edge extension.",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "validate": "node scripts/validate-extension.mjs",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "test:e2e": "playwright test",
+    "test:external": "playwright test --config=playwright.external.config.js",
+    "check": "npm run validate && npm run test:coverage",
+    "release:package": "node scripts/package-extension.mjs",
+    "release:verify": "node scripts/verify-release.mjs"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.62.1",
+    "@vitest/coverage-v8": "4.1.11",
+    "fake-indexeddb": "6.2.5",
+    "fflate": "0.8.3",
+    "jsdom": "30.0.1",
+    "vitest": "4.1.11"
+  }
+}

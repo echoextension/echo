@@ -27,7 +27,9 @@
   let hasLocalSetting = Object.prototype.hasOwnProperty.call(localSetting, SETTING_KEY);
   let enabled = hasLocalSetting
     ? Boolean(localSetting[SETTING_KEY])
-    : Boolean((await chrome.storage.sync.get({ [SETTING_KEY]: false }))[SETTING_KEY]);
+    : Boolean((await chrome.storage.sync.get({
+      [SETTING_KEY]: EchoSettings.getDefault(SETTING_KEY)
+    }))[SETTING_KEY]);
   let observer = null;
   let styleElement = null;
   let blockedIds = null;
@@ -227,7 +229,7 @@
   }
 
   chrome.runtime.onConnect.addListener((port) => {
-    if (port.name !== 'echo-zhihu-blocklist-worker' || location.hostname !== 'www.zhihu.com') return;
+    if (port.name !== EchoMessages.PORTS.ZHIHU_WORKER || location.hostname !== 'www.zhihu.com') return;
     showSyncWindowOverlay();
     port.onMessage.addListener((message) => {
       if (message?.type === 'ping') {

@@ -11,12 +11,17 @@ Desktop.ini
 
 # Package files
 node_modules/
-package-lock.json
 
 # Build output
 *.zip
 *.crx
 *.pem
+coverage/
+playwright-report/
+test-results/
+dist/
+external-contract-report.json
+external-playwright-report/
 
 # Edge sideload cache
 _metadata/

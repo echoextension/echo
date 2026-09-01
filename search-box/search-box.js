@@ -9,6 +9,8 @@
 (async function() {
   'use strict';
 
+  const MESSAGE_ACTIONS = EchoMessages.ACTIONS;
+
   // 搜索框只应运行在顶层页面；在 iframe 中运行会导致快捷键、焦点和路由监听重复绑定。
   if (window !== window.top) {
     return;
@@ -19,13 +21,12 @@
   // 否则 bottom: 32px 会在页面放大时变成更大的物理像素距离，导致视觉位置上移。
   const BOTTOM_OFFSET_PX = 32;
 
-  // 默认设置
-  const DEFAULT_SETTINGS = {
-    floatingSearchBox: true,        // 主开关，默认开启
-    floatingSearchBoxAlwaysShow: false,  // 子选项：默认常驻显示，默认关闭
-    floatingSearchBoxTrending: false,    // 子选项：显示热搜榜，默认关闭
-    floatingSearchBoxFollowZoom: false   // 子选项：跟随页面缩放，默认关闭（即默认反向补偿）
-  };
+  const DEFAULT_SETTINGS = EchoSettings.getDefaults([
+    'floatingSearchBox',
+    'floatingSearchBoxAlwaysShow',
+    'floatingSearchBoxTrending',
+    'floatingSearchBoxFollowZoom'
+  ]);
 
   // 加载设置
   let settings = await chrome.storage.sync.get(DEFAULT_SETTINGS);
@@ -66,12 +67,9 @@
         // 动态更新缩放补偿状态
         if (settings.floatingSearchBoxFollowZoom) {
           // 关闭补偿，重置为原始大小
-          if (zoomCheckInterval) {
-            clearInterval(zoomCheckInterval);
-            zoomCheckInterval = null;
-          }
+          stopZoomCompensation();
           applyZoomCompensation(1);
-        } else {
+        } else if (getSearchWrapperVisible()) {
           // 开启补偿
           initZoomCompensation();
         }
@@ -592,11 +590,6 @@
     // 绑定事件
     bindEvents();
 
-    // 启动光谱旋转动画
-    startSpectrumAnimation();
-
-    // 初始化缩放补偿（如果需要）
-    initZoomCompensation();
   }
 
   // ============================================
@@ -615,7 +608,7 @@
     if (settings.floatingSearchBoxFollowZoom) return;
 
     try {
-      const response = await chrome.runtime.sendMessage({ action: 'getZoom' });
+      const response = await chrome.runtime.sendMessage({ action: MESSAGE_ACTIONS.GET_ZOOM });
       if (response && typeof response.zoom === 'number') {
         currentZoom = response.zoom;
         applyZoomCompensation(currentZoom);
@@ -631,7 +624,7 @@
    */
   function initZoomCompensation() {
     // 如果跟随页面缩放，不需要补偿
-    if (settings.floatingSearchBoxFollowZoom) {
+    if (settings.floatingSearchBoxFollowZoom || zoomCheckInterval) {
       return;
     }
     
@@ -640,6 +633,12 @@
     
     // 定期检查缩放变化（每 500ms）
     zoomCheckInterval = setInterval(checkAndApplyZoom, 500);
+  }
+
+  function stopZoomCompensation() {
+    if (!zoomCheckInterval) return;
+    clearInterval(zoomCheckInterval);
+    zoomCheckInterval = null;
   }
   
   /**
@@ -658,7 +657,7 @@
     }
     
     try {
-      const response = await chrome.runtime.sendMessage({ action: 'getZoom' });
+      const response = await chrome.runtime.sendMessage({ action: MESSAGE_ACTIONS.GET_ZOOM });
       if (response && response.zoom && Math.abs(response.zoom - currentZoom) > 0.001) {
         currentZoom = response.zoom;
         applyZoomCompensation(currentZoom);
@@ -710,6 +709,7 @@
   // 光谱旋转动画（使用 JS 实现最佳兼容性）
   let spectrumAnimationId = null;
   function startSpectrumAnimation() {
+    if (spectrumAnimationId !== null) return;
     let angle = 0;
     const animate = () => {
       angle = (angle + 3) % 360;
@@ -724,6 +724,12 @@
       spectrumAnimationId = requestAnimationFrame(animate);
     };
     animate();
+  }
+
+  function stopSpectrumAnimation() {
+    if (spectrumAnimationId === null) return;
+    cancelAnimationFrame(spectrumAnimationId);
+    spectrumAnimationId = null;
   }
 
   // ============================================
@@ -786,7 +792,7 @@
     
     try {
       const result = await chrome.runtime.sendMessage({
-        action: 'proxyFetch',
+        action: MESSAGE_ACTIONS.PROXY_FETCH,
         url: api,
         options: {
           method: 'GET',
@@ -869,7 +875,7 @@
         if (query) {
           const searchUrl = `https://www.bing.com/search?q=${encodeURIComponent(query)}`;
           chrome.runtime.sendMessage({ 
-            action: 'openInNewTab', 
+            action: MESSAGE_ACTIONS.OPEN_IN_NEW_TAB,
             url: searchUrl, 
             active: true,
             forceAdjacentPosition: true
@@ -1182,6 +1188,8 @@
     }
 
     searchWrapper.classList.add('show');
+    startSpectrumAnimation();
+    initZoomCompensation();
 
     // 只在搜索框首次显示时清空输入框，避免清空用户正在输入的内容
     if (!wasAlreadyShown) {
@@ -1222,6 +1230,8 @@
     if (host) {
       host.style.pointerEvents = 'none';
     }
+    stopZoomCompensation();
+    stopSpectrumAnimation();
   }
 
   /**
@@ -1246,7 +1256,7 @@
     
     // 在新标签页打开搜索结果（紧贴当前标签，设置父标签关系）
     chrome.runtime.sendMessage({ 
-      action: 'openInNewTab', 
+      action: MESSAGE_ACTIONS.OPEN_IN_NEW_TAB,
       url: searchUrl, 
       active: true,
       forceAdjacentPosition: true

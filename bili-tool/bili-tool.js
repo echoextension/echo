@@ -7,15 +7,14 @@
 (async function() {
   'use strict';
 
+  const MESSAGE_ACTIONS = EchoMessages.ACTIONS;
+
   if (window !== window.top) return;
   if (window.__ECHO_BILI_TOOL_ACTIVE__) return;
   window.__ECHO_BILI_TOOL_ACTIVE__ = true;
 
   // ============ 设置 ============
-  const DEFAULT_SETTINGS = {
-    biliTool: true,
-    biliToolPosition: { left: '0px', top: '50%' }
-  };
+  const DEFAULT_SETTINGS = EchoSettings.getDefaults(['biliTool', 'biliToolPosition']);
 
   // 兼容旧 key 迁移
   const oldVal = await chrome.storage.sync.get('floatingSearchBoxBiliTool');
@@ -1056,7 +1055,7 @@
       ctxMenu.classList.remove('show');
       try {
         const optionsUrl = chrome.runtime.getURL('options/options.html#biliToolCard');
-        chrome.runtime.sendMessage({ action: 'openInNewTab', url: optionsUrl, active: true });
+        chrome.runtime.sendMessage({ action: MESSAGE_ACTIONS.OPEN_IN_NEW_TAB, url: optionsUrl, active: true });
       } catch (e) {}
     });
     const menuHide = document.createElement('button');
@@ -1209,7 +1208,7 @@
     function checkAndApplyZoom() {
       if (!host) return;
       try {
-        chrome.runtime.sendMessage({ action: 'getZoom' }, (response) => {
+        chrome.runtime.sendMessage({ action: MESSAGE_ACTIONS.GET_ZOOM }, (response) => {
           if (chrome.runtime.lastError) return;
           if (response && response.zoom) {
             const newZoom = response.zoom;
@@ -1237,7 +1236,7 @@
 
     // 首次无条件执行补偿
     try {
-      chrome.runtime.sendMessage({ action: 'getZoom' }, (response) => {
+      chrome.runtime.sendMessage({ action: MESSAGE_ACTIONS.GET_ZOOM }, (response) => {
         const zoom = (response && response.zoom) ? response.zoom : 1;
         currentZoomLevel = zoom;
         if (host._topRatio != null) {
