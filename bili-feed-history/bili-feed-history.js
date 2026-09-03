@@ -40,6 +40,9 @@
   let styleElement = null;
   let persistTimer = 0;
   let restoredFromSession = false;
+  let lifecycleVersion = 0;
+  let observedPath = location.pathname;
+  let routeObserver = null;
 
   const nextFrame = () => new Promise((resolve) => {
     let finished = false;
@@ -256,9 +259,10 @@
       && state.batches.every((batch) => typeof batch?.identity === 'string' && Array.isArray(batch.cards));
   }
 
-  async function restoreSessionState() {
+  async function restoreSessionState(version = lifecycleVersion) {
     try {
       const response = await chrome.runtime.sendMessage({ action: MESSAGE_ACTIONS.LOAD_BILI_FEED_HISTORY });
+      if (!enabled || version !== lifecycleVersion) return;
       if (!response?.ok || !isValidStoredState(response.state)) return;
       batches = response.state.batches.slice(-MAX_BATCHES);
       currentIndex = Math.max(0, Math.min(Number(response.state.currentIndex) || 0, batches.length - 1));
@@ -496,34 +500,41 @@
   async function settleInitialBatch(version) {
     if (initialSettleRunning || initialSettleCompleted) return;
     initialSettleRunning = true;
-    if (navigation) navigation.dataset.initialState = 'waiting';
-    const startedAt = performance.now();
-    let stableFrames = 0;
-    let previousIdentity = '';
-    while (enabled && version === settleVersion && performance.now() - startedAt < INITIAL_SETTLE_TIMEOUT_MS) {
-      await nextFrame();
-      const batch = captureBatch();
-      if (navigation) navigation.dataset.initialValidCards = String(batch.cards.filter(Boolean).length);
-      if (!batch.cards.some(Boolean)) continue;
-      if (batch.identity === previousIdentity) stableFrames += 1;
-      else {
-        previousIdentity = batch.identity;
-        stableFrames = 0;
+    try {
+      if (navigation) navigation.dataset.initialState = 'waiting';
+      const startedAt = performance.now();
+      let stableFrames = 0;
+      let previousIdentity = '';
+      while (enabled && version === settleVersion && performance.now() - startedAt < INITIAL_SETTLE_TIMEOUT_MS) {
+        await nextFrame();
+        if (!enabled || version !== settleVersion) return;
+        const batch = captureBatch();
+        if (navigation) navigation.dataset.initialValidCards = String(batch.cards.filter(Boolean).length);
+        if (!batch.cards.some(Boolean)) continue;
+        if (batch.identity === previousIdentity) stableFrames += 1;
+        else {
+          previousIdentity = batch.identity;
+          stableFrames = 0;
+        }
+        if (navigation) navigation.dataset.initialStableFrames = String(stableFrames);
+        if (stableFrames >= SETTLE_FRAMES) {
+          const preserveCurrentIndex = restoredFromSession && currentIndex < batches.length - 1;
+          saveBatch(batch, { preserveCurrentIndex });
+          restoredFromSession = false;
+          initialSettleCompleted = true;
+          if (navigation) navigation.dataset.initialState = 'complete';
+          return;
+        }
       }
-      if (navigation) navigation.dataset.initialStableFrames = String(stableFrames);
-      if (stableFrames >= SETTLE_FRAMES) {
-        const preserveCurrentIndex = restoredFromSession && currentIndex < batches.length - 1;
-        saveBatch(batch, { preserveCurrentIndex });
-        restoredFromSession = false;
-        initialSettleCompleted = true;
-        if (navigation) navigation.dataset.initialState = 'complete';
-        initialSettleRunning = false;
-        return;
+      if (batches.length) initialSettleCompleted = true;
+      if (navigation) navigation.dataset.initialState = initialSettleCompleted ? 'complete' : 'timeout';
+    } finally {
+      initialSettleRunning = false;
+      if (enabled && !initialSettleCompleted && navigation?.isConnected
+          && version !== settleVersion) {
+        void settleInitialBatch(settleVersion);
       }
     }
-    if (batches.length) initialSettleCompleted = true;
-    if (navigation) navigation.dataset.initialState = initialSettleCompleted ? 'complete' : 'timeout';
-    initialSettleRunning = false;
   }
 
   async function settleNewBatch(version) {
@@ -532,6 +543,7 @@
     let previousIdentity = '';
     while (enabled && version === settleVersion && performance.now() - startedAt < SETTLE_TIMEOUT_MS) {
       await nextFrame();
+      if (!enabled || version !== settleVersion) return;
       const batch = captureBatch();
       const previousBatch = batches.at(-1);
       const previousUrls = new Set(previousBatch?.cards.filter(Boolean).map((card) => card.url) || []);
@@ -607,7 +619,7 @@
     waitForPage();
   }
 
-  function stop() {
+  function deactivatePage() {
     settleVersion += 1;
     removeOverlay();
     removeNavigation();
@@ -619,23 +631,58 @@
     controlObserverRoot = null;
     pageObserver?.disconnect();
     pageObserver = null;
+    restoredFromSession = batches.length > 0;
+    initialSettleRunning = false;
+    initialSettleCompleted = false;
+  }
+
+  function stop() {
+    lifecycleVersion += 1;
+    deactivatePage();
+    unregisterRouteLifecycle();
     batches = [];
     currentIndex = -1;
     restoredFromSession = false;
-    initialSettleRunning = false;
-    initialSettleCompleted = false;
     clearPersistedState();
     styleElement?.remove();
     styleElement = null;
   }
 
+  function reconcileRoute() {
+    const nextPath = location.pathname;
+    if (nextPath === observedPath) return;
+    observedPath = nextPath;
+    if (enabled && nextPath === '/') start();
+    else deactivatePage();
+  }
+
+  function registerRouteLifecycle() {
+    if (routeObserver) return;
+    observedPath = location.pathname;
+    routeObserver = new MutationObserver(reconcileRoute);
+    routeObserver.observe(document.documentElement, { childList: true, subtree: true });
+    window.addEventListener('popstate', reconcileRoute);
+  }
+
+  function unregisterRouteLifecycle() {
+    routeObserver?.disconnect();
+    routeObserver = null;
+    window.removeEventListener('popstate', reconcileRoute);
+  }
+
   chrome.storage.onChanged.addListener((changes, areaName) => {
     if (areaName !== 'sync' || !changes[SETTING_KEY]) return;
     enabled = Boolean(changes[SETTING_KEY].newValue);
-    if (enabled) start();
+    if (enabled) {
+      registerRouteLifecycle();
+      start();
+    }
     else stop();
   });
 
-  if (enabled) await restoreSessionState();
+  if (enabled) {
+    registerRouteLifecycle();
+    await restoreSessionState(lifecycleVersion);
+  }
   start();
 })();

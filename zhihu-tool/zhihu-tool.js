@@ -39,6 +39,7 @@
   let scanTimer = 0;
   let syncRunning = false;
   let syncCancelled = false;
+  let syncCommitting = false;
   let syncOwnerPort = null;
   let filterVersion = 0;
   let syncWindowOverlay = null;
@@ -157,7 +158,7 @@
     port.onDisconnect.addListener(() => {
       if (syncOwnerPort !== port) return;
       portConnected = false;
-      syncCancelled = true;
+      if (!syncCommitting) syncCancelled = true;
     });
     try {
       const accountId = await getViewerId();
@@ -205,13 +206,17 @@
       if (confirmedAccountId !== accountId) throw new Error('同步期间知乎账号发生变化');
 
       const stored = await chrome.storage.local.get(STORE_KEY);
-      const root = stored[STORE_KEY] || { schemaVersion: 1, accounts: {} };
+      const previousRoot = stored[STORE_KEY] ? structuredClone(stored[STORE_KEY]) : null;
+      const root = previousRoot
+        ? structuredClone(previousRoot)
+        : { schemaVersion: 1, accounts: {} };
       const syncedAt = Date.now();
       root.schemaVersion = 1;
       root.activeAccountId = accountId;
       root.accounts ||= {};
       root.accounts[accountId] = { accountId, syncedAt, total: records.length, records };
       if (syncCancelled) throw new DOMException('同步已取消', 'AbortError');
+      syncCommitting = true;
       await chrome.storage.local.set({ [STORE_KEY]: root });
       post({ type: 'complete', total: records.length, syncedAt });
     } catch (error) {
@@ -224,6 +229,7 @@
       removeSyncWindowOverlay();
       syncRunning = false;
       syncCancelled = false;
+      syncCommitting = false;
       syncOwnerPort = null;
     }
   }
@@ -237,7 +243,7 @@
         return;
       }
       if (message?.action === 'start') syncBlocklist(port);
-      if (message?.action === 'cancel') syncCancelled = true;
+      if (message?.action === 'cancel' && !syncCommitting) syncCancelled = true;
     });
     port.onDisconnect.addListener(removeSyncWindowOverlay);
     port.postMessage({ type: 'ready' });

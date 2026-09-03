@@ -10,16 +10,19 @@ test('Bilibili public homepage still exposes feed card structures', async ({ pag
     timeout: 30_000
   }).toBeGreaterThan(0);
   await expect(page.locator('.feed-card .bili-video-card__wrap').first()).toBeAttached();
+  await expect(page.locator('.feed-card .bili-video-card__image--link').first()).toBeAttached();
+  await expect(page.locator('.feed-card .bili-video-card__info--tit').first()).toBeAttached();
+  await expect(page.locator('.feed-roll-btn .primary-btn.roll-btn').first()).toBeAttached();
 });
 
-test('Zhihu public hot page still exposes a supported content container', async ({ page }) => {
+test('Zhihu public hot page still exposes an author-identifiable content marker', async ({ page }) => {
   await page.goto('https://www.zhihu.com/hot', {
     timeout: 45_000,
     waitUntil: 'domcontentloaded'
   });
-  const supported = page.locator('.TopstoryItem,.List-item,.HotItem');
+  const supported = page.locator('[data-za-extra-module],.CommentContent');
   await expect.poll(() => supported.count(), {
-    message: 'Zhihu supported content selectors did not match the public hot page',
+    message: 'Zhihu author-identifiable selectors did not match the public hot page',
     timeout: 30_000
   }).toBeGreaterThan(0);
 });

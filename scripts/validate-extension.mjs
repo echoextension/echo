@@ -91,10 +91,12 @@ function stripReferenceSuffix(reference) {
   return reference.split('#', 1)[0].split('?', 1)[0];
 }
 
-async function validateHtmlReferences(rootDir, allFiles, errors, stats) {
+export async function validateHtmlReferences(rootDir, allFiles, errors, stats) {
   const htmlFiles = allFiles.filter((filePath) => filePath.endsWith('.html'));
   const attributePattern = /\b(?:src|href)\s*=\s*["']([^"']+)["']/gi;
   for (const htmlPath of htmlFiles) {
+    const relativeHtmlPath = normalizePackagePath(path.relative(rootDir, htmlPath));
+    const packagedHtml = isAllowedExtensionFile(relativeHtmlPath);
     const source = await readFile(htmlPath, 'utf8');
     for (const match of source.matchAll(attributePattern)) {
       const rawReference = match[1].trim();
@@ -106,9 +108,11 @@ async function validateHtmlReferences(rootDir, allFiles, errors, stats) {
         : path.resolve(path.dirname(htmlPath), reference);
       const relativeReference = path.relative(rootDir, absoluteReference);
       if (relativeReference.startsWith('..') || path.isAbsolute(relativeReference)) {
-        errors.push(`${normalizePackagePath(path.relative(rootDir, htmlPath))} 引用了仓库外路径：${rawReference}`);
+        errors.push(`${relativeHtmlPath} 引用了仓库外路径：${rawReference}`);
       } else if (!await pathExists(absoluteReference)) {
-        errors.push(`${normalizePackagePath(path.relative(rootDir, htmlPath))} 缺少本地资源：${rawReference}`);
+        errors.push(`${relativeHtmlPath} 缺少本地资源：${rawReference}`);
+      } else if (packagedHtml && !isAllowedExtensionFile(relativeReference)) {
+        errors.push(`${relativeHtmlPath} 引用了未进入发布包的资源：${rawReference}`);
       }
       stats.htmlReferences += 1;
     }
@@ -146,6 +150,11 @@ async function validateReleaseMetadata(rootDir, manifest, errors, stats) {
   const packageJson = await readJson(path.join(rootDir, 'package.json'), errors, 'package.json');
   if (packageJson && manifest.version !== packageJson.version) {
     errors.push('package.json version 必须与 manifest.json 一致');
+  }
+  const packageLock = await readJson(path.join(rootDir, 'package-lock.json'), errors, 'package-lock.json');
+  if (packageLock && (packageLock.version !== manifest.version
+      || packageLock.packages?.['']?.version !== manifest.version)) {
+    errors.push('package-lock.json 根版本必须与 manifest.json 一致');
   }
 
   const changelog = await readFile(path.join(rootDir, 'CHANGELOG.md'), 'utf8');

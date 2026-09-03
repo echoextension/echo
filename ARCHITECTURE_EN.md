@@ -49,7 +49,15 @@ This document is divided into three parts: The first part covers architecture an
     └────────────┘
 ```
 
-**Core Communication Pattern**: general-purpose modules communicate with `background.js` through `chrome.runtime.sendMessage`; the background worker owns browser-level state and cross-page routing. Site-specific modules remain isolated. Bilibili feed history is tab-local. Zhihu synchronization uses a Port from the options page through the background worker to a logged-in Zhihu content script, which performs same-origin read-only requests and atomically stores the completed snapshot in `chrome.storage.local` for both `www.zhihu.com` and `zhuanlan.zhihu.com`. Outside this constrained same-origin synchronization path, Content Scripts do not invoke external APIs directly.
+**Core Communication Pattern**: general-purpose modules communicate with `background.js` through `chrome.runtime.sendMessage`; the background worker owns browser-level state and cross-page routing. Site-specific modules remain isolated. Bilibili feed history is stored per tab in `chrome.storage.session` by the background worker. Zhihu synchronization uses a Port from the options page through the background worker to a logged-in Zhihu content script, which performs same-origin read-only requests and atomically stores the completed snapshot in `chrome.storage.local` for both `www.zhihu.com` and `zhuanlan.zhihu.com`. Outside this constrained same-origin synchronization path, Content Scripts do not invoke external APIs directly.
+
+Version `1.4.1` further narrows runtime responsibilities while retaining the build-free classic-script structure:
+
+- `options/modules/zhihu-sync-controller.js`: options-page snapshot validation, Port lifecycle, and synchronization UI;
+- `options/modules/backup-controller.js`: backup validation, import/export, cross-storage compensation, and result rendering;
+- `search-box/trending-controller.js`: Toutiao request handling, three-item rendering, and rotation for the floating search box;
+- `bili-tool/svg-assets.js` and `bili-tool/styles.js`: read-only assets and Shadow DOM styles for the Bilibili video tool;
+- owning entry scripts continue to assemble settings propagation and page lifecycles; asset modules do not own mutable business state.
 
 Site enhancement modules:
 

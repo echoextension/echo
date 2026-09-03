@@ -24,6 +24,7 @@
         settings: { ...state.settings },
         favorites: [...state.favorites],
         availableFavorites: [...availableFavorites()],
+        current: state.current,
         isPreview: state.isPreview,
         browseIndex: state.browseIndex
       };
@@ -57,8 +58,35 @@
       }
       state.settings.mode = 'daily';
       state.settings.lastActiveMode = 'daily';
-      display(select());
+      const wallpaper = select();
+      display(wallpaper);
       await options.saveSettings();
+      return true;
+    }
+
+    function sameFavorites(left, right) {
+      return left.length === right.length && left.every((item, index) => item === right[index]);
+    }
+
+    function canRestoreRemoval(previous, removedFavorites, fallbackAttempted) {
+      if (!sameFavorites(state.favorites, removedFavorites)) return false;
+      if (state.settings.pinnedDate !== previous.settings.pinnedDate) return false;
+      return !fallbackAttempted
+        || (state.settings.mode === 'daily' && state.settings.lastActiveMode === 'daily');
+    }
+
+    async function restoreRemovedFavorite(previous, removedFavorites, favoritesPersisted, fallbackAttempted) {
+      if (!canRestoreRemoval(previous, removedFavorites, fallbackAttempted)) return false;
+      state.favorites = previous.favorites;
+      state.availableFavorites = previous.availableFavorites;
+      state.settings.mode = previous.settings.mode;
+      state.settings.lastActiveMode = previous.settings.lastActiveMode;
+      options.refresh();
+      if (favoritesPersisted) {
+        const restoredDates = previous.favorites.filter(item => !removedFavorites.includes(item));
+        await options.saveFavorites(previous.favorites, { addFavorites: restoredDates });
+      }
+      if (fallbackAttempted) display(previous.current);
       return true;
     }
 
@@ -124,7 +152,7 @@
         try {
           state.favorites.push(wallpaper.date);
           if (!availableFavorites().includes(wallpaper.date)) availableFavorites().push(wallpaper.date);
-          await options.saveFavorites();
+          await options.saveFavorites([...state.favorites]);
           options.refresh();
           return { action: 'added', wallpaper };
         } catch (error) {
@@ -137,16 +165,32 @@
       if (domain.isCustomWallpaper(wallpaper)) {
         const removed = await options.removeCustomWallpaper(wallpaper.date);
         if (removed === false) return { action: 'failed', wallpaper };
-        const fellBack = await ensureDailyFallback();
-        if (!fellBack) display(select());
+        display(select());
       } else {
+        let favoritesPersisted = false;
+        let fallbackAttempted = false;
+        let removedFavorites = null;
         try {
           state.favorites.splice(existingIndex, 1);
           state.availableFavorites = availableFavorites().filter(date => date !== wallpaper.date);
-          await options.saveFavorites();
+          removedFavorites = [...state.favorites];
+          await options.saveFavorites(removedFavorites);
+          favoritesPersisted = true;
+          fallbackAttempted = state.settings.mode === 'collection'
+            && !state.settings.pinnedDate
+            && availableFavorites().length === 0;
           await ensureDailyFallback();
         } catch (error) {
-          restore(previous);
+          try {
+            await restoreRemovedFavorite(
+              previous,
+              removedFavorites || [],
+              favoritesPersisted,
+              fallbackAttempted
+            );
+          } catch (rollbackError) {
+            console.error('[ECHO NTP] 壁纸收藏补偿保存失败:', rollbackError);
+          }
           console.error('[ECHO NTP] 壁纸收藏保存失败:', error);
           return { action: 'failed', wallpaper };
         }
@@ -161,20 +205,41 @@
       if (domain.isCustomDate(date)) {
         const removed = await options.removeCustomWallpaper(date);
         if (removed === false) return false;
+        if (removedCurrentWallpaper || removed?.fellBack) display(select());
+        options.refresh();
+        return true;
       } else {
+        let favoritesPersisted = false;
+        let fallbackAttempted = false;
+        let removedFavorites = null;
         try {
           state.favorites = state.favorites.filter(item => item !== date);
           state.availableFavorites = availableFavorites().filter(item => item !== date);
-          await options.saveFavorites();
+          removedFavorites = [...state.favorites];
+          await options.saveFavorites(removedFavorites);
+          favoritesPersisted = true;
+          fallbackAttempted = state.settings.mode === 'collection'
+            && !state.settings.pinnedDate
+            && availableFavorites().length === 0;
+          const fellBack = await ensureDailyFallback();
+          if (removedCurrentWallpaper && !fellBack) display(select());
         } catch (error) {
-          restore(previous);
+          try {
+            await restoreRemovedFavorite(
+              previous,
+              removedFavorites || [],
+              favoritesPersisted,
+              fallbackAttempted
+            );
+          } catch (rollbackError) {
+            console.error('[ECHO NTP] 壁纸收藏补偿保存失败:', rollbackError);
+          }
           console.error('[ECHO NTP] 壁纸收藏保存失败:', error);
           return false;
         }
+        options.refresh();
+        return true;
       }
-      const fellBack = await ensureDailyFallback();
-      if (removedCurrentWallpaper && !fellBack) display(select());
-      options.refresh();
       return true;
     }
 

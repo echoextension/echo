@@ -168,6 +168,24 @@ describe('NTP first paint and wallpaper selection', () => {
 });
 
 describe('NTP stored state and interactions', () => {
+  it('continues with defaults when production wallpaper state loading fails', async () => {
+    const { chrome, window } = await loadNtp();
+    const originalGet = chrome.storage.local.get.bind(chrome.storage.local);
+    let failed = false;
+    chrome.storage.local.get = (keys, callback) => {
+      if (!failed) {
+        failed = true;
+        const rejection = Promise.reject(new Error('storage unavailable'));
+        if (typeof callback === 'function') rejection.catch(() => callback({}));
+        return typeof callback === 'function' ? undefined : rejection;
+      }
+      return originalGet(keys, callback);
+    };
+
+    await expect(window.loadWallpaperSettings()).resolves.toBeUndefined();
+    expect(window.__echoNtpTestState.settings.mode).toBe('daily');
+  });
+
   it('recovers favorites that were saved to local storage after a sync quota failure', async () => {
     const { chrome, window } = await loadNtp({
       storage: {

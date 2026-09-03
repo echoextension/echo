@@ -7,10 +7,28 @@
   const BING_CACHE_KEY = 'echo_bing_api_cache';
   const DAY_MS = 24 * 60 * 60 * 1000;
 
+  function isValidDate(value) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+    const date = new Date(`${value}T00:00:00Z`);
+    return !Number.isNaN(date.valueOf()) && date.toISOString().startsWith(value);
+  }
+
+  function normalizeWallpaperList(value) {
+    return Array.isArray(value)
+      ? value.filter(wallpaper => wallpaper
+        && typeof wallpaper.id === 'string'
+        && wallpaper.id.length > 0
+        && typeof wallpaper.date === 'string'
+        && isValidDate(wallpaper.date))
+      : [];
+  }
+
   function readCache(localStorageApi, key) {
     try {
       const value = JSON.parse(localStorageApi.getItem(key) || 'null');
-      return value && Array.isArray(value.data) ? value : null;
+      if (!value || !Array.isArray(value.data)) return null;
+      const data = normalizeWallpaperList(value.data);
+      return data.length === value.data.length ? { ...value, data } : null;
     } catch {
       return null;
     }
@@ -41,7 +59,7 @@
     const merged = new Map();
     for (const source of sources) {
       for (const wallpaper of Array.isArray(source) ? source : []) {
-        if (wallpaper?.date) merged.set(wallpaper.date, wallpaper);
+        if (normalizeWallpaperList([wallpaper]).length) merged.set(wallpaper.date, wallpaper);
       }
     }
     return [...merged.values()].sort((left, right) => right.date.localeCompare(left.date));
@@ -53,6 +71,7 @@
     const runtimeGetUrl = options.runtimeGetUrl;
     const state = options.state;
     const onDailyWallpaper = options.onDailyWallpaper;
+    let refreshedRemoteData = [];
 
     async function fetchBing() {
       try {
@@ -80,9 +99,11 @@
       fetchImpl(REMOTE_URL, { signal: AbortSignal.timeout(5000) })
         .then(response => response.ok ? response.json() : Promise.reject(new Error(`HTTP ${response.status}`)))
         .then(data => {
-          if (!Array.isArray(data) || !data.length) return;
-          writeCache(localStorageApi, REMOTE_CACHE_KEY, data);
-          state.history = mergeByDate(state.history, data);
+          const normalized = normalizeWallpaperList(data);
+          if (!normalized.length) return;
+          refreshedRemoteData = normalized;
+          writeCache(localStorageApi, REMOTE_CACHE_KEY, normalized);
+          state.history = mergeByDate(state.history, normalized);
         })
         .catch(() => {});
     }
@@ -124,7 +145,7 @@
         void fetchBing().then(applyBingRefresh);
       }
 
-      return mergeByDate(packaged, remoteCache?.data || [], bingData);
+      return mergeByDate(packaged, remoteCache?.data || [], refreshedRemoteData, bingData);
     }
 
     return Object.freeze({ fetchBing, loadPackaged, mergeHistory });
@@ -137,6 +158,7 @@
     REMOTE_URL,
     create,
     mergeByDate,
+    normalizeWallpaperList,
     normalizeBingResponse
   });
 })(globalThis);

@@ -7,7 +7,7 @@ import { createScriptDom, executeExtensionWindowScript, flushAsyncWork } from '.
 
 let dom;
 
-async function loadSearchBox(sync = {}, configureWindow = null) {
+async function loadSearchBox(sync = {}, configureWindow = null, runtimeResponder = null) {
   const chrome = createFakeChrome({
     storage: {
       sync: {
@@ -22,6 +22,8 @@ async function loadSearchBox(sync = {}, configureWindow = null) {
   const messages = [];
   chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     messages.push(message);
+    const customResult = runtimeResponder?.(message, sendResponse);
+    if (customResult !== undefined) return customResult;
     if (message.action === 'getZoom') sendResponse({ zoom: 1 });
     else sendResponse({ success: true, data: { data: [] } });
     return false;
@@ -32,6 +34,7 @@ async function loadSearchBox(sync = {}, configureWindow = null) {
     url: 'https://example.test/'
   });
   configureWindow?.(dom.window);
+  await executeExtensionWindowScript(dom, 'search-box/trending-controller.js');
   await executeExtensionWindowScript(dom, 'search-box/search-box.js');
   await flushAsyncWork();
   return { chrome, messages, window: dom.window };
@@ -104,6 +107,47 @@ describe('floating search box', () => {
     await flushAsyncWork();
 
     expect(panel.classList.contains('show')).toBe(true);
+  });
+
+  it('renders three escaped Toutiao trends and opens the active item', async () => {
+    const { messages, window } = await loadSearchBox(
+      { floatingSearchBoxAlwaysShow: true, floatingSearchBoxTrending: true },
+      null,
+      (message, sendResponse) => {
+        if (message.action !== 'proxyFetch') return undefined;
+        sendResponse({
+          success: true,
+          data: {
+            data: [
+              { Title: 'First trend' },
+              { Title: '<unsafe trend>' },
+              { Title: 'Third trend' }
+            ]
+          }
+        });
+        return false;
+      }
+    );
+    await flushAsyncWork(8);
+    const panel = window.document.getElementById('echo-search-box-host')
+      .contentDocument.querySelector('.trending-panel');
+    const words = [...panel.querySelectorAll('.trending-word')];
+
+    expect(words).toHaveLength(3);
+    expect(words.map(word => word.textContent)).toEqual([
+      'Third trend',
+      'First trend',
+      '<unsafe trend>'
+    ]);
+    expect(panel.querySelector('.trending-word.active').innerHTML).toBe('First trend');
+
+    panel.querySelector('.trending-word.active').click();
+    expect(messages).toContainEqual({
+      action: 'openInNewTab',
+      url: 'https://www.bing.com/search?q=First%20trend',
+      active: true,
+      forceAdjacentPosition: true
+    });
   });
 
   it('stops zoom polling and spectrum animation when hidden', async () => {

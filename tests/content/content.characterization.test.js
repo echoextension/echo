@@ -8,10 +8,14 @@ import { createScriptDom, executeExtensionWindowScript, flushAsyncWork } from '.
 let dom;
 
 function installMessageResponder(chrome, actions) {
+  let currentZoom = 1;
   chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     actions.push(message);
-    if (message.action === 'getZoom') sendResponse({ zoom: 1 });
-    else if (message.action === 'setZoom') sendResponse({ success: true });
+    if (message.action === 'getZoom') sendResponse({ zoom: currentZoom });
+    else if (message.action === 'setZoom') {
+      currentZoom = message.zoom;
+      sendResponse({ success: true });
+    }
     else sendResponse({ ok: true });
     return false;
   });
@@ -79,6 +83,23 @@ describe('content script settings and keyboard behavior', () => {
 
     expect(event.defaultPrevented).toBe(true);
     expect(actions).toContainEqual({ action: 'setZoom', zoom: 1.05 });
+  });
+
+  it('serializes rapid zoom events so both 5% steps are applied', async () => {
+    const { actions, window } = await loadContent();
+    const createWheel = () => new window.WheelEvent('wheel', {
+      bubbles: true,
+      cancelable: true,
+      ctrlKey: true,
+      deltaY: -100
+    });
+
+    window.document.dispatchEvent(createWheel());
+    window.document.dispatchEvent(createWheel());
+    await flushAsyncWork(8);
+
+    expect(actions.filter(message => message.action === 'setZoom').map(message => message.zoom))
+      .toEqual([1.05, 1.1]);
   });
 
   it('does not intercept zoom when fineZoom is disabled', async () => {

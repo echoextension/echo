@@ -15,10 +15,14 @@ let dom;
 async function loadCommonModule(relativePath) {
   const chrome = createFakeChrome();
   const messages = [];
+  let currentZoom = 1;
   chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     messages.push(message);
-    if (message.action === 'getZoom') sendResponse({ zoom: 1 });
-    else sendResponse({ success: true });
+    if (message.action === 'getZoom') sendResponse({ zoom: currentZoom });
+    else {
+      if (message.action === 'setZoom') currentZoom = message.zoom;
+      sendResponse({ success: true });
+    }
     return false;
   });
   dom = await createScriptDom({
@@ -48,6 +52,23 @@ describe('shared keyboard and mouse modules', () => {
     expect(messages.filter(({ action }) => action === 'switchTab')).toEqual([
       { action: 'switchTab', direction: 'left', source: 'keyboard' }
     ]);
+  });
+
+  it('serializes rapid shared zoom events so both steps are applied', async () => {
+    const { messages, window } = await loadCommonModule('common/keyboard-enhance.js');
+    const createWheel = () => new window.WheelEvent('wheel', {
+      bubbles: true,
+      cancelable: true,
+      ctrlKey: true,
+      deltaY: -100
+    });
+
+    window.document.dispatchEvent(createWheel());
+    window.document.dispatchEvent(createWheel());
+    await flushAsyncWork(8);
+
+    expect(messages.filter(message => message.action === 'setZoom').map(message => message.zoom))
+      .toEqual([1.05, 1.1]);
   });
 
   it('sends a right-tab action for a right-button wheel gesture', async () => {

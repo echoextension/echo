@@ -99,6 +99,25 @@ describe('wallpaper renderer', () => {
     expect(updateInfo).toHaveBeenCalledWith(expect.objectContaining({ id: 'second' }));
   });
 
+  it('does not commit a pending wallpaper after rendering is cancelled', async () => {
+    const response = deferred();
+    const fetch = vi.fn(() => response.promise);
+    const { renderer, state, updateInfo } = await setup({ fetch });
+
+    const display = renderer.display({ id: 'pending', date: '2026-01-01' });
+    await flushAsyncWork();
+    renderer.cancel();
+    response.resolve(new Response(new Blob(['pending'], { type: 'image/jpeg' }), {
+      headers: { 'Content-Type': 'image/jpeg' }
+    }));
+    await display;
+
+    expect(state.current).toBeNull();
+    expect(state.isWallpaperLoading).toBe(false);
+    expect(updateInfo).not.toHaveBeenCalled();
+    expect(dom.window.document.getElementById('wallpaperBg').children).toHaveLength(0);
+  });
+
   it('uses a cached image without requesting the network', async () => {
     const blob = new Blob(['cached'], { type: 'image/jpeg' });
     const cache = { get: vi.fn(async () => blob), put: vi.fn(), remove: vi.fn() };

@@ -117,4 +117,82 @@ describe('Zhihu blocklist synchronization', () => {
     });
     expect(messages.some((message) => message.type === 'complete' && message.total === 1)).toBe(true);
   });
+
+  it('completes consistently when cancellation arrives after final persistence begins', async () => {
+    const fetch = vi.fn(async (requestUrl) => {
+      const url = String(requestUrl);
+      if (url.includes('/api/v4/me')) return responseJson({ id: 'viewer-id' });
+      if (url.includes('/api/v3/settings/blocked_users')) {
+        return responseJson({
+          data: [{ id: 'new-blocked-id', url_token: 'new-blocked-token' }],
+          paging: { is_end: true, totals: 1 }
+        });
+      }
+      throw new Error(`Unexpected request: ${url}`);
+    });
+    const { chrome } = await loadZhihu({ enabled: false, fetch });
+    const previous = validSnapshot([{ id: 'old-blocked-id', urlToken: 'old-blocked-token' }]);
+    await chrome.storage.local.set({ echoZhihuBlocklistV1: previous });
+    const originalSet = chrome.storage.local.set.bind(chrome.storage.local);
+    let releaseCommit;
+    const commitStarted = new Promise(resolve => {
+      chrome.storage.local.set = async items => {
+        if (!items.echoZhihuBlocklistV1
+            || items.echoZhihuBlocklistV1.accounts['viewer-id']?.records[0]?.id !== 'new-blocked-id') {
+          return originalSet(items);
+        }
+        resolve();
+        await new Promise(release => { releaseCommit = release; });
+        return originalSet(items);
+      };
+    });
+    const clientPort = chrome.runtime.connect({ name: 'echo-zhihu-blocklist-worker' });
+    const messages = [];
+    clientPort.onMessage.addListener(message => messages.push(message));
+
+    clientPort.postMessage({ action: 'start', taskId: 'test-task' });
+    await commitStarted;
+    clientPort.postMessage({ action: 'cancel' });
+    releaseCommit();
+    await flushAsyncWork(12);
+
+    const stored = await chrome.storage.local.get('echoZhihuBlocklistV1');
+    expect(stored.echoZhihuBlocklistV1.accounts['viewer-id'].records).toEqual([
+      { id: 'new-blocked-id', urlToken: 'new-blocked-token' }
+    ]);
+    expect(messages.some(message => message.type === 'cancelled')).toBe(false);
+    expect(messages.some(message => message.type === 'complete')).toBe(true);
+  });
+
+  it('keeps the previous snapshot when cancelled before final persistence begins', async () => {
+    let releasePage;
+    const pendingPage = new Promise(resolve => { releasePage = resolve; });
+    const fetch = vi.fn(async (requestUrl) => {
+      const url = String(requestUrl);
+      if (url.includes('/api/v4/me')) return responseJson({ id: 'viewer-id' });
+      if (url.includes('/api/v3/settings/blocked_users')) return pendingPage;
+      throw new Error(`Unexpected request: ${url}`);
+    });
+    const { chrome } = await loadZhihu({ enabled: false, fetch });
+    const previous = validSnapshot([{ id: 'old-blocked-id', urlToken: 'old-blocked-token' }]);
+    await chrome.storage.local.set({ echoZhihuBlocklistV1: previous });
+    const clientPort = chrome.runtime.connect({ name: 'echo-zhihu-blocklist-worker' });
+    const messages = [];
+    clientPort.onMessage.addListener(message => messages.push(message));
+
+    clientPort.postMessage({ action: 'start', taskId: 'test-task' });
+    await flushAsyncWork(8);
+    clientPort.postMessage({ action: 'cancel' });
+    releasePage(responseJson({
+      data: [{ id: 'new-blocked-id', url_token: 'new-blocked-token' }],
+      paging: { is_end: true, totals: 1 }
+    }));
+    await flushAsyncWork(12);
+
+    await expect(chrome.storage.local.get('echoZhihuBlocklistV1')).resolves.toEqual({
+      echoZhihuBlocklistV1: previous
+    });
+    expect(messages.some(message => message.type === 'cancelled')).toBe(true);
+    expect(messages.some(message => message.type === 'complete')).toBe(false);
+  });
 });

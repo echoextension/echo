@@ -42,13 +42,16 @@ Chromium 自动化不等于 Edge 品牌浏览器验收。
 
 ## 2. 发布版本门禁
 
-准备发布候选前，以下三处必须一致：
+准备发布候选前，以下版本记录必须一致：
 
 - `manifest.json` 的 `version`；
 - `package.json` 的 `version`；
+- `package-lock.json` 的顶层版本和根包版本；
 - `CHANGELOG.md` 顶部最新语义版本标题。
+- 设置页版本徽标；
+- 官网结构化数据和下载入口版本标识。
 
-设置页版本徽标也必须与 Manifest 一致。`npm run validate` 会阻止不一致版本进入发布流程。
+`npm run validate` 会阻止上述机器可校验记录中的不一致版本进入发布流程。
 
 历史基线文档中的旧版本号是审计快照，不随发布版本改写。
 

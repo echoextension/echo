@@ -6,6 +6,10 @@
     const documentApi = options.document;
     const schedule = options.schedule || root.setTimeout.bind(root);
     let initialized = false;
+    let initialization = null;
+    let toggleVersion = 0;
+    let togglePersistenceQueue = Promise.resolve();
+    let persistedToggleState = null;
 
     function select() {
       return options.domain.selectWallpaper(state);
@@ -18,6 +22,40 @@
 
     function hideWallpaper() {
       documentApi.getElementById('wallpaperBg')?.replaceChildren();
+    }
+
+    function captureToggleState(background) {
+      return {
+        settings: { ...state.settings },
+        isPreview: state.isPreview,
+        wallpaperMode: documentApi.body.classList.contains('wallpaper-mode'),
+        noWallpaper: documentApi.body.classList.contains('no-wallpaper'),
+        backgroundChildren: background ? [...background.childNodes] : []
+      };
+    }
+
+    async function restoreToggleState(previous, toggle, background) {
+      if (toggle.checked) options.renderer.cancel?.();
+      state.settings = {
+        ...state.settings,
+        mode: previous.settings.mode,
+        lastActiveMode: previous.settings.lastActiveMode
+      };
+      state.isPreview = previous.isPreview;
+      toggle.checked = state.settings.mode !== 'off';
+      documentApi.body.classList.toggle('wallpaper-mode', previous.wallpaperMode);
+      documentApi.body.classList.toggle('no-wallpaper', previous.noWallpaper);
+      documentApi.getElementById('wallpaperSubSettings')?.classList.toggle(
+        'hidden', state.settings.mode === 'off'
+      );
+      if (previous.wallpaperMode) options.lowPoly.hide();
+      else if (!options.blankMode.isEnabled()) options.lowPoly.show();
+      background?.replaceChildren(...previous.backgroundChildren);
+      options.statusView.updateActions();
+      if (previous.wallpaperMode && !background?.querySelector('img')) {
+        const wallpaper = state.current || select();
+        if (wallpaper) await options.renderer.display(wallpaper);
+      }
     }
 
     async function ensureRendered() {
@@ -36,12 +74,9 @@
     async function onToggle() {
       const toggle = documentApi.getElementById('wallpaperSwitch');
       if (!toggle) return;
-      const previous = {
-        settings: { ...state.settings },
-        isPreview: state.isPreview,
-        wallpaperMode: documentApi.body.classList.contains('wallpaper-mode'),
-        noWallpaper: documentApi.body.classList.contains('no-wallpaper')
-      };
+      const operationVersion = ++toggleVersion;
+      const background = documentApi.getElementById('wallpaperBg');
+      const visualBefore = captureToggleState(background);
       if (toggle.checked) {
         if (state.settings.mode === 'off') {
           state.settings.mode = state.settings.lastActiveMode || 'daily';
@@ -58,30 +93,40 @@
         documentApi.body.classList.add('no-wallpaper');
         documentApi.body.classList.remove('wallpaper-mode');
         options.lowPoly.show();
+        options.renderer.cancel?.();
         hideWallpaper();
         documentApi.getElementById('wallpaperSubSettings')?.classList.add('hidden');
       }
       if (options.blankMode.isEnabled()) options.lowPoly.hide();
       options.statusView.updateActions();
-      try {
-        if (options.saveSettings) await options.saveSettings();
-        else await options.repository.saveSettings(state.settings);
-      } catch (error) {
-        state.settings = previous.settings;
-        state.isPreview = previous.isPreview;
-        toggle.checked = state.settings.mode !== 'off';
-        documentApi.body.classList.toggle('wallpaper-mode', previous.wallpaperMode);
-        documentApi.body.classList.toggle('no-wallpaper', previous.noWallpaper);
-        documentApi.getElementById('wallpaperSubSettings')?.classList.toggle(
-          'hidden', state.settings.mode === 'off'
-        );
-        if (previous.wallpaperMode) options.lowPoly.hide();
-        else if (!options.blankMode.isEnabled()) options.lowPoly.show();
-        options.statusView.updateActions();
-        console.error('[ECHO NTP] 壁纸开关保存失败:', error);
-        return false;
-      }
-      return true;
+      const desired = captureToggleState(background);
+      const persistence = togglePersistenceQueue.then(async () => {
+        try {
+          if (options.saveSettings) await options.saveSettings(desired.settings);
+          else await options.repository.saveSettings(desired.settings);
+          persistedToggleState = desired;
+          return true;
+        } catch (error) {
+          if (operationVersion !== toggleVersion) {
+            console.error('[ECHO NTP] 已过期的壁纸开关保存失败:', error);
+            return false;
+          }
+          const rollbackState = visualBefore.settings.mode === persistedToggleState.settings.mode
+            ? {
+                ...persistedToggleState,
+                isPreview: visualBefore.isPreview,
+                wallpaperMode: visualBefore.wallpaperMode,
+                noWallpaper: visualBefore.noWallpaper,
+                backgroundChildren: visualBefore.backgroundChildren
+              }
+            : persistedToggleState;
+          await restoreToggleState(rollbackState, toggle, background);
+          console.error('[ECHO NTP] 壁纸开关保存失败:', error);
+          return false;
+        }
+      });
+      togglePersistenceQueue = persistence.then(() => undefined, () => undefined);
+      return persistence;
     }
 
     function initControls() {
@@ -151,15 +196,18 @@
       }
     }
 
-    async function init() {
+    async function initialize() {
       if (initialized) return;
       const toggle = documentApi.getElementById('wallpaperSwitch');
       const background = documentApi.getElementById('wallpaperBg');
       if (!toggle || !background) return;
-      initialized = true;
-      schedule(options.cleanCache, 5000);
       if (options.loadState) await options.loadState();
       else await options.repository.load(state);
+      persistedToggleState = captureToggleState(background);
+      persistedToggleState.wallpaperMode = state.settings.mode !== 'off';
+      persistedToggleState.noWallpaper = state.settings.mode === 'off';
+      initialized = true;
+      schedule(options.cleanCache, 5000);
       initControls();
       options.settings.init();
       options.info.init();
@@ -186,6 +234,18 @@
       }
 
       await ensureRendered();
+      persistedToggleState = captureToggleState(background);
+    }
+
+    async function init() {
+      if (initialized) return;
+      if (initialization) return initialization;
+      initialization = initialize();
+      try {
+        await initialization;
+      } finally {
+        initialization = null;
+      }
     }
 
     return Object.freeze({ ensureRendered, handleKeyboard, init, onToggle });

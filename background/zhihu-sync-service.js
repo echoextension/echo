@@ -64,7 +64,12 @@
           clearTimeout(timer);
           port.onMessage.removeListener(onMessage);
           port.onDisconnect.removeListener(onDisconnect);
-          result instanceof Error ? reject(result) : resolve(port);
+          if (result instanceof Error) {
+            try { port.disconnect(); } catch {}
+            reject(result);
+          } else {
+            resolve(port);
+          }
         };
         const onMessage = (message) => {
           if (message?.type === 'ready') settle(port);
@@ -90,9 +95,9 @@
       };
       task = currentTask;
       publish({ phase: 'opening', mode, current: 0, total: null, message: '' });
-      await persistTask(currentTask, 'opening');
 
       try {
+        await persistTask(currentTask, 'opening');
         const createdWindow = await chromeApi.windows.create({
           url: 'https://www.zhihu.com/',
           type: 'popup',

@@ -45,7 +45,15 @@
     └────────────┘
 ```
 
-**核心通信模式**：通用模块通过 `chrome.runtime.sendMessage` 与 background.js 通信，background 负责浏览器级状态和跨页面路由。站点专用模块保持独立：B站推荐历史仅维护当前标签页内存；知乎同步由设置页与后台建立 Port 长连接，再交给已登录的知乎内容脚本执行同源只读请求，完整快照写入 `chrome.storage.local` 后由 `www.zhihu.com` 与 `zhuanlan.zhihu.com` 共享。除这一受限同源同步外，Content Script 不直接调用外部 API。
+**核心通信模式**：通用模块通过 `chrome.runtime.sendMessage` 与 background.js 通信，background 负责浏览器级状态和跨页面路由。站点专用模块保持独立：B站推荐历史通过后台按标签页写入 `chrome.storage.session`；知乎同步由设置页与后台建立 Port 长连接，再交给已登录的知乎内容脚本执行同源只读请求，完整快照写入 `chrome.storage.local` 后由 `www.zhihu.com` 与 `zhuanlan.zhihu.com` 共享。除这一受限同源同步外，Content Script 不直接调用外部 API。
+
+`1.4.1` 继续收敛运行时职责，但保持无构建 classic script 结构：
+
+- `options/modules/zhihu-sync-controller.js`：设置页知乎快照校验、Port 生命周期和同步 UI；
+- `options/modules/backup-controller.js`：备份校验、导入导出、跨存储补偿和结果视图；
+- `search-box/trending-controller.js`：悬浮搜索框的头条热搜请求、三项渲染和轮播；
+- `bili-tool/svg-assets.js` 与 `bili-tool/styles.js`：B站视频工具的只读资产和 Shadow DOM 样式；
+- 各入口文件继续负责装配、设置传播和页面生命周期，不在资产模块中保存可变业务状态。
 
 站点增强模块包括：
 

@@ -139,4 +139,52 @@ describe('Zhihu sync service recovery', () => {
       message: expect.stringContaining('后台重启')
     });
   });
+
+  it('releases an in-memory task when initial session persistence fails', async () => {
+    const chrome = createFakeChrome();
+    chrome.__testing.failNextStorageSet('session', new Error('storage unavailable'));
+    chrome.windows.create = vi.fn(async () => { throw new Error('window unavailable'); });
+    const window = await loadModules(['background/zhihu-sync-service.js'], chrome);
+    const service = window.EchoBackgroundZhihuSyncService.create(chrome, window.EchoMessages.PORTS);
+
+    await expect(service.start('manual')).resolves.toBeUndefined();
+    expect(service.getState()).toMatchObject({
+      phase: 'failed',
+      message: 'storage unavailable'
+    });
+
+    await expect(service.start('manual')).resolves.toBeUndefined();
+    expect(chrome.windows.create).toHaveBeenCalledOnce();
+  });
+
+  it('disconnects a worker port when its ready handshake times out', async () => {
+    const chrome = createFakeChrome();
+    const window = await loadModules(['background/zhihu-sync-service.js'], chrome);
+    const timers = [];
+    window.setTimeout = (callback, delay) => {
+      const timer = { callback, cleared: false, delay, id: timers.length + 1 };
+      timers.push(timer);
+      return timer.id;
+    };
+    window.clearTimeout = (id) => {
+      const timer = timers.find(item => item.id === id);
+      if (timer) timer.cleared = true;
+    };
+    const service = window.EchoBackgroundZhihuSyncService.create(chrome, window.EchoMessages.PORTS);
+
+    const starting = service.start('manual');
+    for (let index = 0; index < 20; index += 1) await Promise.resolve();
+    const handshakeTimer = timers.find(timer => timer.delay === 10000);
+    expect(handshakeTimer).toBeDefined();
+    handshakeTimer.callback();
+    await Promise.resolve();
+
+    expect(chrome.__testing.records.tabConnections[0].backgroundPort.disconnected).toBe(true);
+
+    service.cancel();
+    for (let index = 0; index < 10; index += 1) await Promise.resolve();
+    const retryTimer = timers.find(timer => timer.delay === 300 && !timer.cleared);
+    retryTimer?.callback();
+    await starting;
+  });
 });
