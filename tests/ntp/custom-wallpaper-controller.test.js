@@ -8,8 +8,12 @@ let dom;
 
 function deferred() {
   let resolve;
-  const promise = new Promise(value => { resolve = value; });
-  return { promise, resolve };
+  let reject;
+  const promise = new Promise((resolvePromise, rejectPromise) => {
+    resolve = resolvePromise;
+    reject = rejectPromise;
+  });
+  return { promise, reject, resolve };
 }
 
 async function setup(overrides = {}) {
@@ -17,10 +21,11 @@ async function setup(overrides = {}) {
   await executeWindowScript(dom, 'ntp/modules/wallpaper-domain.js');
   await executeWindowScript(dom, 'ntp/modules/custom-wallpaper-controller.js');
   const state = {
-    settings: { mode: 'daily', pinnedDate: null },
+    settings: { mode: 'daily', lastActiveMode: 'daily', pinnedDate: null },
     current: null,
     history: [{ id: 'daily', date: '2026-01-01' }],
     favorites: [],
+    availableFavorites: [],
     isPreview: false
   };
   const cache = {
@@ -129,6 +134,30 @@ describe('custom wallpaper controller', () => {
     expect(options.saveSettings).toHaveBeenCalledOnce();
   });
 
+  it('rolls back the last custom favorite before deleting blobs when fallback settings fail', async () => {
+    const saveSettings = vi.fn()
+      .mockRejectedValueOnce(new Error('storage unavailable'))
+      .mockResolvedValueOnce();
+    const saveFavorites = vi.fn(async () => {});
+    const { cache, controller, state } = await setup({ saveFavorites, saveSettings });
+    const custom = { id: 'custom_1234', date: 'custom:1234', type: 'custom', desc: '' };
+    state.history.unshift(custom);
+    state.favorites = [custom.date];
+    state.availableFavorites = [custom.date];
+    state.settings.mode = 'collection';
+    state.settings.lastActiveMode = 'collection';
+
+    expect(await controller.remove(custom.date)).toBe(false);
+
+    expect(cache.remove).not.toHaveBeenCalled();
+    expect(state.history).toContain(custom);
+    expect(state.favorites).toEqual([custom.date]);
+    expect(state.availableFavorites).toEqual([custom.date]);
+    expect(state.settings.mode).toBe('collection');
+    expect(saveFavorites).toHaveBeenCalledTimes(2);
+    expect(saveSettings).toHaveBeenCalledTimes(2);
+  });
+
   it('restores only custom favorites whose blob exists on this device', async () => {
     const cache = {
       put: vi.fn(),
@@ -165,6 +194,86 @@ describe('custom wallpaper controller', () => {
     expect(second).toBeNull();
     expect(state.favorites).toHaveLength(10);
     expect(new Set(state.favorites).size).toBe(10);
+  });
+
+  it('serializes upload rollback and removal so deleted wallpaper metadata is not revived', async () => {
+    const image = deferred();
+    const imageProcessor = {
+      createDisplayImage: vi.fn(() => image.promise),
+      createThumbnail: vi.fn(async () => new Blob(['thumbnail'], { type: 'image/jpeg' })),
+      renderDisplayBlob: vi.fn()
+    };
+    const saveSettings = vi.fn()
+      .mockRejectedValueOnce(new Error('storage unavailable'))
+      .mockResolvedValueOnce();
+    const { controller, state } = await setup({ imageProcessor, saveSettings });
+    const existing = { id: 'custom_existing', date: 'custom:existing', type: 'custom', desc: '' };
+    state.history.unshift(existing);
+    state.favorites = [existing.date];
+    state.availableFavorites = [existing.date];
+    state.settings.mode = 'collection';
+    state.settings.lastActiveMode = 'collection';
+
+    const upload = controller.upload({ type: 'image/jpeg', size: 100 });
+    await flushAsyncWork();
+    const removal = controller.remove(existing.date);
+    image.resolve(new Blob(['display'], { type: 'image/jpeg' }));
+
+    expect(await upload).toBeNull();
+    expect(await removal).not.toBe(false);
+    expect(state.history).not.toContain(existing);
+    expect(state.favorites).not.toContain(existing.date);
+  });
+
+  it('does not overwrite synchronized favorites when an upload later fails', async () => {
+    const settingsWrite = deferred();
+    const saveFavorites = vi.fn(async () => {});
+    const { controller, state } = await setup({
+      saveFavorites,
+      saveSettings: vi.fn(() => settingsWrite.promise)
+    });
+
+    const upload = controller.upload({ type: 'image/jpeg', size: 100 });
+    await flushAsyncWork(8);
+    state.favorites = ['new-remote'];
+    state.availableFavorites = ['new-remote'];
+    state.settings.quality = '1080p';
+    settingsWrite.reject(new Error('storage unavailable'));
+
+    expect(await upload).toBeNull();
+    expect(state.favorites).toEqual(['new-remote']);
+    expect(state.availableFavorites).toEqual(['new-remote']);
+    expect(state.settings.quality).toBe('1080p');
+    expect(state.settings.pinnedDate).toBeNull();
+    expect(saveFavorites).toHaveBeenCalledOnce();
+  });
+
+  it('does not overwrite synchronized favorites when a removal later fails', async () => {
+    const settingsWrite = deferred();
+    const saveFavorites = vi.fn(async () => {});
+    const { controller, state } = await setup({
+      saveFavorites,
+      saveSettings: vi.fn(() => settingsWrite.promise)
+    });
+    const custom = { id: 'custom_1234', date: 'custom:1234', type: 'custom', desc: '' };
+    state.history.unshift(custom);
+    state.favorites = [custom.date];
+    state.availableFavorites = [custom.date];
+    state.settings.mode = 'collection';
+    state.settings.lastActiveMode = 'collection';
+
+    const removal = controller.remove(custom.date);
+    await flushAsyncWork(8);
+    state.favorites = ['new-remote'];
+    state.availableFavorites = ['new-remote'];
+    state.settings.quality = '1080p';
+    settingsWrite.reject(new Error('storage unavailable'));
+
+    expect(await removal).toBe(false);
+    expect(state.favorites).toEqual(['new-remote']);
+    expect(state.availableFavorites).toEqual(['new-remote']);
+    expect(state.settings.quality).toBe('1080p');
+    expect(saveFavorites).toHaveBeenCalledOnce();
   });
 
   it('does not count remote custom placeholders toward the local upload limit', async () => {

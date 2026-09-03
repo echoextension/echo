@@ -44,6 +44,12 @@ const RADIO_SETTINGS = [
 
 // 唯一设置 schema 由 core/settings.js 提供。
 const DEFAULT_SETTINGS = EchoSettings.getAreaDefaults('sync', { includeDeprecated: false });
+const backupController = EchoOptionsBackupController.create({
+  chrome,
+  document,
+  settingsSchema: EchoSettings,
+  onSettingsRestored: () => loadSettings()
+});
 
 /**
  * 加载并应用设置到 UI
@@ -515,72 +521,36 @@ function saveSetting(key, value) {
   return chrome.storage.sync.set({ [key]: value });
 }
 
-const CONFIRMATION_CONTENT = {
-  zhihuBlocklist: {
-    primary: '您即将授权 ECHO 同步知乎官方黑名单。',
-    secondary: '确认后将打开独立知乎窗口并立即开始读取，请在完成前保持窗口开启。',
-    risks: [
-      ['🔐', '读取与保存', 'ECHO 将读取知乎官方黑名单，并在当前设备保存匹配所需的稳定账号标识、同步时间和人数。'],
-      ['💻', '仅限本机', '名单只保存在扩展本地存储中，不进入浏览器同步或 ECHO 备份，也不会发送给 ECHO 或第三方服务。']
-    ],
-    footer: '同步完整成功后才会开启内容过滤；黑名单为 0 人也视为一次有效同步。',
-    confirmText: '同意并同步'
-  }
-};
-
-let confirmationPending = false;
-
-function showConfirmationModal(content) {
-  if (confirmationPending) return Promise.resolve(false);
-  const modal = document.getElementById('item-modal-overlay');
-  const confirmBtn = document.getElementById('modal-confirm-btn');
-  const cancelBtn = document.getElementById('modal-cancel-btn');
-  const primary = document.getElementById('modal-text-primary');
-  const secondary = document.getElementById('modal-text-secondary');
-  const riskBox = document.getElementById('modal-risk-box');
-  const footer = document.getElementById('modal-text-footer');
-  if (!modal || !confirmBtn || !cancelBtn || !primary || !secondary || !riskBox || !footer) {
-    return Promise.resolve(false);
-  }
-
-  confirmationPending = true;
-  primary.textContent = content.primary;
-  secondary.textContent = content.secondary;
-  riskBox.innerHTML = content.risks.map(([icon, title, description]) => `
-    <div class="risk-item">
-      <span class="risk-icon">${icon}</span>
-      <div class="risk-desc"><strong>${title}</strong><p>${description}</p></div>
-    </div>
-  `).join('');
-  footer.textContent = content.footer;
-  confirmBtn.textContent = content.confirmText;
-  cancelBtn.textContent = '取消 Cancel';
-  modal.style.opacity = '';
-  modal.style.display = 'flex';
-  requestAnimationFrame(() => {
-    modal.classList.add('show');
-    confirmBtn.focus();
+function applySettingValue(key, value) {
+  const checkbox = document.getElementById(key);
+  if (checkbox?.type === 'checkbox') checkbox.checked = value;
+  document.querySelectorAll(`input[name="${key}"]`).forEach(radio => {
+    radio.checked = radio.value === value;
   });
+  if (key === 'superDrag') updateSuperDragOptionState(value);
+  else if (key === 'quickSaveImage') updateQuickSaveImageOptionState(value);
+  else if (key === 'fineZoom') updateFineZoomOptionState(value);
+  else if (key === 'floatingSearchBox') updateFloatingSearchBoxOptionState(value);
+  else if (key === 'closeTabActivate') playCloseTabDemo(value);
+  else if (key === 'newTabPosition') {
+    updateNewTabOrderState(value);
+    playPositionDemo(value);
+  } else if (key === 'newTabOrder') {
+    playOrderDemo(value);
+  }
+}
 
-  return new Promise((resolve) => {
-    let settled = false;
-    const finish = (confirmed) => {
-      if (settled) return;
-      settled = true;
-      modal.classList.remove('show');
-      setTimeout(() => {
-        if (!modal.classList.contains('show')) modal.style.display = 'none';
-      }, 300);
-      confirmBtn.removeEventListener('click', onConfirm);
-      cancelBtn.removeEventListener('click', onCancel);
-      confirmationPending = false;
-      resolve(confirmed);
-    };
-    const onConfirm = () => finish(true);
-    const onCancel = () => finish(false);
-    confirmBtn.addEventListener('click', onConfirm);
-    cancelBtn.addEventListener('click', onCancel);
-  });
+async function persistSetting(key, value) {
+  try {
+    await saveSetting(key, value);
+  } catch (error) {
+    console.error(`[ECHO] 保存设置 ${key} 失败:`, error);
+    const stored = await chrome.storage.sync.get({ [key]: EchoSettings.getDefault(key) });
+    const authoritativeValue = EchoSettings.isValid(key, stored[key])
+      ? stored[key]
+      : EchoSettings.getDefault(key);
+    applySettingValue(key, authoritativeValue);
+  }
 }
 
 /**
@@ -608,9 +578,21 @@ async function resetToDefaults() {
 function initializeEventListeners() {
   // 监听来自其他地方的设置变化，实时更新 UI
   chrome.storage.onChanged.addListener((changes, areaName) => {
-    if (areaName === 'sync') {
-      // 可以在这里添加其他设置变化的监听
-    }
+    if (areaName !== 'sync') return;
+    const checkboxIds = new Set([
+      ...SETTING_IDS,
+      ...SETTING_IDS_DEFAULT_OFF,
+      ...SETTING_IDS_OFF,
+      ...SETTING_IDS_ON_LAB
+    ]);
+    Object.entries(changes).forEach(([key, change]) => {
+      if (!checkboxIds.has(key) && !RADIO_SETTINGS.includes(key)) return;
+      const value = change.newValue === undefined
+        ? EchoSettings.getDefault(key)
+        : change.newValue;
+      if (!EchoSettings.isValid(key, value)) return;
+      applySettingValue(key, value);
+    });
   });
 
   // 监听开关变化（默认开启的）
@@ -618,7 +600,7 @@ function initializeEventListeners() {
     const checkbox = document.getElementById(id);
     if (checkbox) {
       checkbox.addEventListener('change', (e) => {
-        saveSetting(id, e.target.checked);
+        void persistSetting(id, e.target.checked);
         
         // 超级拖拽开关联动子选项
         if (id === 'superDrag') {
@@ -643,7 +625,7 @@ function initializeEventListeners() {
     const checkbox = document.getElementById(id);
     if (checkbox) {
       checkbox.addEventListener('change', (e) => {
-        saveSetting(id, e.target.checked);
+        void persistSetting(id, e.target.checked);
       });
     }
   });
@@ -653,7 +635,7 @@ function initializeEventListeners() {
     const checkbox = document.getElementById(id);
     if (checkbox) {
       checkbox.addEventListener('change', (e) => {
-        saveSetting(id, e.target.checked);
+        void persistSetting(id, e.target.checked);
       });
     }
   });
@@ -663,7 +645,7 @@ function initializeEventListeners() {
     const checkbox = document.getElementById(id);
     if (checkbox) {
       checkbox.addEventListener('change', (e) => {
-        saveSetting(id, e.target.checked);
+        void persistSetting(id, e.target.checked);
         
         // 悬浮搜索框开关联动子选项
         if (id === 'floatingSearchBox') {
@@ -678,7 +660,7 @@ function initializeEventListeners() {
     const radios = document.querySelectorAll(`input[name="${name}"]`);
     radios.forEach(radio => {
       radio.addEventListener('change', (e) => {
-        saveSetting(name, e.target.value);
+        void persistSetting(name, e.target.value);
         
         // 播放对应的动画
         if (name === 'closeTabActivate') {
@@ -726,7 +708,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   await loadSettings();
   initializeEventListeners();
   await loadShortcuts();
-  await initZhihuBlocklistSync();
+  const zhihuSyncController = EchoOptionsZhihuSyncController.create({
+    chrome,
+    document,
+    messages: EchoMessages,
+    settingsSchema: EchoSettings
+  });
+  await zhihuSyncController.init();
   
   // 快捷键设置入口
   document.getElementById('openShortcutSettings').addEventListener('click', (e) => {
@@ -755,154 +743,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   initScrollNav();
   
   // 初始化备份与恢复
-  initBackupRestore();
+  backupController.init();
 });
-
-async function initZhihuBlocklistSync() {
-  const checkbox = document.getElementById('zhihuBlocklistFilter');
-  const button = document.getElementById('zhihuBlocklistSync');
-  const status = document.getElementById('zhihuBlocklistStatus');
-  const title = document.getElementById('zhihuBlocklistSyncTitle');
-  const syncOption = document.getElementById('zhihuBlocklistSyncOption');
-  if (!checkbox || !button || !status || !title || !syncOption) return;
-
-  let taskState = { phase: 'idle' };
-  let validSnapshot = null;
-  let authorized = false;
-
-  const saveZhihuSetting = (enabled) => chrome.storage.local.set({
-    zhihuBlocklistFilter: Boolean(enabled)
-  });
-
-  const readValidSnapshot = async () => {
-    const { echoZhihuBlocklistV1: root } = await chrome.storage.local.get('echoZhihuBlocklistV1');
-    const active = root?.accounts?.[root.activeAccountId];
-    if (!active || active.accountId !== root.activeAccountId || !Array.isArray(active.records)
-        || !Number.isFinite(active.syncedAt) || active.syncedAt <= 0
-        || !Number.isInteger(active.total) || active.total !== active.records.length) return null;
-    const ids = new Set();
-    const tokens = new Set();
-    for (const record of active.records) {
-      if (!record?.id || !record?.urlToken || ids.has(record.id) || tokens.has(record.urlToken)) return null;
-      ids.add(record.id);
-      tokens.add(record.urlToken);
-    }
-    return active;
-  };
-
-  const refreshLocalState = async () => {
-    validSnapshot = await readValidSnapshot();
-    const localSettings = await chrome.storage.local.get([
-      'zhihuBlocklistFilter',
-      'zhihuBlocklistAuthorized'
-    ]);
-    authorized = Boolean(localSettings.zhihuBlocklistAuthorized || validSnapshot);
-    let requestedEnabled = localSettings.zhihuBlocklistFilter;
-    if (requestedEnabled === undefined) {
-      const legacySettings = await chrome.storage.sync.get({
-        zhihuBlocklistFilter: EchoSettings.getDefault('zhihuBlocklistFilter')
-      });
-      requestedEnabled = Boolean(legacySettings.zhihuBlocklistFilter);
-      await saveZhihuSetting(Boolean(requestedEnabled && validSnapshot));
-    }
-    if (requestedEnabled && !validSnapshot) {
-      requestedEnabled = false;
-      await saveZhihuSetting(false);
-    }
-    checkbox.checked = Boolean(requestedEnabled && validSnapshot);
-  };
-
-  const render = () => {
-    const running = ['opening', 'connecting', 'syncing', 'cancelling'].includes(taskState.phase);
-    syncOption.hidden = !(authorized || validSnapshot || running);
-    checkbox.disabled = running;
-    title.textContent = validSnapshot ? '手动同步知乎黑名单' : '同步知乎黑名单';
-
-    if (taskState.phase === 'opening') {
-      status.textContent = '正在打开独立知乎窗口...';
-      status.dataset.state = 'working';
-      button.textContent = '取消同步';
-      button.disabled = false;
-    } else if (taskState.phase === 'connecting') {
-      status.textContent = taskState.message || '正在连接独立知乎窗口...';
-      status.dataset.state = 'working';
-      button.textContent = '取消同步';
-      button.disabled = false;
-    } else if (taskState.phase === 'syncing') {
-      status.textContent = `正在读取 ${taskState.current ?? 0} / ${taskState.total ?? '...'} 人`;
-      status.dataset.state = 'working';
-      button.textContent = '取消同步';
-      button.disabled = false;
-    } else if (taskState.phase === 'cancelling') {
-      status.textContent = '正在取消，已读取的数据不会保存...';
-      status.dataset.state = 'working';
-      button.textContent = '正在取消';
-      button.disabled = true;
-    } else if (taskState.phase === 'failed' || taskState.phase === 'cancelled') {
-      status.textContent = taskState.message || '读取未完成，请重新同步';
-      status.dataset.state = 'error';
-      button.textContent = '重新同步';
-      button.disabled = false;
-    } else if (validSnapshot) {
-      status.textContent = `已同步 ${validSnapshot.total} 人 · ${new Date(validSnapshot.syncedAt).toLocaleString()}`;
-      status.dataset.state = 'success';
-      button.textContent = '同步知乎黑名单';
-      button.disabled = false;
-    } else {
-      status.textContent = '尚未同步。名单按知乎账号保存在本地，不进入同步或备份';
-      status.dataset.state = '';
-      button.textContent = '同步知乎黑名单';
-      button.disabled = false;
-    }
-  };
-
-  const connection = chrome.runtime.connect({ name: EchoMessages.PORTS.ZHIHU_OPTIONS });
-  connection.onMessage.addListener((message) => {
-    if (message?.type !== 'state') return;
-    taskState = message.state || { phase: 'idle' };
-    void refreshLocalState().then(render);
-  });
-
-  checkbox.addEventListener('click', async (event) => {
-    if (!event.target.checked) {
-      await saveZhihuSetting(false);
-      return;
-    }
-    event.preventDefault();
-    checkbox.checked = false;
-    validSnapshot = await readValidSnapshot();
-    if (validSnapshot) {
-      await saveZhihuSetting(true);
-      checkbox.checked = true;
-      syncOption.hidden = false;
-      return;
-    }
-    const confirmed = await showConfirmationModal(CONFIRMATION_CONTENT.zhihuBlocklist);
-    if (!confirmed) {
-      await saveZhihuSetting(false);
-      return;
-    }
-    authorized = true;
-    await chrome.storage.local.set({ zhihuBlocklistAuthorized: true });
-    render();
-    connection.postMessage({ action: 'start', mode: 'first' });
-  });
-
-  button.addEventListener('click', () => {
-    if (['opening', 'connecting', 'syncing'].includes(taskState.phase)) {
-      connection.postMessage({ action: 'cancel' });
-    } else {
-      connection.postMessage({ action: 'start', mode: validSnapshot ? 'manual' : 'first' });
-    }
-  });
-  chrome.storage.onChanged.addListener((changes, areaName) => {
-    if (areaName !== 'local') return;
-    if (changes.zhihuBlocklistFilter || changes.echoZhihuBlocklistV1
-        || changes.zhihuBlocklistAuthorized) void refreshLocalState().then(render);
-  });
-  await refreshLocalState();
-  render();
-}
 
 // ============================================
 // 滚动跟随导航
@@ -1167,279 +1009,30 @@ document.addEventListener('DOMContentLoaded', () => {
 // 备份与恢复
 // ============================================
 
-const BACKUP_SCHEMA_VERSION = 1;
-const WALLPAPER_BACKUP_VALIDATORS = {
-  mode: value => ['daily', 'collection', 'off'].includes(value),
-  quality: value => ['4k', '1080p'].includes(value),
-  pinnedDate: value => value === null || typeof value === 'string',
-  collectionPlayMode: value => ['random', 'fixed'].includes(value),
-  lastActiveMode: value => ['daily', 'collection'].includes(value),
-  autoHideInfo: value => typeof value === 'boolean',
-  minimalMode: value => typeof value === 'boolean',
-  blankMode: value => typeof value === 'boolean',
-  infoPositionY: value => value === null || Number.isFinite(value),
-  lastShownWallpaperId: value => value === null || typeof value === 'string'
-};
-function sanitizeBackupFavorites(value) {
-  if (value === undefined) return [];
-  if (!Array.isArray(value)) throw new Error('favorites 必须是数组');
-  const favorites = [];
-  for (const item of value) {
-    if (typeof item !== 'string') throw new Error('favorites 只能包含字符串');
-    if (!item.startsWith('custom:')) favorites.push(item);
-  }
-  return [...new Set(favorites)];
-}
-
-function sanitizeWallpaperBackup(value) {
-  if (value === undefined) return {};
-  if (!value || typeof value !== 'object' || Array.isArray(value)) {
-    throw new Error('wallpaperSettings 必须是对象');
-  }
-  const result = {};
-  for (const [key, validator] of Object.entries(WALLPAPER_BACKUP_VALIDATORS)) {
-    if (!Object.prototype.hasOwnProperty.call(value, key)) continue;
-    if (!validator(value[key])) throw new Error(`wallpaperSettings.${key} 类型或取值无效`);
-    result[key] = value[key];
-  }
-  // 自定义壁纸 Blob 不进入备份，恢复时不能保留指向本机 Blob 的锁定。
-  if (typeof result.pinnedDate === 'string' && result.pinnedDate.startsWith('custom:')) {
-    result.pinnedDate = null;
-  }
-  return result;
-}
-
-function sanitizeExtensionBackup(value) {
-  if (value === undefined) return {};
-  if (!value || typeof value !== 'object' || Array.isArray(value)) {
-    throw new Error('extensionSettings 必须是对象');
-  }
-  const result = {};
-  for (const [key, item] of Object.entries(value)) {
-    if (key === 'echo_ntp_wallpaper_favorites' || key === 'zhihuBlocklistFilter') continue;
-    const definition = EchoSettings.getDefinition(key);
-    if (!definition || definition.area !== 'sync' || definition.deprecated) continue;
-    if (!EchoSettings.isValid(key, item)) throw new Error(`extensionSettings.${key} 类型或取值无效`);
-    result[key] = item && typeof item === 'object' ? structuredClone(item) : item;
-    // 未知 key 明确忽略，以便较新版本备份可安全降级导入。
-  }
-  return result;
-}
-
-function parseBackupPayload(value) {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) {
-    throw new Error('不是 ECHO 备份对象');
-  }
-  if (!value.version || !value.exportDate) {
-    throw new Error('不是 ECHO 备份文件');
-  }
-  if (value.schemaVersion !== undefined
-      && (!Number.isInteger(value.schemaVersion) || value.schemaVersion < 1 || value.schemaVersion > BACKUP_SCHEMA_VERSION)) {
-    throw new Error(`不支持的备份 schema：${value.schemaVersion}`);
-  }
-  return {
-    favorites: sanitizeBackupFavorites(value.favorites),
-    wallpaperSettings: sanitizeWallpaperBackup(value.wallpaperSettings),
-    extensionSettings: sanitizeExtensionBackup(value.extensionSettings)
-  };
-}
-
 /**
  * 初始化备份与恢复功能
  */
 function initBackupRestore() {
-  const exportBtn = document.getElementById('exportBackup');
-  const importBtn = document.getElementById('importBackup');
-  const fileInput = document.getElementById('importFileInput');
-  
-  exportBtn?.addEventListener('click', handleExportBackup);
-  importBtn?.addEventListener('click', () => fileInput?.click());
-  fileInput?.addEventListener('change', handleImportBackup);
+  backupController.init();
 }
 
 /**
  * 导出备份
  */
 async function handleExportBackup() {
-  const resultEl = document.getElementById('backupResult');
-  try {
-    // 收集所有需要备份的数据
-    const syncData = await chrome.storage.sync.get(null);
-    const localData = await chrome.storage.local.get(['echo_ntp_wallpaper_v2']);
-    
-    // 分离收藏和扩展设置（排除自定义壁纸，它们仅存在于本地 IndexedDB）
-    const favorites = (syncData.echo_ntp_wallpaper_favorites || []).filter(d => !d.startsWith('custom:'));
-    
-    // 扩展功能开关（排除收藏数据，其余都是设置）
-    const extensionSettings = EchoSettings.sanitize('sync', syncData, {
-      includeDeprecated: false
-    }).sanitized;
-    
-    const backup = {
-      backupType: 'echo-extension-backup',
-      schemaVersion: BACKUP_SCHEMA_VERSION,
-      version: chrome.runtime.getManifest().version,
-      exportDate: new Date().toISOString().split('T')[0],
-      exportTimestamp: Date.now(),
-      favorites: favorites,
-      wallpaperSettings: localData.echo_ntp_wallpaper_v2 || {},
-      extensionSettings: extensionSettings
-    };
-    
-    // 生成文件并下载
-    const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const dateStr = new Date().toISOString().split('T')[0];
-    
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `ECHO_备份_${dateStr}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    
-    showBackupResult('success', `已导出备份（含 ${favorites.length} 张壁纸收藏）`);
-  } catch (error) {
-    console.error('[ECHO] 导出备份失败:', error);
-    showBackupResult('error', `导出失败：${error.message}`);
-  }
+  return backupController.handleExportBackup();
 }
 
 /**
  * 导入备份
  */
 async function handleImportBackup(e) {
-  const file = e.target.files?.[0];
-  if (!file) return;
-  
-  // 重置 input 以便可以重复选择同一文件
-  e.target.value = '';
-  
-  try {
-    const text = await file.text();
-    let backup;
-    
-    try {
-      backup = JSON.parse(text);
-    } catch {
-      showBackupResult('error', '文件格式错误：不是有效的 JSON 文件');
-      return;
-    }
-    
-    // 所有字段在任何写入发生前完成校验和清洗。
-    const payload = parseBackupPayload(backup);
-    
-    let restoredFavCount = 0;
-    let settingsRestored = false;
-
-    const currentSync = await chrome.storage.sync.get(null);
-    const currentLocal = await chrome.storage.local.get(['echo_ntp_wallpaper_v2']);
-    const currentFavorites = Array.isArray(currentSync.echo_ntp_wallpaper_favorites)
-      ? currentSync.echo_ntp_wallpaper_favorites
-      : [];
-    const mergedFavorites = [...new Set([...currentFavorites, ...payload.favorites])];
-    const syncUpdates = { ...payload.extensionSettings };
-    if (payload.favorites.length > 0) {
-      syncUpdates.echo_ntp_wallpaper_favorites = mergedFavorites;
-      syncUpdates.echo_ntp_wallpaper_favorites_meta = {
-        schemaVersion: 1,
-        updatedAt: Date.now()
-      };
-    }
-    const hasWallpaperSettings = Object.keys(payload.wallpaperSettings).length > 0;
-    const touchedSyncKeys = Object.keys(syncUpdates);
-
-    try {
-      if (touchedSyncKeys.length) await chrome.storage.sync.set(syncUpdates);
-      if (hasWallpaperSettings) {
-        await chrome.storage.local.set({ echo_ntp_wallpaper_v2: payload.wallpaperSettings });
-      }
-    } catch (writeError) {
-      // Chrome storage 不支持跨区域事务；只回滚本次触及的键，避免清除并发写入的其他设置。
-      const syncRollback = {};
-      const syncRemove = [];
-      for (const key of touchedSyncKeys) {
-        if (Object.prototype.hasOwnProperty.call(currentSync, key)) syncRollback[key] = currentSync[key];
-        else syncRemove.push(key);
-      }
-      try {
-        if (Object.keys(syncRollback).length) await chrome.storage.sync.set(syncRollback);
-        if (syncRemove.length) await chrome.storage.sync.remove(syncRemove);
-        if (hasWallpaperSettings) {
-          if (Object.prototype.hasOwnProperty.call(currentLocal, 'echo_ntp_wallpaper_v2')) {
-            await chrome.storage.local.set({ echo_ntp_wallpaper_v2: currentLocal.echo_ntp_wallpaper_v2 });
-          } else {
-            await chrome.storage.local.remove('echo_ntp_wallpaper_v2');
-          }
-        }
-      } catch (rollbackError) {
-        throw new Error(`导入失败且回滚未完整完成：${writeError.message}；${rollbackError.message}`);
-      }
-      throw writeError;
-    }
-
-    restoredFavCount = mergedFavorites.length - currentFavorites.length;
-    settingsRestored = hasWallpaperSettings || Object.keys(payload.extensionSettings).length > 0;
-    if (Object.keys(payload.extensionSettings).length > 0) await loadSettings();
-    
-    // 结果提示
-    const parts = [];
-    if (restoredFavCount > 0) {
-      parts.push(`新增 ${restoredFavCount} 张壁纸收藏`);
-    } else if (payload.favorites.length > 0) {
-      parts.push(`壁纸收藏已是最新（${payload.favorites.length} 张已存在）`);
-    }
-    if (settingsRestored) {
-      parts.push('设置已恢复');
-    }
-    
-    const msg = parts.length > 0 ? parts.join('，') : '备份文件中没有需要恢复的数据';
-    showBackupResult('success', `${msg}。新标签页将在下次打开时生效`);
-    
-  } catch (error) {
-    console.error('[ECHO] 导入备份失败:', error);
-    showBackupResult('error', `导入失败：${error.message}`);
-  }
+  return backupController.handleImportBackup(e);
 }
 
 /**
  * 显示备份操作结果（复用快速保存图片的 toast 风格）
  */
-let backupToast = null;
-let backupToastTimeout = null;
-
 function showBackupResult(type, message) {
-  if (!backupToast) {
-    backupToast = document.createElement('div');
-    backupToast.className = 'backup-toast';
-    document.body.appendChild(backupToast);
-  }
-  
-  const icons = {
-    success: `<svg width="20" height="20" viewBox="0 0 16 16" fill="none" style="flex-shrink:0">
-      <circle cx="8" cy="8" r="7" stroke="#34d399" stroke-width="1.5" fill="rgba(52,211,153,0.12)"/>
-      <path d="M5 8.2l2 2 4-4.4" stroke="#34d399" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-    </svg>`,
-    error: `<svg width="20" height="20" viewBox="0 0 16 16" fill="none" style="flex-shrink:0">
-      <circle cx="8" cy="8" r="7" stroke="#f87171" stroke-width="1.5" fill="rgba(248,113,113,0.12)"/>
-      <path d="M5.5 5.5l5 5M10.5 5.5l-5 5" stroke="#f87171" stroke-width="1.5" stroke-linecap="round"/>
-    </svg>`
-  };
-  
-  const icon = icons[type] || icons.success;
-  backupToast.innerHTML = icon + `<span>${message}</span>`;
-  
-  // 入场动画
-  requestAnimationFrame(() => {
-    backupToast.classList.add('visible');
-  });
-  
-  if (backupToastTimeout) clearTimeout(backupToastTimeout);
-  
-  backupToastTimeout = setTimeout(() => {
-    if (backupToast) {
-      backupToast.classList.remove('visible');
-    }
-  }, 4000);
+  return backupController.showBackupResult(type, message);
 }

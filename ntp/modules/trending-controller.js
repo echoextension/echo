@@ -148,10 +148,10 @@
       const cacheKey = `${storageKeys.cache}_baidu_${category.tab}`;
       updateTitle(category);
       try {
-        const cached = (await chromeApi.storage.local.get(cacheKey))[cacheKey];
+        let cached = (await chromeApi.storage.local.get(cacheKey))[cacheKey];
         if (cached?.data?.length < minimumItems) {
-          markDisabled(categoryIndex);
-          return;
+          await chromeApi.storage.local.remove(cacheKey);
+          cached = null;
         }
         if (cached?.data && currentIndex === expectedIndex) {
           render(cached.data);
@@ -169,12 +169,13 @@
         const data = raw.slice(0, 20)
           .map(item => ({ title: item.word || item.title || '' }))
           .filter(item => item.title);
-        const timestamp = Date.now();
-        await chromeApi.storage.local.set({ [cacheKey]: { data, timestamp } });
         if (data.length < minimumItems) {
           markDisabled(categoryIndex);
           return;
         }
+        const timestamp = Date.now();
+        await chromeApi.storage.local.set({ [cacheKey]: { data, timestamp } });
+        if (disabled.delete(categoryIndex)) updateDots();
         if (currentIndex === expectedIndex) {
           render(data);
           updateTime(timestamp);

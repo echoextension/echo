@@ -229,7 +229,8 @@ const wallpaperSyncController = EchoNtpWallpaperSyncController.create({
   getLocalFallbackTimestamp: async () => {
     const value = (await chrome.storage.local.get(WALLPAPER_FAVORITES_KEY))[WALLPAPER_FAVORITES_KEY];
     return Number.isFinite(value?.updatedAt) ? value.updatedAt : 0;
-  }
+  },
+  fingerprintFavorites: EchoNtpWallpaperRepository.fingerprintFavorites
 });
 
 /**
@@ -240,16 +241,15 @@ async function loadWallpaperSettings() {
     await wallpaperRepository.load(wallpaperState);
   } catch (error) {
     console.error('[ECHO NTP] 加载壁纸设置失败:', error);
-    throw error;
   }
 }
 
 /**
  * 保存壁纸设置
  */
-async function saveWallpaperSettings() {
+async function saveWallpaperSettings(settings = wallpaperState.settings) {
   try {
-    await wallpaperRepository.saveSettings(wallpaperState.settings);
+    await wallpaperRepository.saveSettings(settings);
   } catch (error) {
     console.error('[ECHO NTP] 保存壁纸设置失败:', error);
     throw error;
@@ -259,10 +259,15 @@ async function saveWallpaperSettings() {
 /**
  * 保存收藏（使用 sync 存储实现跨设备同步）
  */
-async function saveFavorites() {
+async function saveFavorites(value = wallpaperState.favorites, saveOptions = {}) {
   try {
-    const result = await wallpaperRepository.saveFavorites(wallpaperState.favorites);
-    wallpaperState.favorites = result.favorites;
+    const favorites = [...value];
+    const result = await wallpaperRepository.saveFavorites(favorites, saveOptions);
+    if (wallpaperState.favorites.length === favorites.length
+        && wallpaperState.favorites.every((item, index) => item === favorites[index])) {
+      wallpaperState.favorites = result.favorites;
+    }
+    return result;
   } catch (error) {
     console.error('[ECHO NTP] 保存收藏失败:', error);
     throw error;

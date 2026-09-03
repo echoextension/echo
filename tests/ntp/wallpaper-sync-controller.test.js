@@ -7,19 +7,27 @@ import { createScriptDom, executeWindowScript, flushAsyncWork } from '../helpers
 
 let dom;
 
+function deferred() {
+  let resolve;
+  const promise = new Promise(value => { resolve = value; });
+  return { promise, resolve };
+}
+
 async function setup(overrides = {}) {
-  const chrome = createFakeChrome();
+  const chrome = overrides.chrome || createFakeChrome();
   dom = await createScriptDom({ chrome });
   await executeWindowScript(dom, 'ntp/modules/wallpaper-sync-controller.js');
   const applySyncedFavorites = vi.fn(async () => {});
   const refreshIfVisible = vi.fn();
+  const { chrome: _ignoredChrome, ...controllerOverrides } = overrides;
   const controller = dom.window.EchoNtpWallpaperSyncController.create({
     chrome,
     favoritesKey: 'favorites',
     favoritesMetaKey: 'favorites_meta',
+    fingerprintFavorites: favorites => JSON.stringify(favorites),
     commands: { applySyncedFavorites },
     collection: { refreshIfVisible },
-    ...overrides
+    ...controllerOverrides
   });
   controller.register();
   return { applySyncedFavorites, chrome, refreshIfVisible };
@@ -82,5 +90,132 @@ describe('wallpaper sync controller', () => {
 
     expect(applySyncedFavorites).not.toHaveBeenCalled();
     expect(refreshIfVisible).not.toHaveBeenCalled();
+  });
+
+  it('applies a consistent snapshot when favorites and metadata arrive separately', async () => {
+    const chrome = createFakeChrome();
+    const getLocalFallbackTimestamp = vi.fn(async () => 20);
+    const { applySyncedFavorites } = await setup({ chrome, getLocalFallbackTimestamp });
+
+    await chrome.storage.sync.set({ favorites: ['new-remote'] });
+    await flushAsyncWork();
+    expect(applySyncedFavorites).not.toHaveBeenCalled();
+
+    await chrome.storage.sync.set({
+      favorites_meta: {
+        schemaVersion: 1,
+        updatedAt: 30,
+        fingerprint: JSON.stringify(['new-remote'])
+      }
+    });
+    await flushAsyncWork();
+
+    expect(applySyncedFavorites).toHaveBeenCalledOnce();
+    expect(applySyncedFavorites).toHaveBeenCalledWith(['new-remote'], ['new-remote']);
+  });
+
+  it('does not combine newer metadata with older favorites', async () => {
+    const chrome = createFakeChrome({
+      storage: {
+        sync: {
+          favorites: ['old-remote'],
+          favorites_meta: {
+            schemaVersion: 1,
+            updatedAt: 10,
+            fingerprint: JSON.stringify(['old-remote'])
+          }
+        }
+      }
+    });
+    const { applySyncedFavorites } = await setup({ chrome });
+
+    await chrome.storage.sync.set({
+      favorites_meta: {
+        schemaVersion: 1,
+        updatedAt: 20,
+        fingerprint: JSON.stringify(['new-remote'])
+      }
+    });
+    await flushAsyncWork();
+
+    expect(applySyncedFavorites).not.toHaveBeenCalled();
+
+    await chrome.storage.sync.set({ favorites: ['new-remote'] });
+    await flushAsyncWork();
+
+    expect(applySyncedFavorites).toHaveBeenCalledOnce();
+    expect(applySyncedFavorites).toHaveBeenCalledWith(['new-remote'], ['new-remote']);
+  });
+
+  it('applies a legacy snapshot after both keys arrive in separate events', async () => {
+    const chrome = createFakeChrome();
+    const { applySyncedFavorites } = await setup({ chrome });
+
+    await chrome.storage.sync.set({ favorites_meta: { schemaVersion: 1, updatedAt: 10 } });
+    await flushAsyncWork();
+    expect(applySyncedFavorites).not.toHaveBeenCalled();
+
+    await chrome.storage.sync.set({ favorites: ['legacy-remote'] });
+    await flushAsyncWork();
+
+    expect(applySyncedFavorites).toHaveBeenCalledOnce();
+    expect(applySyncedFavorites).toHaveBeenCalledWith(['legacy-remote'], ['legacy-remote']);
+  });
+
+  it('applies a favorites-only update from an older client despite a stale fingerprinted meta', async () => {
+    const chrome = createFakeChrome({
+      storage: {
+        sync: {
+          favorites: ['baseline'],
+          favorites_meta: {
+            schemaVersion: 1,
+            updatedAt: 10,
+            fingerprint: JSON.stringify(['baseline'])
+          }
+        }
+      }
+    });
+    const { applySyncedFavorites } = await setup({ chrome, now: () => 20 });
+
+    await chrome.storage.sync.set({ favorites: ['legacy-client-update'] });
+    await flushAsyncWork();
+
+    expect(applySyncedFavorites).toHaveBeenCalledOnce();
+    expect(applySyncedFavorites).toHaveBeenCalledWith(
+      ['legacy-client-update'],
+      ['legacy-client-update']
+    );
+  });
+
+  it('does not let a slow older snapshot overwrite a newer synchronized snapshot', async () => {
+    const firstResolution = deferred();
+    const resolveAvailableFavorites = vi.fn(favorites => favorites[0] === 'first'
+      ? firstResolution.promise
+      : Promise.resolve(favorites));
+    const { applySyncedFavorites, chrome } = await setup({ resolveAvailableFavorites });
+
+    await chrome.storage.sync.set({
+      favorites: ['first'],
+      favorites_meta: {
+        schemaVersion: 1,
+        updatedAt: 10,
+        fingerprint: JSON.stringify(['first'])
+      }
+    });
+    await flushAsyncWork();
+    await chrome.storage.sync.set({
+      favorites: ['second'],
+      favorites_meta: {
+        schemaVersion: 1,
+        updatedAt: 20,
+        fingerprint: JSON.stringify(['second'])
+      }
+    });
+    await flushAsyncWork();
+    firstResolution.resolve(['first']);
+    await flushAsyncWork(8);
+
+    expect(applySyncedFavorites).toHaveBeenCalledOnce();
+    expect(applySyncedFavorites).toHaveBeenCalledWith(['second'], ['second']);
   });
 });

@@ -19,6 +19,12 @@
       options.theme.applyInfoTheme(image);
     }
 
+    function cancel() {
+      renderRequestId += 1;
+      state.wallpaperRenderRequestId = renderRequestId;
+      state.isWallpaperLoading = false;
+    }
+
     function updateUi(wallpaper) {
       options.updateInfo(wallpaper);
       options.updateStatus();
@@ -181,7 +187,7 @@
       await display(state.history[state.browseIndex], fallbackAttempts + 1);
     }
 
-    return Object.freeze({ display, preload, showImage });
+    return Object.freeze({ cancel, display, preload, showImage });
   }
 
   root.EchoNtpWallpaperRenderer = Object.freeze({ create });

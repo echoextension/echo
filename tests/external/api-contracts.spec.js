@@ -28,7 +28,7 @@ test('remote wallpaper history retains the packaged wallpaper schema', async ({ 
   const body = await response.json();
   expect(Array.isArray(body)).toBe(true);
   expect(body.length).toBeGreaterThan(100);
-  for (const wallpaper of body.slice(0, 20)) {
+  for (const wallpaper of body) {
     expect(typeof wallpaper.id).toBe('string');
     expect(validDate(wallpaper.date)).toBe(true);
     expect(typeof wallpaper.desc).toBe('string');
@@ -43,6 +43,7 @@ test('Baidu realtime board retains the data path consumed by NTP', async ({ requ
   });
   expect(response.ok()).toBe(true);
   const body = await response.json();
+  expect(body?.success).toBe(true);
   const items = body?.data?.cards?.[0]?.content?.[0]?.content;
   expect(Array.isArray(items)).toBe(true);
   expect(items.length).toBeGreaterThanOrEqual(20);
@@ -58,5 +59,5 @@ test('Toutiao hot board remains a JSON list', async ({ request }) => {
   const body = await response.json();
   expect(Array.isArray(body?.data)).toBe(true);
   expect(body.data.length).toBeGreaterThan(0);
-  expect(body.data.some(item => typeof (item.Title || item.title) === 'string')).toBe(true);
+  expect(body.data.some(item => typeof item.Title === 'string')).toBe(true);
 });

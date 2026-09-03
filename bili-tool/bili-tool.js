@@ -24,83 +24,23 @@
   }
 
   let settings = await chrome.storage.sync.get(DEFAULT_SETTINGS);
-  if (!settings.biliTool) return;
 
   // 监听设置变化（用户在设置页关闭时立即生效）
   chrome.storage.onChanged.addListener((changes, areaName) => {
     if (areaName === 'sync' && changes.biliTool) {
       settings.biliTool = changes.biliTool.newValue;
       if (!settings.biliTool) {
+        stopWaitingForPlayer();
         clearAllEffects();
         hideCapsule();
-      } else if (isBilibiliVideoPage()) {
-        if (!shadowHost) createCapsuleUI();
-        else showCapsule();
-        bindVideoRateChange();
+      } else {
+        init();
       }
     }
   });
 
   // ============ SVG 资产 ============
-
-  // ====== 1. 颜色段图标：双矩形交替填充动画 ======
-  const SVG_COLOR = `
-<svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-  <rect x="1" y="3" width="10" height="18" rx="2" stroke="#f30c5f" stroke-width="1.2">
-    <animate attributeName="fill" values="#f30c5f;white;#f30c5f" keyTimes="0;0.5;1" dur="4s" repeatCount="indefinite"/>
-  </rect>
-  <rect x="13" y="3" width="10" height="18" rx="2" stroke="#f30c5f" stroke-width="1.2">
-    <animate attributeName="fill" values="white;#f30c5f;white" keyTimes="0;0.5;1" dur="4s" repeatCount="indefinite"/>
-  </rect>
-</svg>`;
-
-  // ====== 2. 旋转段图标：文档框旋转动画 ======
-  const SVG_ROTATE = `
-<svg width="20" height="20" viewBox="0 0 24 24" fill="white" stroke="#f30c5f" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
-  <g>
-    <animateTransform attributeName="transform" type="rotate" values="0 12 12;0 12 12;90 12 12;90 12 12;0 12 12" keyTimes="0;0.35;0.5;0.85;1" dur="3s" repeatCount="indefinite"/>
-    <rect x="4" y="5" width="16" height="14" rx="2"/>
-    <path d="M9 9l6 0"/>
-    <path d="M9 13l3 0"/>
-  </g>
-</svg>`;
-
-  // ====== 3. 倍速段图标：双三角闪烁动画 ======
-  const SVG_SPEED = `
-<svg width="20" height="20" viewBox="0 0 24 24" fill="#f30c5f" stroke="none">
-  <polygon points="4,3 14,12 4,21">
-    <animate attributeName="opacity" values="1;0.3;1" dur="3s" repeatCount="indefinite"/>
-  </polygon>
-  <polygon points="13,6 20,12 13,18">
-    <animate attributeName="opacity" values="0.3;1;0.3" dur="3s" repeatCount="indefinite"/>
-  </polygon>
-</svg>`;
-
-  // ====== 4. 重置段图标：B站小电视眨眼 ======
-  const SVG_RESET = `
-<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f30c5f" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-  <rect x="2" y="5" width="20" height="14" rx="3" fill="white"/>
-  <path d="M8 2L10 5"/><path d="M16 2L14 5"/>
-  <ellipse cx="9" cy="11" rx="1.5" ry="1.5" fill="#f30c5f" stroke="none">
-    <animate attributeName="ry" values="1.5;0.2;1.5" keyTimes="0;0.5;1" dur="3s" repeatCount="indefinite"/>
-  </ellipse>
-  <ellipse cx="15" cy="11" rx="1.5" ry="1.5" fill="#f30c5f" stroke="none">
-    <animate attributeName="ry" values="1.5;0.2;1.5" keyTimes="0;0.5;1" dur="3s" repeatCount="indefinite"/>
-  </ellipse>
-</svg>`;
-
-  // ====== 色板（B站粉色系） ======
-  // 主色：#fb7299（B站品牌粉）
-  // 胶囊背景（收起态）：rgba(251,114,153,0.12) 或 #2A1520（深色模式）
-  // 胶囊背景（hover）：rgba(251,114,153,0.20)
-  // 段高亮（有效果激活）：rgba(251,114,153,0.35)
-  // 面板背景：rgba(30,20,25,0.95)（深色）/ rgba(255,245,248,0.95)（浅色）
-  // 按钮默认：rgba(251,114,153,0.08)
-  // 按钮 hover：rgba(251,114,153,0.15)
-  // 按钮 active（功能开启）：#fb7299 文字白色
-  // 文字主色：#fb7299
-  // 文字副色：rgba(251,114,153,0.6)
-  // 分割线：rgba(251,114,153,0.15)
+  const { CHANNEL_SWAPS, SVG_COLOR, SVG_RESET, SVG_ROTATE, SVG_SPEED } = EchoBiliToolAssets;
 
   // ============ 状态变量 ============
   let invertActive = 0; // 0=关, 1=全反转, 2=R反转, 3=G反转, 4=B反转
@@ -119,13 +59,6 @@
   let ratechangeHandler = null;
   let rawVideoEl = null;
   let videoSourceHandler = null;
-
-  // 通道交换定义
-  const CHANNEL_SWAPS = [
-    { id: 1, label: '红↔绿', title: '红↔绿 通道交换', rows: [0, 1], colors: ['#FF0000', '#00CC00'] },
-    { id: 2, label: '绿↔蓝', title: '绿↔蓝 通道交换', rows: [1, 2], colors: ['#00CC00', '#4488FF'] },
-    { id: 3, label: '蓝↔红', title: '蓝↔红 通道交换', rows: [2, 0], colors: ['#4488FF', '#FF0000'] },
-  ];
 
   // ============ 页面检测 ============
   function isBilibiliVideoPage() {
@@ -433,397 +366,6 @@
     video.playbackRate = (video.playbackRate === rate) ? 1.0 : rate;
   }
 
-  // ============ 样式 ============
-  function getStyles() {
-    return `
-      :host {
-        all: initial;
-        position: fixed !important;
-        left: 0 !important;
-        top: var(--echo-top, 50%) !important;
-        transform: translateY(-50%);
-        z-index: 2147483647 !important;
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
-        pointer-events: auto;
-      }
-
-      .bili-tool-container {
-        display: flex;
-        flex-direction: column;
-        position: relative;
-      }
-
-      /* ---- 胶囊轨道 ---- */
-      .capsule-rail {
-        display: flex;
-        flex-direction: column;
-        background: rgba(255, 255, 255, 0.96);
-        backdrop-filter: blur(12px);
-        -webkit-backdrop-filter: blur(12px);
-        border-radius: 0 12px 12px 0;
-        border: 0.5px solid rgba(251,114,153,0.35);
-        border-left: none;
-        box-shadow: 2px 0 12px rgba(0, 0, 0, 0.08), 0 2px 8px rgba(0, 0, 0, 0.04);
-        overflow: hidden;
-        padding: 2px 0;
-      }
-
-      /* ---- 拖拽手柄 ---- */
-      .drag-handle {
-        width: 40px;
-        height: 12px;
-        display: grid;
-        grid-template-columns: repeat(3, 3px);
-        grid-template-rows: repeat(2, 3px);
-        gap: 2px;
-        justify-content: center;
-        align-content: center;
-        padding-right: 4px;
-        box-sizing: border-box;
-        cursor: grab;
-        user-select: none;
-        background: rgba(251,114,153,0.03);
-        transition: background 0.15s;
-      }
-      .drag-handle span {
-        width: 3px;
-        height: 3px;
-        border-radius: 50%;
-        background: rgba(251,114,153,0.25);
-        transition: background 0.15s;
-      }
-      .drag-handle:hover {
-        background: rgba(251,114,153,0.06);
-      }
-      .drag-handle:hover span {
-        background: rgba(251,114,153,0.5);
-      }
-      .drag-handle:active {
-        cursor: grabbing;
-      }
-      .drag-handle:active span {
-        background: rgba(251,114,153,0.7);
-      }
-
-      /* ---- 四段胶囊 ---- */
-      .capsule-segment {
-        width: 40px;
-        height: 52px;
-        background: rgba(251,114,153,0.03);
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        gap: 2px;
-        padding-left: 4px;
-        padding-right: 4px;
-        box-sizing: border-box;
-        cursor: pointer;
-        user-select: none;
-        transition: background 0.2s, color 0.2s;
-      }
-
-      .capsule-segment:hover {
-        background: rgba(251,114,153,0.10);
-      }
-
-      .capsule-segment.active {
-        background: rgba(251,114,153,0.30);
-      }
-
-      .capsule-segment.has-effect {
-        background: #df497f;
-      }
-      .capsule-segment.has-effect .seg-label {
-        color: #fff;
-      }
-      .capsule-segment.has-effect svg {
-        filter: brightness(0) invert(1);
-      }
-      .capsule-segment.has-effect:hover {
-        background: #c93d6e;
-      }
-
-      .capsule-segment .seg-icon {
-        width: 20px;
-        height: 20px;
-        flex-shrink: 0;
-      }
-
-      .capsule-segment .seg-label {
-        font-size: 11px;
-        color: #f30c5f;
-        font-weight: 400;
-        letter-spacing: 1px;
-        line-height: 1;
-      }
-
-      .segment-divider {
-        display: none;
-      }
-
-      /* ---- 弹出面板 ---- */
-      .panel {
-        display: none;
-        position: absolute;
-        left: 43px;
-        flex-direction: column;
-        gap: 8px;
-        padding: 14px;
-        background: rgba(255,255,255,0.96);
-        border: 0.5px solid rgba(251,114,153,0.18);
-        border-left: none;
-        border-radius: 0 12px 12px 0;
-        backdrop-filter: blur(16px);
-        -webkit-backdrop-filter: blur(16px);
-        width: fit-content;
-        box-shadow: 4px 2px 20px rgba(0,0,0,0.08);
-        animation: slideRight 0.15s ease-out;
-      }
-
-      .panel-title {
-        font-size: 12px;
-        font-weight: 600;
-        color: rgba(251,114,153,0.85);
-        margin-bottom: 4px;
-      }
-
-      .panel.show {
-        display: flex;
-      }
-
-      @keyframes slideRight {
-        from { opacity: 0; transform: translateX(-8px); }
-        to { opacity: 1; transform: translateX(0); }
-      }
-
-      /* ---- 按钮组 ---- */
-      .btn-grid {
-        display: flex;
-        flex-direction: row;
-        flex-wrap: wrap;
-        gap: 8px;
-      }
-
-      .tool-btn {
-        height: 34px;
-        min-width: 92px;
-        padding: 0 14px;
-        border: 1px solid rgba(244,31,107,0.25);
-        border-radius: 8px;
-        background: rgba(251,114,153,0.06);
-        color: #F41F6B;
-        font-size: 12px;
-        font-family: inherit;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 5px;
-        white-space: nowrap;
-        transition: background 0.15s, color 0.15s;
-      }
-
-      .tool-btn:hover {
-        background: rgba(251,114,153,0.13);
-      }
-
-      .tool-btn.active {
-        background: #df497f;
-        color: #fff;
-      }
-
-      .tool-btn.active:hover {
-        background: #c93d6e;
-      }
-
-      .tool-btn.active svg {
-        stroke: #fff;
-      }
-      .tool-btn.active svg path[fill]:not([fill="none"]),
-      .tool-btn.active svg circle[fill]:not([fill="none"]) {
-        fill: #fff;
-      }
-
-      /* 单通道反转：图标按通道染色，区分 R/G/B 状态 */
-      .tool-btn.active[data-invert-mode="2"] svg { stroke: #FF3B30; }
-      .tool-btn.active[data-invert-mode="2"] svg path[fill]:not([fill="none"]),
-      .tool-btn.active[data-invert-mode="2"] svg circle[fill]:not([fill="none"]) { fill: #FF3B30; }
-      .tool-btn.active[data-invert-mode="3"] svg { stroke: #34C759; }
-      .tool-btn.active[data-invert-mode="3"] svg path[fill]:not([fill="none"]),
-      .tool-btn.active[data-invert-mode="3"] svg circle[fill]:not([fill="none"]) { fill: #34C759; }
-      .tool-btn.active[data-invert-mode="4"] svg { stroke: #4A8CFF; }
-      .tool-btn.active[data-invert-mode="4"] svg path[fill]:not([fill="none"]),
-      .tool-btn.active[data-invert-mode="4"] svg circle[fill]:not([fill="none"]) { fill: #4A8CFF; }
-
-      .tool-btn.disabled {
-        opacity: 0.3;
-        cursor: default;
-        pointer-events: none;
-      }
-
-      /* ---- 偏移 stepper（与 tool-btn 同高同风格的分段控件）---- */
-      .offset-stepper {
-        display: flex;
-        align-items: stretch;
-        height: 34px;
-        border: 1px solid rgba(244,31,107,0.25);
-        border-radius: 8px;
-        background: rgba(251,114,153,0.06);
-        overflow: hidden;
-      }
-      .offset-stepper.disabled {
-        opacity: 0.3;
-        pointer-events: none;
-      }
-      .offset-stepper-btn {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        width: 26px;
-        border: none;
-        background: transparent;
-        color: #F41F6B;
-        cursor: pointer;
-        padding: 0;
-        transition: background 0.15s;
-      }
-      .offset-stepper-btn:hover:not(.disabled) {
-        background: rgba(251,114,153,0.13);
-      }
-      .offset-stepper-btn.disabled {
-        opacity: 0.35;
-        cursor: default;
-      }
-      .offset-stepper-value {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        min-width: 38px;
-        padding: 0 4px;
-        font-size: 12px;
-        color: #F41F6B;
-        font-family: inherit;
-        border-left: 1px solid rgba(244,31,107,0.18);
-        border-right: 1px solid rgba(244,31,107,0.18);
-        user-select: none;
-      }
-
-      /* ---- 右键菜单 ---- */
-      .context-menu {
-        display: none;
-        position: absolute;
-        left: 42px;
-        top: 0;
-        flex-direction: column;
-        background: rgba(255,255,255,0.96);
-        border: 0.5px solid rgba(251,114,153,0.18);
-        border-radius: 12px;
-        backdrop-filter: blur(16px);
-        -webkit-backdrop-filter: blur(16px);
-        box-shadow: 0 4px 20px rgba(0,0,0,0.12);
-        padding: 4px;
-        z-index: 10;
-        min-width: 110px;
-        animation: slideRight 0.12s ease-out;
-      }
-      .context-menu.show {
-        display: flex;
-      }
-      .context-menu-item {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        padding: 7px 12px;
-        font-size: 12px;
-        color: #F41F6B;
-        cursor: pointer;
-        border-radius: 6px;
-        white-space: nowrap;
-        transition: background 0.12s;
-        border: none;
-        background: none;
-        font-family: inherit;
-      }
-      .context-menu-item:hover {
-        background: rgba(251,114,153,0.12);
-      }
-      .context-menu-item svg {
-        width: 14px;
-        height: 14px;
-        flex-shrink: 0;
-      }
-
-      /* ---- 深色模式 ---- */
-      @media (prefers-color-scheme: dark) {
-        .capsule-rail {
-          background: rgba(30, 20, 25, 0.92);
-          box-shadow: 2px 0 12px rgba(0, 0, 0, 0.3);
-        }
-        .drag-handle {
-          background: rgba(251,114,153,0.02);
-        }
-        .drag-handle span {
-          background: rgba(251,114,153,0.2);
-        }
-        .drag-handle:hover {
-          background: rgba(251,114,153,0.05);
-        }
-        .drag-handle:hover span {
-          background: rgba(251,114,153,0.4);
-        }
-        .capsule-segment {
-          background: rgba(251,114,153,0.06);
-        }
-        .capsule-segment:hover {
-          background: rgba(251,114,153,0.14);
-        }
-        .capsule-segment.active {
-          background: rgba(251,114,153,0.25);
-        }
-        .capsule-segment .seg-label {
-          color: rgba(251,114,153,0.85);
-        }
-        .panel {
-          background: rgba(35, 25, 30, 0.95);
-          border-color: rgba(251,114,153,0.10);
-          box-shadow: 0 4px 24px rgba(0, 0, 0, 0.35), 0 1px 4px rgba(0, 0, 0, 0.15);
-        }
-        .panel-title {
-          color: rgba(251,114,153,0.55);
-        }
-        .tool-btn {
-          background: rgba(251,114,153,0.06);
-          color: rgba(251,114,153,0.5);
-        }
-        .tool-btn:hover {
-          background: rgba(251,114,153,0.10);
-        }
-        .tool-btn.active {
-          background: #fb7299;
-          color: #fff;
-        }
-        .tool-btn.active:hover {
-          background: #e5637f;
-        }
-        .offset-stepper {
-          background: rgba(251,114,153,0.06);
-          border-color: rgba(251,114,153,0.18);
-        }
-        .offset-stepper-btn {
-          color: rgba(251,114,153,0.7);
-        }
-        .offset-stepper-btn:hover:not(.disabled) {
-          background: rgba(251,114,153,0.10);
-        }
-        .offset-stepper-value {
-          color: rgba(251,114,153,0.7);
-          border-color: rgba(251,114,153,0.12);
-        }
-      }
-    `;
-  }
-
   // 缩放补偿相关变量
   let currentZoomLevel = 1;
 
@@ -922,7 +464,7 @@
     const shadow = host.attachShadow({ mode: 'closed' });
 
     const style = document.createElement('style');
-    style.textContent = getStyles();
+    style.textContent = EchoBiliToolStyles.getStyles();
     shadow.appendChild(style);
 
     const container = document.createElement('div');
@@ -1431,33 +973,59 @@
       // 延迟检测新页面是否有播放器（SPA 动态加载）
       routeChangeTimer = setTimeout(() => {
         routeChangeTimer = null;
+        if (!settings.biliTool) {
+          hideCapsule();
+          return;
+        }
         if (isBilibiliVideoPage()) {
           if (!shadowHost) createCapsuleUI();
           else showCapsule();
           bindVideoRateChange();
         } else {
           hideCapsule();
+          waitForPlayer();
         }
       }, 1500);
     }
   }
 
   // ============ 初始化 ============
+  let playerObserver = null;
+  let playerObserverTimeout = null;
+
+  function stopWaitingForPlayer() {
+    playerObserver?.disconnect();
+    playerObserver = null;
+    if (playerObserverTimeout) clearTimeout(playerObserverTimeout);
+    playerObserverTimeout = null;
+  }
+
+  function waitForPlayer() {
+    stopWaitingForPlayer();
+    playerObserver = new MutationObserver(() => {
+      if (!settings.biliTool || !document.querySelector('.bpx-player-video-wrap')) return;
+      stopWaitingForPlayer();
+      if (shadowHost) showCapsule();
+      else createCapsuleUI();
+      bindVideoRateChange();
+    });
+    playerObserver.observe(document.body, { childList: true, subtree: true });
+    playerObserverTimeout = setTimeout(stopWaitingForPlayer, 15000);
+  }
+
   function init() {
+    if (!settings.biliTool) {
+      stopWaitingForPlayer();
+      return;
+    }
     initRouteListener();
     if (isBilibiliVideoPage()) {
-      createCapsuleUI();
+      stopWaitingForPlayer();
+      if (shadowHost) showCapsule();
+      else createCapsuleUI();
+      bindVideoRateChange();
     } else if (window.location.hostname.includes('bilibili.com')) {
-      // 播放器 DOM 可能尚未渲染（慢连接等），用 MutationObserver 等待出现
-      const initObserver = new MutationObserver(() => {
-        if (document.querySelector('.bpx-player-video-wrap')) {
-          initObserver.disconnect();
-          clearTimeout(initTimeout);
-          createCapsuleUI();
-        }
-      });
-      initObserver.observe(document.body, { childList: true, subtree: true });
-      const initTimeout = setTimeout(() => initObserver.disconnect(), 15000);
+      waitForPlayer();
     }
   }
 

@@ -11,9 +11,13 @@
     const cache = options.cache;
     const imageProcessor = options.imageProcessor;
     const now = options.now || Date.now;
-    let uploadQueue = Promise.resolve();
+    let mutationQueue = Promise.resolve();
     let lastTimestamp = 0;
     const deletedDates = new Set();
+
+    function sameList(left, right) {
+      return left.length === right.length && left.every((item, index) => item === right[index]);
+    }
 
     function count() {
       const favorites = state.availableFavorites || state.favorites;
@@ -64,6 +68,7 @@
       const previousPinnedDate = state.settings.pinnedDate;
       const previousPreview = state.isPreview;
       let metadataChanged = false;
+      let expectedFavorites = null;
       try {
         let timestamp = Math.max(now(), lastTimestamp + 1);
         while (state.history.some(wallpaper => wallpaper.date === `custom:${timestamp}`)) timestamp += 1;
@@ -88,8 +93,9 @@
         state.history.unshift(wallpaper);
         state.favorites.push(dateKey);
         state.availableFavorites = [...previousAvailableFavorites, dateKey];
+        expectedFavorites = [...state.favorites];
         metadataChanged = true;
-        await options.saveFavorites();
+        await options.saveFavorites(expectedFavorites);
         state.settings.pinnedDate = dateKey;
         state.isPreview = false;
         await options.saveSettings();
@@ -97,15 +103,21 @@
         options.refreshStatus();
         return wallpaper;
       } catch (error) {
-        state.history = previousHistory;
-        state.favorites = previousFavorites;
-        state.availableFavorites = previousAvailableFavorites;
-        state.settings.pinnedDate = previousPinnedDate;
-        state.isPreview = previousPreview;
+        const ownsFavorites = metadataChanged && sameList(state.favorites, expectedFavorites);
+        const containsFailedDate = state.favorites.includes(dateKey);
+        state.history = state.history.filter(wallpaper => wallpaper.date !== dateKey);
+        state.favorites = ownsFavorites
+          ? previousFavorites
+          : state.favorites.filter(item => item !== dateKey);
+        state.availableFavorites = ownsFavorites
+          ? previousAvailableFavorites
+          : (state.availableFavorites || state.favorites).filter(item => item !== dateKey);
+        if (state.settings.pinnedDate === dateKey) state.settings.pinnedDate = previousPinnedDate;
+        if (ownsFavorites && state.isPreview === false) state.isPreview = previousPreview;
         if (dateKey && thumbnailKey) await cache.remove(dateKey, thumbnailKey);
-        if (metadataChanged) {
+        if (metadataChanged && (ownsFavorites || containsFailedDate)) {
           try {
-            await options.saveFavorites();
+            await options.saveFavorites([...state.favorites], { removeFavorites: [dateKey] });
           } catch (rollbackError) {
             console.error('[ECHO NTP] 自定义壁纸收藏回滚失败:', rollbackError);
           }
@@ -116,33 +128,60 @@
       }
     }
 
-    function upload(file) {
-      const task = uploadQueue.then(() => performUpload(file));
-      uploadQueue = task.catch(() => null);
+    function enqueue(operation) {
+      const task = mutationQueue.then(operation);
+      mutationQueue = task.catch(() => null);
       return task;
     }
 
-    async function restoreRemoval(previous, restoreSettings) {
+    function upload(file) {
+      return enqueue(() => performUpload(file));
+    }
+
+    async function restoreRemoval(previous, operation, restoreFavorites, restoreSettings, dateKey) {
+      const ownsFavorites = sameList(state.favorites, operation.favorites);
+      if (!ownsFavorites) {
+        if (state.favorites.includes(dateKey)) {
+          const previousIndex = previous.history.findIndex(wallpaper => wallpaper.date === dateKey);
+          const wallpaper = previous.history[previousIndex];
+          if (wallpaper && !state.history.some(item => item.date === dateKey)) {
+            state.history.splice(Math.max(0, previousIndex), 0, wallpaper);
+          }
+          if (previous.availableFavorites.includes(dateKey)
+              && !state.availableFavorites.includes(dateKey)) {
+            state.availableFavorites.push(dateKey);
+          }
+        }
+        return false;
+      }
       state.history = previous.history;
       state.favorites = previous.favorites;
       state.availableFavorites = previous.availableFavorites;
-      state.settings.pinnedDate = previous.pinnedDate;
+      for (const key of ['pinnedDate', 'mode', 'lastActiveMode']) {
+        if (state.settings[key] === operation.settings[key]) {
+          state.settings[key] = previous.settings[key];
+        }
+      }
       try {
-        await options.saveFavorites();
+        if (restoreFavorites) {
+          await options.saveFavorites(previous.favorites, {
+            addFavorites: [dateKey]
+          });
+        }
         if (restoreSettings) await options.saveSettings();
       } catch (error) {
         console.error('[ECHO NTP] 自定义壁纸删除回滚失败:', error);
       }
     }
 
-    async function remove(dateKey) {
+    async function performRemove(dateKey) {
       if (!domain.isCustomDate(dateKey)) return;
       const timestamp = dateKey.replace('custom:', '');
       const previous = {
         history: [...state.history],
         favorites: [...state.favorites],
         availableFavorites: [...(state.availableFavorites || state.favorites)],
-        pinnedDate: state.settings.pinnedDate
+        settings: { ...state.settings }
       };
       const clearsPin = state.settings.pinnedDate === dateKey;
       const availableFavorites = state.availableFavorites || state.favorites;
@@ -150,12 +189,30 @@
       state.favorites = state.favorites.filter(date => date !== dateKey);
       state.availableFavorites = availableFavorites.filter(date => date !== dateKey);
       if (clearsPin) state.settings.pinnedDate = null;
+      const fallsBackToDaily = state.settings.mode === 'collection'
+        && !state.settings.pinnedDate
+        && state.availableFavorites.length === 0;
+      if (fallsBackToDaily) {
+        state.settings.mode = 'daily';
+        state.settings.lastActiveMode = 'daily';
+      }
+      const settingsChanged = clearsPin || fallsBackToDaily;
+      const operation = {
+        favorites: [...state.favorites],
+        settings: {
+          pinnedDate: state.settings.pinnedDate,
+          mode: state.settings.mode,
+          lastActiveMode: state.settings.lastActiveMode
+        }
+      };
+      let favoritesPersisted = false;
 
       try {
-        await options.saveFavorites();
-        if (clearsPin) await options.saveSettings();
+        await options.saveFavorites([...state.favorites]);
+        favoritesPersisted = true;
+        if (settingsChanged) await options.saveSettings();
       } catch (error) {
-        await restoreRemoval(previous, clearsPin);
+        await restoreRemoval(previous, operation, true, settingsChanged, dateKey);
         console.error('[ECHO NTP] 自定义壁纸删除失败:', error);
         options.showToast('删除失败，请重试');
         return false;
@@ -170,12 +227,16 @@
       }
       if (removed === false) {
         deletedDates.delete(dateKey);
-        await restoreRemoval(previous, clearsPin);
+        await restoreRemoval(previous, operation, true, settingsChanged, dateKey);
         options.showToast('删除失败，请重试');
         return false;
       }
       options.refreshStatus();
-      return true;
+      return { fellBack: fallsBackToDaily };
+    }
+
+    function remove(dateKey) {
+      return enqueue(() => performRemove(dateKey));
     }
 
     async function restoreMetadata() {

@@ -282,6 +282,23 @@
     });
   }
 
+  let zoomQueue = Promise.resolve();
+
+  function applyZoomStep(direction) {
+    const operation = zoomQueue.then(async () => {
+      const currentZoom = await getCurrentZoom();
+      const newZoom = inputPolicy.nextZoom(
+        currentZoom,
+        direction,
+        inputContext.isEnabled('fineZoomLargeStep')
+      );
+      await setZoom(newZoom);
+      return newZoom;
+    });
+    zoomQueue = operation.catch(() => {});
+    return operation;
+  }
+
   document.addEventListener('wheel', async (e) => {
     // 精细缩放：Ctrl + 滚轮 (Windows) / Cmd + 滚轮 (Mac)（优先级最高）
     const isCtrlOrCmd = e.ctrlKey || e.metaKey;
@@ -289,14 +306,7 @@
       e.preventDefault();
       e.stopPropagation();
       
-      const currentZoom = await getCurrentZoom();
-      const newZoom = inputPolicy.nextZoom(
-        currentZoom,
-        e.deltaY < 0 ? 'in' : 'out',
-        inputContext.isEnabled('fineZoomLargeStep')
-      );
-      
-      await setZoom(newZoom);
+      const newZoom = await applyZoomStep(e.deltaY < 0 ? 'in' : 'out');
       showZoomIndicator(Math.round(newZoom * 100));
       return;
     }

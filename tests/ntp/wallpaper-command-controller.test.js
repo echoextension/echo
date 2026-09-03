@@ -2,9 +2,19 @@
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { createScriptDom, executeWindowScript } from '../helpers/script-harness.js';
+import { createScriptDom, executeWindowScript, flushAsyncWork } from '../helpers/script-harness.js';
 
 let dom;
+
+function deferred() {
+  let resolve;
+  let reject;
+  const promise = new Promise((resolvePromise, rejectPromise) => {
+    resolve = resolvePromise;
+    reject = rejectPromise;
+  });
+  return { promise, reject, resolve };
+}
 
 async function setup(overrides = {}) {
   dom = await createScriptDom();
@@ -101,7 +111,29 @@ describe('wallpaper command controller', () => {
     expect(dependencies.saveSettings).toHaveBeenCalledOnce();
   });
 
-  it('persists the daily fallback after removing the last custom favorite', async () => {
+  it('keeps the immediate daily display order while fallback settings are pending', async () => {
+    const settingsWrite = deferred();
+    const { controller, dependencies, state } = await setup({
+      saveSettings: vi.fn(() => settingsWrite.promise)
+    });
+    const daily = { id: 'daily', date: '2026-01-02' };
+    const favorite = { id: 'favorite', date: '2026-01-01' };
+    state.history = [daily, favorite];
+    state.current = favorite;
+    state.favorites = [favorite.date];
+    state.availableFavorites = [favorite.date];
+    state.settings.mode = 'collection';
+    state.settings.quality = '4k';
+
+    const removal = controller.toggleFavorite();
+    await flushAsyncWork();
+
+    expect(dependencies.display).toHaveBeenCalledWith(daily);
+    settingsWrite.resolve();
+    await removal;
+  });
+
+  it('displays the daily fallback committed by the custom removal transaction', async () => {
     const { controller, dependencies, state } = await setup();
     const daily = { id: 'daily', date: '2026-01-02' };
     const custom = { id: 'custom', date: 'custom:1', type: 'custom' };
@@ -112,13 +144,17 @@ describe('wallpaper command controller', () => {
     dependencies.removeCustomWallpaper.mockImplementation(async date => {
       state.history = state.history.filter(wallpaper => wallpaper.date !== date);
       state.favorites = state.favorites.filter(item => item !== date);
+      state.availableFavorites = [];
+      state.settings.mode = 'daily';
+      state.settings.lastActiveMode = 'daily';
+      return { fellBack: true };
     });
 
     await controller.toggleFavorite();
 
     expect(state.settings.mode).toBe('daily');
     expect(dependencies.display).toHaveBeenCalledWith(daily);
-    expect(dependencies.saveSettings).toHaveBeenCalledOnce();
+    expect(dependencies.saveSettings).not.toHaveBeenCalled();
   });
 
   it('rejects collection mode when there are no favorites', async () => {
@@ -199,5 +235,68 @@ describe('wallpaper command controller', () => {
     expect(await controller.toggleFavorite()).toEqual({ action: 'failed', wallpaper: state.current });
     expect(state.favorites).toEqual([]);
     expect(state.availableFavorites).toEqual([]);
+  });
+
+  it('compensates a persisted favorite removal when daily fallback persistence fails', async () => {
+    const persistedFavorites = [];
+    const saveSettings = vi.fn(async () => { throw new Error('storage unavailable'); });
+    const { controller, dependencies, state } = await setup({ saveSettings });
+    const daily = { id: 'daily', date: '2026-01-02' };
+    const favorite = { id: 'favorite', date: '2026-01-01' };
+    state.history = [daily, favorite];
+    state.current = favorite;
+    state.favorites = [favorite.date];
+    state.availableFavorites = [favorite.date];
+    state.settings.mode = 'collection';
+    state.settings.lastActiveMode = 'collection';
+    dependencies.saveFavorites.mockImplementation(async value => {
+      persistedFavorites.push([...(value || state.favorites)]);
+    });
+
+    const result = await controller.toggleFavorite();
+
+    expect(result).toEqual({ action: 'failed', wallpaper: favorite });
+    expect(state.favorites).toEqual([favorite.date]);
+    expect(state.settings.mode).toBe('collection');
+    expect(persistedFavorites).toEqual([[], [favorite.date]]);
+    expect(dependencies.saveFavorites).toHaveBeenLastCalledWith(
+      [favorite.date],
+      { addFavorites: [favorite.date] }
+    );
+    expect(dependencies.display).toHaveBeenNthCalledWith(1, daily);
+    expect(dependencies.display).toHaveBeenNthCalledWith(2, favorite);
+  });
+
+  it('does not overwrite a newer favorite state while compensating a failed fallback', async () => {
+    const settingsWrite = deferred();
+    const persistedFavorites = [];
+    const { controller, dependencies, state } = await setup({
+      saveSettings: vi.fn(() => settingsWrite.promise)
+    });
+    const daily = { id: 'daily', date: '2026-01-02' };
+    const favorite = { id: 'favorite', date: '2026-01-01' };
+    state.history = [daily, favorite];
+    state.current = favorite;
+    state.favorites = [favorite.date];
+    state.availableFavorites = [favorite.date];
+    state.settings.mode = 'collection';
+    dependencies.saveFavorites.mockImplementation(async value => {
+      persistedFavorites.push([...(value || state.favorites)]);
+    });
+
+    const removal = controller.toggleFavorite();
+    await flushAsyncWork();
+    state.favorites = ['new-remote'];
+    state.availableFavorites = ['new-remote'];
+    state.settings.mode = 'collection';
+    state.settings.lastActiveMode = 'collection';
+    state.settings.quality = '1080p';
+    settingsWrite.reject(new Error('storage unavailable'));
+
+    expect(await removal).toEqual({ action: 'failed', wallpaper: favorite });
+    expect(state.favorites).toEqual(['new-remote']);
+    expect(state.settings.mode).toBe('collection');
+    expect(state.settings.quality).toBe('1080p');
+    expect(persistedFavorites).toEqual([[]]);
   });
 });

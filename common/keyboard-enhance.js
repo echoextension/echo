@@ -35,6 +35,23 @@
     });
   }
 
+  let zoomQueue = Promise.resolve();
+
+  function applyZoomStep(direction) {
+    const operation = zoomQueue.then(async () => {
+      const currentZoom = await getCurrentZoom();
+      const newZoom = inputPolicy.nextZoom(
+        currentZoom,
+        direction,
+        inputContext.isEnabled('fineZoomLargeStep')
+      );
+      await setZoom(newZoom);
+      return newZoom;
+    });
+    zoomQueue = operation.catch(() => {});
+    return operation;
+  }
+
   // 缩放指示器
   let zoomIndicator = null;
   let zoomTimeout = null;
@@ -83,14 +100,7 @@
     e.preventDefault();
     e.stopPropagation();
     
-    const currentZoom = await getCurrentZoom();
-    const newZoom = inputPolicy.nextZoom(
-      currentZoom,
-      e.deltaY < 0 ? 'in' : 'out',
-      inputContext.isEnabled('fineZoomLargeStep')
-    );
-    
-    await setZoom(newZoom);
+    const newZoom = await applyZoomStep(e.deltaY < 0 ? 'in' : 'out');
     showZoomIndicator(Math.round(newZoom * 100));
   }, { passive: false, capture: true });
 
