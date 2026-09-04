@@ -1,7 +1,9 @@
 # ECHO 工程治理阶段报告
 
-> 对应计划：[`engineering-governance-implementation-plan.md`](./engineering-governance-implementation-plan.md)<br>
-> 基线清单：[`engineering-baseline-inventory.md`](./engineering-baseline-inventory.md)
+> **归档文档**：本文记录历史工程治理阶段，不代表当前 `HEAD` 的实现状态，也不构成当前开发要求。当前行为和状态以源码、自动化测试、`CHANGELOG.md`、`QA-CHECKLIST.md` 和 `release-process.md` 为准。
+
+> 对应计划：[`engineering-governance-implementation-plan.md`](../engineering-governance-implementation-plan.md)<br>
+> 基线清单：[`archived-engineering-baseline-inventory.md`](./archived-engineering-baseline-inventory.md)
 
 ---
 

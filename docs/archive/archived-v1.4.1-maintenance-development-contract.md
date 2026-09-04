@@ -1,5 +1,7 @@
 # v1.4.1 行为保持型优化与缺陷修复开发契约
 
+> **归档文档**：本文记录历史版本开发契约，不代表当前 `HEAD` 的实现状态，也不构成当前开发要求。当前行为和状态以源码、自动化测试、`CHANGELOG.md`、`QA-CHECKLIST.md` 和 `release-process.md` 为准。
+
 > 制定日期：2026-09-03
 > 适用分支：`feature/zhihu-blocklist-bili-feed-history`
 > 目标版本：`1.4.1`

@@ -64,6 +64,32 @@ describe('background installation and messages', () => {
     expect(chrome.__testing.storageState.session['echoBiliFeedHistory:1']).toEqual(state);
   });
 
+  it('restores Bilibili history after the background worker restarts', async () => {
+    const biliTab = { ...activeTab, url: 'https://www.bilibili.com/' };
+    const state = { schemaVersion: 3, batches: [{ identity: 'persisted', cards: [] }], currentIndex: 0 };
+    const firstChrome = await loadBackground({
+      tabs: [biliTab],
+      runtimeSender: { tab: biliTab, url: biliTab.url },
+      session: { 'echoBiliFeedHistory:1': state }
+    });
+    const restartedChrome = createFakeChrome({
+      currentWindowId: 1,
+      tabs: [biliTab],
+      storage: {
+        sync: await firstChrome.storage.sync.get(null),
+        session: structuredClone(firstChrome.__testing.storageState.session)
+      },
+      runtimeSender: { tab: biliTab, url: biliTab.url }
+    });
+    await executeWorkerScript(restartedChrome);
+    await flushAsyncWork();
+
+    await expect(restartedChrome.runtime.sendMessage({ action: 'loadBiliFeedHistory' })).resolves.toEqual({
+      ok: true,
+      state
+    });
+  });
+
   it('rejects Bilibili session writes without a tab sender', async () => {
     const chrome = await loadBackground();
     chrome.__testing.setRuntimeSender({});
@@ -72,6 +98,50 @@ describe('background installation and messages', () => {
       action: 'saveBiliFeedHistory',
       state: { schemaVersion: 3, batches: [] }
     })).resolves.toEqual({ ok: false, error: 'Invalid Bilibili tab sender' });
+  });
+
+  it('rejects Bilibili history requests from non-canonical origins', async () => {
+    const chrome = await loadBackground({
+      tabs: [{ ...activeTab, url: 'https://bilibili.com/' }],
+      runtimeSender: { tab: { ...activeTab, url: 'https://bilibili.com/' }, url: 'https://bilibili.com/' }
+    });
+
+    await expect(chrome.runtime.sendMessage({ action: 'loadBiliFeedHistory' })).resolves.toEqual({
+      ok: false,
+      error: 'Invalid Bilibili tab sender'
+    });
+  });
+
+  it('rejects invalid and oversized Bilibili history states', async () => {
+    const biliTab = { ...activeTab, url: 'https://www.bilibili.com/' };
+    const chrome = await loadBackground({ tabs: [biliTab], runtimeSender: { tab: biliTab, url: biliTab.url } });
+
+    await expect(chrome.runtime.sendMessage({
+      action: 'saveBiliFeedHistory',
+      state: { schemaVersion: 2, batches: [] }
+    })).resolves.toMatchObject({ ok: false, success: false, error: 'B站推荐历史状态无效' });
+    await expect(chrome.runtime.sendMessage({
+      action: 'saveBiliFeedHistory',
+      state: { schemaVersion: 3, batches: Array.from({ length: 11 }, () => ({})) }
+    })).resolves.toMatchObject({ ok: false, success: false, error: 'B站推荐历史状态无效' });
+  });
+
+  it('clears only the Bilibili history belonging to the sender tab', async () => {
+    const firstTab = { ...activeTab, url: 'https://www.bilibili.com/' };
+    const secondTab = { id: 2, windowId: 1, index: 1, active: false, url: 'https://www.bilibili.com/video/2' };
+    const chrome = await loadBackground({
+      tabs: [firstTab, secondTab],
+      runtimeSender: { tab: firstTab, url: firstTab.url },
+      session: {
+        'echoBiliFeedHistory:1': { schemaVersion: 3, batches: [] },
+        'echoBiliFeedHistory:2': { schemaVersion: 3, batches: [] }
+      }
+    });
+
+    await expect(chrome.runtime.sendMessage({ action: 'clearBiliFeedHistory' })).resolves.toEqual({ ok: true });
+
+    expect(chrome.__testing.storageState.session).not.toHaveProperty('echoBiliFeedHistory:1');
+    expect(chrome.__testing.storageState.session).toHaveProperty('echoBiliFeedHistory:2');
   });
 
   it('rejects unknown actions and invalid capability parameters at the router boundary', async () => {
@@ -301,6 +371,54 @@ describe('background tab behavior', () => {
     expect(chrome.__testing.snapshotTabs().find((tab) => tab.active)?.id).toBe(3);
   });
 
+  it('does not change focus when closing an inactive middle tab', async () => {
+    const chrome = await loadBackground({
+      tabs: [
+        { id: 1, windowId: 1, index: 0, active: false, url: 'https://one.example/' },
+        { id: 2, windowId: 1, index: 1, active: false, url: 'https://two.example/' },
+        { id: 3, windowId: 1, index: 2, active: true, url: 'https://three.example/' }
+      ]
+    });
+
+    await chrome.tabs.remove(2);
+    await flushAsyncWork();
+
+    expect(chrome.__testing.snapshotTabs().map((tab) => tab.id)).toEqual([1, 3]);
+    expect(chrome.__testing.snapshotTabs().find((tab) => tab.active)?.id).toBe(3);
+  });
+
+  it('keeps the active tab stable while closing created tabs sequentially', async () => {
+    const chrome = await loadBackground();
+    const createdTabs = await Promise.all([
+      chrome.tabs.create({ url: 'https://first.example/', active: false }),
+      chrome.tabs.create({ url: 'https://second.example/', active: false }),
+      chrome.tabs.create({ url: 'https://third.example/', active: false })
+    ]);
+    await flushAsyncWork(12);
+
+    for (const tab of createdTabs) {
+      await chrome.tabs.remove(tab.id);
+      await flushAsyncWork();
+      expect(chrome.__testing.snapshotTabs().find((candidate) => candidate.active)?.id).toBe(1);
+    }
+  });
+
+  it('continues tab removal state handling when session cleanup fails', async () => {
+    const chrome = await loadBackground({
+      tabs: [
+        { id: 1, windowId: 1, index: 0, active: false, url: 'https://one.example/' },
+        { id: 2, windowId: 1, index: 1, active: true, url: 'https://two.example/' },
+        { id: 3, windowId: 1, index: 2, active: false, url: 'https://three.example/' }
+      ]
+    });
+    chrome.storage.session.remove = () => Promise.reject(new Error('session unavailable'));
+
+    await chrome.tabs.remove(2);
+    await flushAsyncWork();
+
+    expect(chrome.__testing.snapshotTabs().find((tab) => tab.active)?.id).toBe(1);
+  });
+
   it('does not suppress activation state in another window during tab removal', async () => {
     const chrome = await loadBackground({
       removalEventOrder: 'removed-first',
@@ -337,5 +455,23 @@ describe('background tab behavior', () => {
     await chrome.tabs.remove(10);
     await flushAsyncWork();
     expect(chrome.__testing.snapshotTabs(2).find((tab) => tab.active)?.id).toBe(11);
+  });
+
+  it('keeps simultaneous active-tab removals isolated across windows', async () => {
+    const chrome = await loadBackground({
+      removalEventOrder: 'removed-first',
+      tabs: [
+        { id: 1, windowId: 1, index: 0, active: false, url: 'https://one.example/' },
+        { id: 2, windowId: 1, index: 1, active: true, url: 'https://two.example/' },
+        { id: 9, windowId: 2, index: 0, active: false, url: 'https://nine.example/' },
+        { id: 10, windowId: 2, index: 1, active: true, url: 'https://ten.example/' }
+      ]
+    });
+
+    await Promise.all([chrome.tabs.remove(2), chrome.tabs.remove(10)]);
+    await flushAsyncWork();
+
+    expect(chrome.__testing.snapshotTabs(1).find((tab) => tab.active)?.id).toBe(1);
+    expect(chrome.__testing.snapshotTabs(2).find((tab) => tab.active)?.id).toBe(9);
   });
 });
