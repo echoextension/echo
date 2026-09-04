@@ -21,11 +21,16 @@ describe('NTP zoom controller', () => {
     });
     await executeWindowScript(dom, 'ntp/modules/zoom-controller.js');
     const controller = dom.window.EchoNtpZoomController.create({ chrome, document: dom.window.document });
+    const zoomChanges = [];
+    dom.window.document.addEventListener('echo-ntp-zoom-change', event => {
+      zoomChanges.push(event.detail.zoom);
+    });
 
     await controller.load();
     expect(controller.get()).toBe(1.25);
     expect(dom.window.document.querySelector('.container').style.transform).toBe('scale(1.25)');
     expect(controller.set(10)).toBe(5);
+    expect(zoomChanges).toEqual([1.25, 5]);
     await Promise.resolve();
     await expect(chrome.storage.local.get('echo_ntp_zoom')).resolves.toEqual({ echo_ntp_zoom: 5 });
   });

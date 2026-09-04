@@ -29,11 +29,30 @@
       let debounceTimer = null;
       let composing = false;
 
+      function updateSuggestionHeight() {
+        if (!suggestionContainer || !searchBox) return;
+        const viewport = documentApi.defaultView?.visualViewport;
+        const viewportBottom = viewport
+          ? viewport.offsetTop + viewport.height
+          : documentApi.defaultView?.innerHeight;
+        if (!Number.isFinite(viewportBottom)) return;
+        const container = documentApi.querySelector('.container');
+        const containerRectangle = container?.getBoundingClientRect();
+        const layoutHeight = container?.offsetHeight;
+        const scale = containerRectangle && layoutHeight
+          ? containerRectangle.height / layoutHeight
+          : 1;
+        const searchBottom = searchBox.getBoundingClientRect().bottom;
+        const availableHeight = Math.max(0, (viewportBottom - searchBottom - 12) / (scale || 1));
+        suggestionContainer.style.maxHeight = `${Math.floor(availableHeight)}px`;
+      }
+
       function updateClearButton() {
         clearButton?.classList.toggle('visible', input.value.length > 0);
       }
 
       function showSuggestions() {
+        updateSuggestionHeight();
         suggestionContainer?.classList.add('visible');
         searchBox?.classList.add('suggest-open');
       }
@@ -77,6 +96,7 @@
       function updateActiveItem() {
         suggestionContainer?.querySelectorAll('.search-suggest-item').forEach((item, index) => {
           item.classList.toggle('active', index === activeIndex);
+          if (index === activeIndex) item.scrollIntoView?.({ block: 'nearest' });
         });
       }
 
@@ -184,6 +204,9 @@
           fetchSuggestions(query);
         }
       });
+      documentApi.defaultView?.addEventListener('resize', updateSuggestionHeight);
+      documentApi.defaultView?.visualViewport?.addEventListener('resize', updateSuggestionHeight);
+      documentApi.addEventListener('echo-ntp-zoom-change', updateSuggestionHeight);
     }
 
     return Object.freeze({ init });

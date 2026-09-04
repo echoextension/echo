@@ -35,6 +35,77 @@ test('loads the unpacked extension worker and primary extension pages', async ({
   expect(pageErrors).toEqual([]);
 });
 
+test('keeps NTP suggestions complete in a short viewport with manual zoom', async ({ extension }) => {
+  const { anchorPage, context, extensionUrl } = extension;
+  const suggestions = Array.from({ length: 8 }, (_, index) => `suggestion ${index + 1}`);
+
+  await anchorPage.setViewportSize({ width: 1400, height: 768 });
+  await context.route('https://api.bing.com/osjson.aspx?**', route => {
+    route.fulfill({ json: ['query', suggestions] });
+  });
+  await extension.setStorage('local', {
+    echo_ntp_trending: false,
+    echo_ntp_zoom: 0.75,
+    echo_ntp_wallpaper_v2: { mode: 'off', blankMode: false }
+  });
+
+  await anchorPage.goto(extensionUrl('ntp/ntp.html'));
+  await anchorPage.locator('#searchInput').fill('query');
+  await expect(anchorPage.locator('.search-suggest-item')).toHaveCount(8);
+
+  const layout = await anchorPage.evaluate(() => {
+    const lastSuggestion = document.querySelector('.search-suggest-item:last-child');
+    const suggestionList = document.querySelector('.search-suggest');
+    return {
+      documentScrollHeight: document.documentElement.scrollHeight,
+      lastBottom: lastSuggestion.getBoundingClientRect().bottom,
+      listBottom: suggestionList.getBoundingClientRect().bottom,
+      viewportHeight: window.visualViewport?.height || window.innerHeight
+    };
+  });
+
+  expect(layout.documentScrollHeight).toBeLessThanOrEqual(layout.viewportHeight);
+  expect(layout.listBottom).toBeLessThanOrEqual(layout.viewportHeight - 8);
+  expect(layout.lastBottom).toBeLessThanOrEqual(layout.viewportHeight - 8);
+});
+
+test('keeps the NTP settings panel inside a short viewport', async ({ extension }) => {
+  const { anchorPage, extensionUrl } = extension;
+
+  await anchorPage.setViewportSize({ width: 1400, height: 768 });
+  await extension.setStorage('local', {
+    echo_ntp_trending: false,
+    echo_ntp_wallpaper_v2: { mode: 'off', blankMode: false }
+  });
+  await anchorPage.goto(extensionUrl('ntp/ntp.html'));
+  await anchorPage.evaluate(() => {
+    document.getElementById('settingsPanel').classList.add('visible');
+    document.getElementById('wallpaperSubSettings').classList.remove('hidden');
+  });
+
+  const panel = anchorPage.locator('#settingsPanel');
+  const body = anchorPage.locator('.settings-body');
+  await expect(panel).toBeVisible();
+  const layout = await anchorPage.evaluate(() => {
+    const panelElement = document.getElementById('settingsPanel');
+    const bodyElement = panelElement.querySelector('.settings-body');
+    const viewportHeight = window.visualViewport?.height || window.innerHeight;
+    return {
+      bodyClientHeight: bodyElement.clientHeight,
+      bodyScrollHeight: bodyElement.scrollHeight,
+      pageOverflowY: getComputedStyle(document.body).overflowY,
+      panelBottom: panelElement.getBoundingClientRect().bottom,
+      viewportHeight
+    };
+  });
+
+  expect(layout.pageOverflowY).toBe('hidden');
+  expect(layout.panelBottom).toBeLessThanOrEqual(layout.viewportHeight - 8);
+  expect(layout.bodyScrollHeight).toBeGreaterThan(layout.bodyClientHeight);
+  await body.evaluate(element => { element.scrollTop = element.scrollHeight; });
+  await expect(anchorPage.locator('#echoSettingsBtn')).toBeInViewport();
+});
+
 test('keeps FRE keyboard demonstrations enabled when user input settings are disabled', async ({
   extension,
   fixtureServer

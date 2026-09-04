@@ -14,6 +14,12 @@
       if (!container) return;
       container.style.transform = `scale(${currentZoom})`;
       container.style.transformOrigin = 'center center';
+      const EventConstructor = documentApi.defaultView?.CustomEvent;
+      if (EventConstructor) {
+        documentApi.dispatchEvent(new EventConstructor('echo-ntp-zoom-change', {
+          detail: { zoom: currentZoom }
+        }));
+      }
     }
 
     function showIndicator() {

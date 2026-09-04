@@ -1,6 +1,6 @@
 {
   "name": "echo-edge-extension",
-  "version": "1.4.1",
+  "version": "1.4.2",
   "private": true,
   "type": "module",
   "description": "Development tooling and automated checks for the ECHO Edge extension.",
