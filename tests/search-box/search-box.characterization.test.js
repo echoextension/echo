@@ -97,7 +97,14 @@ describe('floating search box', () => {
   });
 
   it('updates the trending setting through storage changes', async () => {
-    const { chrome, window } = await loadSearchBox();
+    const { chrome, window } = await loadSearchBox({}, null, (message, sendResponse) => {
+      if (message.action !== 'proxyFetch') return undefined;
+      sendResponse({
+        success: true,
+        data: { data: [{ Title: '正常热搜' }] }
+      });
+      return false;
+    });
     pressCtrlB(window);
     await flushAsyncWork();
     const panel = window.document.getElementById('echo-search-box-host').contentDocument.querySelector('.trending-panel');

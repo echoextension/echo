@@ -569,7 +569,11 @@
       chrome,
       document,
       panel: trendingPanel,
-      actions: MESSAGE_ACTIONS
+      actions: MESSAGE_ACTIONS,
+      onAvailabilityChange: (available) => {
+        if (available) trendingPanel.classList.add('show');
+        else trendingPanel.classList.remove('show');
+      }
     });
 
     searchWrapper.appendChild(searchRow);
