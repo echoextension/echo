@@ -750,9 +750,13 @@ body:not(.wallpaper-mode) .wp-action-btn:hover {
 .settings-panel {
   position: fixed;
   top: calc(var(--bookmark-bar-height) + 60px);
+  max-height: calc(100vh - var(--bookmark-bar-height) - 72px);
+  max-height: calc(100dvh - var(--bookmark-bar-height) - 72px);
   right: 20px;
   z-index: 200;
   width: 360px;
+  display: flex;
+  flex-direction: column;
   background: rgba(28, 28, 32, 0.96);
   backdrop-filter: blur(24px);
   border-radius: 16px;
@@ -810,6 +814,11 @@ body:not(.wallpaper-mode) .wp-action-btn:hover {
 
 .settings-body {
   padding: 20px;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
 }
 
 .settings-blank-notice {
@@ -2049,7 +2058,7 @@ body.wallpaper-mode .toggle-label {
   width: 100vw;
   height: calc(100vh - var(--bookmark-bar-height));
   margin-top: var(--bookmark-bar-height);
-  overflow: hidden;
+  overflow: visible;
 }
 
 html.blank-mode .container,
@@ -2300,7 +2309,10 @@ body.trending-transitioning .search-form {
   border-top: none;
   margin-top: 0;
   z-index: 100;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
 }
 
 .search-suggest.visible {
@@ -2996,6 +3008,143 @@ body.wallpaper-mode .ntp-footer .footer-text {
   
   .trending-grid {
     grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* 宽屏设备在高 DPI 下通常表现为 CSS 视口较矮。 */
+@media (min-width: 1200px) and (max-height: 900px) {
+  .settings-panel {
+    top: calc(var(--bookmark-bar-height) + 52px);
+    max-height: calc(100vh - var(--bookmark-bar-height) - 64px);
+    max-height: calc(100dvh - var(--bookmark-bar-height) - 64px);
+  }
+
+  .settings-body {
+    padding: 16px;
+  }
+
+  .settings-section {
+    margin-bottom: 16px;
+  }
+
+  .settings-row + .settings-row,
+  .settings-row + .settings-row-sub,
+  .settings-row-sub + .settings-row,
+  .wallpaper-sub-settings {
+    margin-top: 12px;
+  }
+
+  .source-card-content {
+    padding: 13px 15px;
+  }
+
+  .brand {
+    top: 44%;
+    transform: translate(-50%, calc(-100% - 56px));
+  }
+
+  .search-form {
+    top: 46%;
+  }
+
+  .trending-section {
+    top: 43%;
+    transform: translate(-50%, 82px);
+  }
+
+  body.trending-hidden .brand,
+  html.trending-hidden .brand {
+    top: 52%;
+    transform: translate(-50%, calc(-100% - 48px));
+  }
+
+  body.trending-hidden .search-form,
+  html.trending-hidden .search-form {
+    top: 54%;
+  }
+
+  .trending-section .trending-item {
+    padding-top: 6px;
+    padding-bottom: 6px;
+  }
+
+  .trending-dots {
+    padding: 10px 0 14px;
+  }
+}
+
+@media (min-width: 1200px) and (max-height: 780px) {
+  .settings-panel {
+    top: calc(var(--bookmark-bar-height) + 48px);
+    max-height: calc(100vh - var(--bookmark-bar-height) - 58px);
+    max-height: calc(100dvh - var(--bookmark-bar-height) - 58px);
+  }
+
+  .settings-body {
+    padding: 14px;
+  }
+
+  .settings-section {
+    margin-bottom: 12px;
+  }
+
+  .settings-row + .settings-row,
+  .settings-row + .settings-row-sub,
+  .settings-row-sub + .settings-row,
+  .wallpaper-sub-settings {
+    margin-top: 10px;
+  }
+
+  .source-selector {
+    gap: 8px;
+  }
+
+  .source-card-content {
+    padding: 11px 13px;
+  }
+
+  .play-mode-selector {
+    margin-top: 8px;
+  }
+
+  .logo-icon {
+    width: 48px;
+    height: 48px;
+  }
+
+  .brand h1,
+  .brand-cn {
+    font-size: 28px;
+  }
+
+  .brand {
+    top: 42%;
+    transform: translate(-50%, calc(-100% - 42px));
+  }
+
+  .search-form {
+    top: 44%;
+  }
+
+  .trending-section {
+    top: 41%;
+    transform: translate(-50%, 70px);
+  }
+
+  body.trending-hidden .brand,
+  html.trending-hidden .brand {
+    top: 49%;
+    transform: translate(-50%, calc(-100% - 40px));
+  }
+
+  body.trending-hidden .search-form,
+  html.trending-hidden .search-form {
+    top: 51%;
+  }
+
+  .search-suggest-item {
+    padding-top: 8px;
+    padding-bottom: 8px;
   }
 }
 
