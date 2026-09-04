@@ -308,7 +308,11 @@
 
     async function handleTabRemoved(tabId, removeInfo) {
       const { windowId, isWindowClosing } = removeInfo;
-      await onTabRemoved(tabId);
+      try {
+        await onTabRemoved(tabId);
+      } catch (error) {
+        console.warn('[ECHO] Failed to clear removed tab state:', error);
+      }
       if (isWindowClosing) {
         tabsCacheByWindow.delete(windowId);
         insertStateByWindow.delete(windowId);

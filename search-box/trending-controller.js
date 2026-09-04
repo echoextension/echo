@@ -14,6 +14,7 @@
     const schedule = options.setTimeout || root.setTimeout.bind(root);
     const startInterval = options.setInterval || root.setInterval.bind(root);
     const stopInterval = options.clearInterval || root.clearInterval.bind(root);
+    const onAvailabilityChange = options.onAvailabilityChange || (() => {});
     let trendingData = null;
     let trendingScrollInterval = null;
     let currentTrendingIndex = 0;
@@ -22,6 +23,7 @@
     let scrollWrapper = null;
     let isScrollAnimating = false;
     let active = false;
+    let unavailable = false;
     let requestVersion = 0;
 
     function escapeHtml(text) {
@@ -129,6 +131,7 @@
       active = false;
       requestVersion += 1;
       stopScroll();
+      unavailable = false;
     }
 
     function startScroll() {
@@ -189,16 +192,21 @@
       if (trends && trends.length > 0) {
         trendingData = trends;
         lastFetchTime = now();
+        unavailable = false;
+        onAvailabilityChange(true);
       } else {
         console.warn('[ECHO] 热搜获取失败，使用兜底数据');
-        trendingData = [{ title: '热搜加载失败，请稍后重试' }];
-        lastFetchTime = now();
+        trendingData = null;
+        unavailable = true;
+        stopScroll();
+        onAvailabilityChange(false);
       }
       if (active) startScroll();
     }
 
     function start() {
       active = true;
+      if (unavailable) return;
       if (!trendingData || now() - lastFetchTime > CACHE_DURATION) {
         void fetchTrendingData();
       } else {
