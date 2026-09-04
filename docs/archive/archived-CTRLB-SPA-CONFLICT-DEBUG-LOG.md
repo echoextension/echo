@@ -1,5 +1,7 @@
 # Ctrl+B 搜索框与 SPA 导航冲突 — 调试记录
 
+> **归档文档**：本文记录历史调试过程，不代表当前 `HEAD` 的实现状态，也不构成当前开发要求。当前行为和状态以源码、自动化测试、`CHANGELOG.md`、`QA-CHECKLIST.md` 和 `release-process.md` 为准。
+
 ## 问题概述
 
 Ctrl+B 呼出悬浮搜索框后，在 B站（bilibili.com）视频页点击右侧推荐视频，URL 会改变但页面不加载新视频——pushState 成功执行，Vue Router 的视图更新却没有触发。关闭搜索框后点击则一切正常。

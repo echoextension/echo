@@ -1,5 +1,7 @@
 # v1.3.3 五项问题修改契约
 
+> **归档文档**：本文记录历史版本修改契约，不代表当前 `HEAD` 的实现状态，也不构成当前开发要求。当前行为和状态以源码、自动化测试、`CHANGELOG.md`、`QA-CHECKLIST.md` 和 `release-process.md` 为准。
+
 > 制定日期：2026-08-30  
 > 适用分支：`feature/zhihu-blocklist-bili-feed-history`  
 > 文档性质：后续代码修改、代码审查和人工验收的约束性契约  

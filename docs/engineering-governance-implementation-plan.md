@@ -1058,7 +1058,7 @@ Playwright 官方推荐扩展测试使用其自带 Chromium。品牌 Edge 的真
 
 | 阶段 | 名称 | 初始状态 | 进入条件 | 退出条件 |
 | --- | --- | --- | --- | --- |
-| 0 | 冻结事实基线 | 已完成 | 本计划生效 | 事实清单和测试矩阵已记录于 `engineering-baseline-inventory.md` |
+| 0 | 冻结事实基线 | 已完成 | 本计划生效 | 事实清单和测试矩阵已记录于 [`archived-engineering-baseline-inventory.md`](archive/archived-engineering-baseline-inventory.md) |
 | 1 | 测试基础与静态 CI | 已完成 | 阶段 0 完成 | 静态校验及 10 项基础测试已通过 |
 | 2 | 当前行为特征测试 | 已完成 | 阶段 1 完成 | 11 个测试文件、50 项快速测试覆盖全部主要运行面 |
 | 3 | 验证和修复问题 | 已完成 | 阶段 2 完成 | 10 项 E2 候选均已先复现再修复，61 项快速测试通过 |

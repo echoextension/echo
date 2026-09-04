@@ -1,5 +1,7 @@
 # ECHO v1.3.0 Backlog
 
+> **归档文档**：本文记录历史版本规划，不代表当前 `HEAD` 的实现状态，也不构成当前开发要求。当前行为和状态以源码、自动化测试、`CHANGELOG.md`、`QA-CHECKLIST.md` 和 `release-process.md` 为准。
+
 > 创建日期：2026-04-11
 > 状态：规划中
 

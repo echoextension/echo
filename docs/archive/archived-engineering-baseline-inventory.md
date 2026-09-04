@@ -1,5 +1,7 @@
 # ECHO 工程治理阶段 0：事实基线清单
 
+> **归档文档**：本文是历史事实快照，不代表当前 `HEAD` 的版本、提交或实现状态，也不构成当前开发要求。当前行为和状态以源码、自动化测试、`CHANGELOG.md`、`QA-CHECKLIST.md` 和 `release-process.md` 为准。
+
 > 清单状态：阶段 0 实施基线<br>
 > 记录日期：2026-09-01<br>
 > 分支：`feature/zhihu-blocklist-bili-feed-history`<br>
@@ -12,7 +14,7 @@
 
 ## 1. 清单用途与证据边界
 
-本清单是 [`engineering-governance-implementation-plan.md`](./engineering-governance-implementation-plan.md) 阶段 0 的交付物，用于在测试和重构前冻结当前系统事实。
+本清单是 [`engineering-governance-implementation-plan.md`](../engineering-governance-implementation-plan.md) 阶段 0 的交付物，用于在测试和重构前冻结当前系统事实。
 
 本清单遵守以下边界：
 
