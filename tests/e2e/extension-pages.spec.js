@@ -72,16 +72,17 @@ test('keeps NTP suggestions complete in a short viewport with manual zoom', asyn
 test('keeps the NTP settings panel inside a short viewport', async ({ extension }) => {
   const { anchorPage, extensionUrl } = extension;
 
-  await anchorPage.setViewportSize({ width: 1400, height: 768 });
+  // Force overflow across platform font metrics, including Windows.
+  await anchorPage.setViewportSize({ width: 1400, height: 480 });
   await extension.setStorage('local', {
     echo_ntp_trending: false,
     echo_ntp_wallpaper_v2: { mode: 'off', blankMode: false }
   });
   await anchorPage.goto(extensionUrl('ntp/ntp.html'));
-  await anchorPage.evaluate(() => {
-    document.getElementById('settingsPanel').classList.add('visible');
-    document.getElementById('wallpaperSubSettings').classList.remove('hidden');
-  });
+  await anchorPage.locator('#wpSettingsBtn').click();
+  await extension.context.route('https://**/*', route => route.abort('internetdisconnected'));
+  await anchorPage.locator('label').filter({ has: anchorPage.locator('#wallpaperSwitch') }).click();
+  await expect(anchorPage.locator('#wallpaperSubSettings')).toBeVisible();
 
   const panel = anchorPage.locator('#settingsPanel');
   const body = anchorPage.locator('.settings-body');

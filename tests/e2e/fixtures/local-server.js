@@ -12,8 +12,13 @@ function htmlPage(label) {
 <head><meta charset="utf-8"><title>${label}</title></head>
 <body>
   <h1 id="fixture-ready">${label}</h1>
-  <a id="fixture-link" href="https://example.test/target">fixture link</a>
+  <a id="fixture-link" href="/fixture/target">fixture link</a>
   <img id="fixture-image" alt="fixture" src="/pixel.png">
+  <p id="fixture-text">ECHO drag selection</p>
+  <label>Text input <input id="fixture-input"></label>
+  <label>Text area <textarea id="fixture-textarea"></textarea></label>
+  <div id="fixture-editor" contenteditable="true">Editable content</div>
+  <div id="fixture-drop-zone" style="margin-top:60px;width:400px;height:150px;border:1px solid">Drop here</div>
 </body>
 </html>`;
 }

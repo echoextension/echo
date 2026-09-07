@@ -58,6 +58,10 @@ test('creates ordered adjacent tabs, tracks a move, and activates the left tab o
     superDragActivate: false
   });
   await extension.anchorPage.goto(baseUrl);
+  // End the fixture setup's ordered insertion sequence (which created the
+  // control tab), then start a fresh sequence from the user's base tab.
+  await extension.controlPage.bringToFront();
+  await expect.poll(() => activeTabUrl(extension)).toBe(extension.controlPage.url());
   await extension.anchorPage.bringToFront();
   await expect.poll(() => activeTabUrl(extension)).toBe(baseUrl);
 
