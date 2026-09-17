@@ -45,7 +45,12 @@ async function setup(overrides = {}) {
       isCustomWallpaper: wallpaper => wallpaper?.type === 'custom',
       buildBingUrl: id => `https://images.test/${id}`
     },
-    cache: { get: vi.fn(async () => null), put: vi.fn(async () => true), remove: vi.fn(async () => true) },
+    cache: {
+      get: vi.fn(async () => null),
+      getFirst: vi.fn(async () => null),
+      put: vi.fn(async () => true),
+      remove: vi.fn(async () => true)
+    },
     custom: { recompress: vi.fn() },
     theme: { applyTextTheme: vi.fn(), applyInfoTheme: vi.fn() },
     infoController: { onWallpaperChange: vi.fn() },
@@ -65,6 +70,95 @@ afterEach(() => {
 });
 
 describe('wallpaper renderer', () => {
+  it('displays an older cached image before starting any wallpaper download', async () => {
+    const { images, renderer, state, options } = await setup();
+    const latest = { id: 'latest', date: '2026-09-17' };
+    const cached = { id: 'cached', date: '2026-09-16' };
+    state.history = [latest, cached];
+    options.cache.getFirst.mockResolvedValue({
+      url: 'https://images.test/cached', blob: new Blob(['cached'], { type: 'image/jpeg' })
+    });
+
+    const display = renderer.displayCached(state.history);
+    await flushAsyncWork();
+    expect(options.cache.getFirst).toHaveBeenCalledWith([
+      'https://images.test/latest', 'https://images.test/cached'
+    ]);
+    images[0].dispatchEvent(new dom.window.Event('load'));
+    await expect(display).resolves.toBe(true);
+
+    expect(state.current).toBe(cached);
+    expect(state.browseIndex).toBe(1);
+    expect(options.fetch).not.toHaveBeenCalled();
+  });
+
+  it('skips a corrupt cached image and displays the next available one', async () => {
+    const { images, renderer, state, options } = await setup();
+    state.history = [{ id: 'broken', date: '2026-09-17' }, { id: 'cached', date: '2026-09-16' }];
+    options.cache.getFirst
+      .mockResolvedValueOnce({ url: 'https://images.test/broken', blob: new Blob(['broken']) })
+      .mockResolvedValueOnce({ url: 'https://images.test/cached', blob: new Blob(['cached']) });
+
+    const display = renderer.displayCached(state.history);
+    await flushAsyncWork();
+    images[0].dispatchEvent(new dom.window.Event('error'));
+    await flushAsyncWork();
+    images[1].dispatchEvent(new dom.window.Event('load'));
+    await expect(display).resolves.toBe(true);
+
+    expect(options.cache.remove).toHaveBeenCalledWith('https://images.test/broken');
+    expect(state.current.id).toBe('cached');
+  });
+
+  it('retains the visible image until a background replacement has decoded', async () => {
+    const { images, renderer, state, options } = await setup();
+    const previous = dom.window.document.createElement('img');
+    const background = dom.window.document.getElementById('wallpaperBg');
+    background.appendChild(previous);
+    state.current = { id: 'previous', date: '2026-09-16' };
+    options.fetch.mockResolvedValue(new Response(new Blob(['new'], { type: 'image/jpeg' })));
+
+    const display = renderer.display({ id: 'new', date: '2026-09-17' }, 0, () => true);
+    await flushAsyncWork();
+    expect(background.firstElementChild).toBe(previous);
+    expect(state.current.id).toBe('previous');
+    images[0].dispatchEvent(new dom.window.Event('load'));
+    await display;
+
+    expect(background.firstElementChild).toBe(images[0]);
+    expect(state.current.id).toBe('new');
+  });
+
+  it('does not replace an image if the background update is no longer allowed', async () => {
+    const { images, renderer, state, options } = await setup();
+    const previous = { id: 'previous', date: '2026-09-16' };
+    state.current = previous;
+    options.fetch.mockResolvedValue(new Response(new Blob(['new'], { type: 'image/jpeg' })));
+    let allowed = true;
+
+    const display = renderer.display({ id: 'new', date: '2026-09-17' }, 0, () => allowed);
+    await flushAsyncWork();
+    allowed = false;
+    images[0].dispatchEvent(new dom.window.Event('load'));
+    await display;
+
+    expect(state.current).toBe(previous);
+    expect(state.isWallpaperLoading).toBe(false);
+    expect(options.cache.put).not.toHaveBeenCalled();
+  });
+
+  it('keeps the current image when a background download fails without falling back', async () => {
+    const { renderer, state, options } = await setup();
+    state.history = [{ id: 'new', date: '2026-09-17' }, { id: 'older', date: '2026-09-15' }];
+    state.current = { id: 'previous', date: '2026-09-16' };
+    options.fetch.mockResolvedValue(new Response('', { status: 503 }));
+
+    await renderer.display(state.history[0], 0, () => true);
+
+    expect(state.current.id).toBe('previous');
+    expect(options.fetch).toHaveBeenCalledOnce();
+  });
+
   it('clears the loading state when custom wallpaper data is missing', async () => {
     const { renderer, state } = await setup();
 

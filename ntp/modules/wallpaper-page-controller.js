@@ -20,6 +20,16 @@
       return wallpaper;
     }
 
+    function canRefreshDaily() {
+      return state.settings.mode === 'daily' && !state.settings.pinnedDate
+        && !options.blankMode.isEnabled() && !state.isPreview;
+    }
+
+    function refreshDaily(wallpaper) {
+      if (!wallpaper || !canRefreshDaily() || state.current?.id === wallpaper.id) return;
+      return options.renderer.display(wallpaper, 0, canRefreshDaily);
+    }
+
     function hideWallpaper() {
       documentApi.getElementById('wallpaperBg')?.replaceChildren();
     }
@@ -218,7 +228,6 @@
       await options.custom.restoreMetadata();
       if (!state.history.length) {
         console.warn('[ECHO NTP] 没有可用的壁纸数据');
-        return;
       }
 
       if (state.settings.mode !== 'off') {
@@ -226,13 +235,20 @@
         documentApi.body.classList.add('wallpaper-mode');
         documentApi.body.classList.remove('no-wallpaper');
         options.lowPoly.hide();
-        display(select());
+        select();
+        if (canRefreshDaily()) await options.renderer.displayCached(state.history, canRefreshDaily);
+        if (state.settings.mode !== 'off' && !options.blankMode.isEnabled()
+            && !state.isPreview && !state.isWallpaperLoading) {
+          if (canRefreshDaily() && state.current) refreshDaily(select());
+          else display(select());
+        }
       } else {
         toggle.checked = false;
         documentApi.body.classList.add('no-wallpaper');
         options.lowPoly.show();
       }
 
+      void options.dataSource.refresh();
       await ensureRendered();
       persistedToggleState = captureToggleState(background);
     }
@@ -248,7 +264,7 @@
       }
     }
 
-    return Object.freeze({ ensureRendered, handleKeyboard, init, onToggle });
+    return Object.freeze({ ensureRendered, handleKeyboard, init, onToggle, refreshDaily });
   }
 
   root.EchoNtpWallpaperPageController = Object.freeze({ create });

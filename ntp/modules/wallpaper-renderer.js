@@ -35,6 +35,8 @@
     function commit(wallpaper, image, container, custom = false) {
       documentApi.body.classList.toggle('custom-wallpaper-active', custom);
       state.current = wallpaper;
+      const index = state.history.indexOf(wallpaper);
+      if (index !== -1) state.browseIndex = index;
       options.addToHistory(wallpaper.date);
       showImage(image, container);
       state.isWallpaperLoading = false;
@@ -47,13 +49,14 @@
       }
     }
 
-    function renderBlob(wallpaper, blob, container, requestId, custom = false) {
+    function renderBlob(wallpaper, blob, container, requestId, custom = false, canCommit = null) {
       return new Promise(resolve => {
         const image = new ImageConstructor();
         const objectUrl = urlApi.createObjectURL(blob);
         image.alt = custom ? '自定义壁纸' : wallpaper.desc || 'Bing Wallpaper';
         image.onload = () => {
-          if (requestId !== renderRequestId) {
+          if (requestId !== renderRequestId || (canCommit && !canCommit())) {
+            if (requestId === renderRequestId) state.isWallpaperLoading = false;
             urlApi.revokeObjectURL(objectUrl);
             resolve({ status: 'stale' });
             return;
@@ -103,8 +106,33 @@
       }
     }
 
-    async function display(wallpaper, fallbackAttempts = 0) {
-      if (!wallpaper) return;
+    async function displayCached(wallpapers, canCommit = null) {
+      const requestId = ++renderRequestId;
+      state.wallpaperRenderRequestId = requestId;
+      state.isWallpaperLoading = true;
+      const container = documentApi.getElementById('wallpaperBg');
+      const candidates = new Map(wallpapers
+        .filter(wallpaper => !options.domain.isCustomWallpaper(wallpaper))
+        .map(wallpaper => [options.domain.buildBingUrl(wallpaper.id, state.settings.quality), wallpaper]));
+      while (container && candidates.size) {
+        const cached = await options.cache.getFirst([...candidates.keys()]);
+        if (requestId !== renderRequestId) return false;
+        if (!cached || (canCommit && !canCommit())) break;
+        const wallpaper = candidates.get(cached.url);
+        candidates.delete(cached.url);
+        const result = await renderBlob(wallpaper, cached.blob, container, requestId, false, canCommit);
+        if (result.status === 'success') return true;
+        if (result.status === 'stale') return false;
+        await options.cache.remove(cached.url);
+        if (requestId !== renderRequestId) return false;
+        state.isWallpaperLoading = true;
+      }
+      state.isWallpaperLoading = false;
+      return false;
+    }
+
+    async function display(wallpaper, fallbackAttempts = 0, canCommit = null) {
+      if (!wallpaper || (canCommit && !canCommit())) return;
       const requestId = ++renderRequestId;
       state.wallpaperRenderRequestId = requestId;
       state.isWallpaperLoading = true;
@@ -123,7 +151,7 @@
             console.warn('[ECHO NTP] 自定义壁纸数据丢失:', wallpaper.date);
             return;
           }
-          const result = await renderBlob(wallpaper, blob, container, requestId, true);
+          const result = await renderBlob(wallpaper, blob, container, requestId, true, canCommit);
           if (result.status === 'success' && blob.size > 2 * 1024 * 1024) {
             options.custom.recompress(wallpaper.date, result.image);
           }
@@ -145,17 +173,17 @@
       const cached = await options.cache.get(imageUrl);
       if (requestId !== renderRequestId) return;
       if (cached) {
-        const result = await renderBlob(wallpaper, cached, container, requestId);
+        const result = await renderBlob(wallpaper, cached, container, requestId, false, canCommit);
         if (result.status !== 'failed') return;
         await options.cache.remove(imageUrl);
         if (requestId !== renderRequestId) return;
         state.isWallpaperLoading = true;
       }
 
-      await loadNetworkImage(wallpaper, imageUrl, container, requestId, fallbackAttempts);
+      await loadNetworkImage(wallpaper, imageUrl, container, requestId, fallbackAttempts, canCommit);
     }
 
-    async function loadNetworkImage(wallpaper, imageUrl, container, requestId, fallbackAttempts) {
+    async function loadNetworkImage(wallpaper, imageUrl, container, requestId, fallbackAttempts, canCommit) {
       try {
         const response = await fetchImpl(imageUrl);
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
@@ -166,28 +194,29 @@
         const blob = await response.blob();
         if (!blob.size) throw new Error('Empty wallpaper response');
         if (requestId !== renderRequestId) return;
-        const result = await renderBlob(wallpaper, blob, container, requestId);
+        const result = await renderBlob(wallpaper, blob, container, requestId, false, canCommit);
         if (result.status === 'success') {
           void options.cache.put(imageUrl, blob);
         } else if (result.status === 'failed') {
-          await displayNext(fallbackAttempts);
+          await displayNext(fallbackAttempts, canCommit);
         }
       } catch (error) {
         if (requestId !== renderRequestId) return;
         state.isWallpaperLoading = false;
         console.warn('[ECHO NTP] 壁纸加载失败:', error);
-        await displayNext(fallbackAttempts);
+        await displayNext(fallbackAttempts, canCommit);
       }
     }
 
-    async function displayNext(fallbackAttempts) {
+    async function displayNext(fallbackAttempts, canCommit) {
+      if (canCommit && (state.current || !canCommit())) return;
       if (fallbackAttempts >= MAX_FALLBACK_ATTEMPTS) return;
       if (state.browseIndex >= state.history.length - 1) return;
       state.browseIndex += 1;
-      await display(state.history[state.browseIndex], fallbackAttempts + 1);
+      await display(state.history[state.browseIndex], fallbackAttempts + 1, canCommit);
     }
 
-    return Object.freeze({ cancel, display, preload, showImage });
+    return Object.freeze({ cancel, display, displayCached, preload, showImage });
   }
 
   root.EchoNtpWallpaperRenderer = Object.freeze({ create });

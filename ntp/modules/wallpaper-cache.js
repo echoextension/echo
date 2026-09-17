@@ -47,6 +47,30 @@
       }
     }
 
+    async function getFirst(urls) {
+      try {
+        const database = await open();
+        return await new Promise(resolve => {
+          const store = database.transaction(STORE_NAME, 'readonly').objectStore(STORE_NAME);
+          const request = store.getAllKeys();
+          request.onerror = () => resolve(null);
+          request.onsuccess = () => {
+            const keys = new Set(request.result);
+            const url = urls.find(candidate => keys.has(candidate));
+            if (!url) {
+              resolve(null);
+              return;
+            }
+            const imageRequest = store.get(url);
+            imageRequest.onsuccess = () => resolve(imageRequest.result || null);
+            imageRequest.onerror = () => resolve(null);
+          };
+        });
+      } catch {
+        return null;
+      }
+    }
+
     async function put(url, blob) {
       try {
         const database = await open();
@@ -106,7 +130,7 @@
       }
     }
 
-    return Object.freeze({ cleanExpired, get, open, put, remove });
+    return Object.freeze({ cleanExpired, get, getFirst, open, put, remove });
   }
 
   root.EchoNtpWallpaperCache = Object.freeze({ DB_NAME, STORE_NAME, create });

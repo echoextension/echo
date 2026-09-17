@@ -71,13 +71,14 @@
     const runtimeGetUrl = options.runtimeGetUrl;
     const state = options.state;
     const onDailyWallpaper = options.onDailyWallpaper;
-    let refreshedRemoteData = [];
+    let refreshing = null;
+    let bingData = [];
 
     async function fetchBing() {
       try {
-        const response = await fetchImpl(BING_API);
-        if (!response.ok) return [];
-        return normalizeBingResponse(await response.json());
+        const response = await fetchImpl(BING_API, { signal: AbortSignal.timeout(15000) });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        return normalizeWallpaperList(normalizeBingResponse(await response.json()));
       } catch (error) {
         console.error('[ECHO NTP] Bing API 请求失败:', error);
         return [];
@@ -96,59 +97,50 @@
 
     function refreshRemoteInBackground(cached) {
       if (cached && Date.now() - (cached.timestamp || 0) < DAY_MS) return;
-      fetchImpl(REMOTE_URL, { signal: AbortSignal.timeout(5000) })
+      return fetchImpl(REMOTE_URL, { signal: AbortSignal.timeout(5000) })
         .then(response => response.ok ? response.json() : Promise.reject(new Error(`HTTP ${response.status}`)))
-        .then(data => {
-          const normalized = normalizeWallpaperList(data);
-          if (!normalized.length) return;
-          refreshedRemoteData = normalized;
-          writeCache(localStorageApi, REMOTE_CACHE_KEY, normalized);
-          state.history = mergeByDate(state.history, normalized);
-        })
+        .then(data => applyRefresh(normalizeWallpaperList(data), REMOTE_CACHE_KEY))
         .catch(() => {});
     }
 
-    function applyBingRefresh(data) {
+    function applyRefresh(data, cacheKey) {
       if (!data.length) return;
-      writeCache(localStorageApi, BING_CACHE_KEY, data);
-      state.history = mergeByDate(state.history, data);
-      if (state.settings.mode === 'daily' && !state.settings.pinnedDate) {
+      if (cacheKey === BING_CACHE_KEY) bingData = data;
+      writeCache(localStorageApi, cacheKey, data);
+      const custom = state.history.filter(wallpaper => wallpaper.type === 'custom');
+      state.history = [...custom, ...mergeByDate(state.history, data,
+        cacheKey === REMOTE_CACHE_KEY ? bingData : [])];
+      if (state.settings.mode === 'daily' && !state.settings.pinnedDate
+          && !state.settings.blankMode && !state.isPreview) {
         const latest = options.getLatestBingWallpaper();
-        if (latest && state.current?.id !== latest.id) onDailyWallpaper(latest);
+        if (latest && state.current?.id !== latest.id) return onDailyWallpaper(latest);
       }
     }
 
     async function mergeHistory() {
       const packaged = await loadPackaged();
       const remoteCache = readCache(localStorageApi, REMOTE_CACHE_KEY);
-      refreshRemoteInBackground(remoteCache);
       const bingCache = readCache(localStorageApi, BING_CACHE_KEY);
-      let bingData = bingCache?.data || [];
-      const today = new Date().toISOString().split('T')[0];
-      const needsBingNow = state.settings.mode === 'daily'
-        && !bingData.some(wallpaper => wallpaper.date === today);
-
-      if (needsBingNow) {
-        try {
-          const data = await Promise.race([
-            fetchBing(),
-            new Promise((_, reject) => setTimeout(() => reject(new Error('API timeout')), 5000))
-          ]);
-          if (data.length) {
-            bingData = data;
-            writeCache(localStorageApi, BING_CACHE_KEY, data);
-          }
-        } catch (error) {
-          console.warn('[ECHO NTP] API 请求超时或失败，使用已有数据:', error.message);
-        }
-      } else {
-        void fetchBing().then(applyBingRefresh);
-      }
-
-      return mergeByDate(packaged, remoteCache?.data || [], refreshedRemoteData, bingData);
+      bingData = bingCache?.data || [];
+      return mergeByDate(packaged, remoteCache?.data || [], bingData);
     }
 
-    return Object.freeze({ fetchBing, loadPackaged, mergeHistory });
+    function refresh() {
+      if (refreshing) return refreshing;
+      refreshing = Promise.all([
+        refreshRemoteInBackground(readCache(localStorageApi, REMOTE_CACHE_KEY)),
+        (async () => {
+          let data = await fetchBing();
+          if (!data.length) data = await fetchBing();
+          return applyRefresh(data, BING_CACHE_KEY);
+        })()
+      ]).catch(error => {
+        console.warn('[ECHO NTP] 壁纸刷新失败:', error);
+      }).finally(() => { refreshing = null; });
+      return refreshing;
+    }
+
+    return Object.freeze({ fetchBing, loadPackaged, mergeHistory, refresh });
   }
 
   root.EchoNtpWallpaperDataSource = Object.freeze({

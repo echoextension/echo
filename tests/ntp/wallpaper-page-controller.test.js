@@ -44,10 +44,11 @@ async function setup({ mode = 'daily', blank = false } = {}) {
     document: dom.window.document,
     domain: dom.window.EchoNtpWallpaperDomain,
     repository: { load: vi.fn(async () => state), saveSettings: vi.fn(async () => {}) },
-    dataSource: { mergeHistory: vi.fn(async () => [wallpaper]) },
+    dataSource: { mergeHistory: vi.fn(async () => [wallpaper]), refresh: vi.fn(async () => {}) },
     custom: { restoreMetadata: vi.fn(async () => {}) },
     renderer: {
       cancel: vi.fn(),
+      displayCached: vi.fn(async () => false),
       display: vi.fn(async item => { state.current = item; })
     },
     commands: {
@@ -76,6 +77,87 @@ afterEach(() => {
 });
 
 describe('wallpaper page controller', () => {
+  it('finishes displaying the local cache before starting background metadata refresh', async () => {
+    const cachedDisplay = deferred();
+    const { controller, options, state, wallpaper } = await setup();
+    options.renderer.displayCached.mockImplementation(async () => {
+      await cachedDisplay.promise;
+      state.current = wallpaper;
+      dom.window.document.getElementById('wallpaperBg').appendChild(dom.window.document.createElement('img'));
+      return true;
+    });
+
+    const initialization = controller.init();
+    await flushAsyncWork();
+    expect(options.renderer.displayCached).toHaveBeenCalledOnce();
+    expect(options.dataSource.refresh).not.toHaveBeenCalled();
+    expect(options.renderer.display).not.toHaveBeenCalled();
+    cachedDisplay.resolve();
+    await initialization;
+
+    expect(options.dataSource.refresh).toHaveBeenCalledOnce();
+    expect(options.renderer.display).not.toHaveBeenCalled();
+  });
+
+  it('starts a newer image in the background after showing an older cached image', async () => {
+    const { controller, options, state, wallpaper } = await setup();
+    options.renderer.displayCached.mockImplementation(async () => {
+      state.current = { id: 'cached', date: '2025-12-31' };
+      dom.window.document.getElementById('wallpaperBg').appendChild(dom.window.document.createElement('img'));
+      return true;
+    });
+
+    await controller.init();
+
+    expect(options.renderer.display).toHaveBeenCalledWith(wallpaper, 0, expect.any(Function));
+    expect(options.dataSource.refresh).toHaveBeenCalledOnce();
+  });
+
+  it('starts background refresh even when no local history is available', async () => {
+    const { controller, options } = await setup();
+    options.dataSource.mergeHistory.mockResolvedValue([]);
+
+    await controller.init();
+
+    expect(options.dataSource.refresh).toHaveBeenCalledOnce();
+    expect(options.renderer.display).not.toHaveBeenCalled();
+  });
+
+  it.each(['collection', 'off', 'pinned', 'blank', 'preview'])(
+    'does not apply daily refresh while %s is active', async kind => {
+      const { controller, options, state, wallpaper } = await setup({
+        mode: ['collection', 'off'].includes(kind) ? kind : 'daily',
+        blank: kind === 'blank'
+      });
+      if (kind === 'pinned') state.settings.pinnedDate = wallpaper.date;
+      if (kind === 'preview') state.isPreview = true;
+
+      await controller.refreshDaily(wallpaper);
+
+      expect(options.renderer.display).not.toHaveBeenCalled();
+    }
+  );
+
+  it('rechecks the pin before committing a pending daily refresh', async () => {
+    const { controller, options, state, wallpaper } = await setup();
+
+    await controller.refreshDaily(wallpaper);
+    const canCommit = options.renderer.display.mock.calls[0][2];
+    expect(canCommit()).toBe(true);
+    state.settings.pinnedDate = '2025-12-31';
+    expect(canCommit()).toBe(false);
+  });
+
+  it('does not scan other cached wallpapers when a wallpaper is pinned', async () => {
+    const { controller, options, state, wallpaper } = await setup();
+    state.settings.pinnedDate = wallpaper.date;
+
+    await controller.init();
+
+    expect(options.renderer.displayCached).not.toHaveBeenCalled();
+    expect(options.renderer.display).toHaveBeenCalledWith(wallpaper);
+  });
+
   it('initializes the enabled wallpaper path and its child controllers', async () => {
     const { controller, options, wallpaper } = await setup();
 

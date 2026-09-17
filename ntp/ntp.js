@@ -72,7 +72,7 @@ const wallpaperDataSource = EchoNtpWallpaperDataSource.create({
   runtimeGetUrl: path => chrome.runtime.getURL(path),
   state: wallpaperState,
   getLatestBingWallpaper: () => EchoNtpWallpaperDomain.getLatestBingWallpaper(wallpaperState.history),
-  onDailyWallpaper: wallpaper => displayWallpaper(wallpaper)
+  onDailyWallpaper: wallpaper => wallpaperPageController.refreshDaily(wallpaper)
 });
 const customWallpaperController = EchoNtpCustomWallpaperController.create({
   state: wallpaperState,

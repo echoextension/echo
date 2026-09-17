@@ -32,6 +32,31 @@ describe('wallpaper cache repository', () => {
     await expect(cache.get('https://example.test/image.png')).resolves.toBeNull();
   });
 
+  it('returns the first available image in candidate order without selecting custom blobs', async () => {
+    const cache = await loadCache(new IDBFactory());
+    const blob = new Blob(['fixture'], { type: 'image/jpeg' });
+    await cache.put('https://example.test/older.jpg', blob);
+    await cache.put('https://example.test/cached.jpg', blob);
+    await cache.put('custom:1', blob);
+
+    const result = await cache.getFirst([
+      'https://example.test/missing.jpg',
+      'https://example.test/cached.jpg',
+      'https://example.test/older.jpg'
+    ]);
+
+    expect(result.url).toBe('https://example.test/cached.jpg');
+    expect(result.blob.size).toBe(blob.size);
+    await expect(cache.getFirst(['https://example.test/missing.jpg'])).resolves.toBeNull();
+    await expect(cache.getFirst([])).resolves.toBeNull();
+  });
+
+  it('returns no cached image when IndexedDB is unavailable', async () => {
+    const cache = await loadCache({ open() { throw new Error('unavailable'); } });
+
+    await expect(cache.getFirst(['https://example.test/image.jpg'])).resolves.toBeNull();
+  });
+
   it('expires remote images while retaining custom wallpaper blobs', async () => {
     let currentTime = 1_000;
     const cache = await loadCache(new IDBFactory(), () => currentTime);
