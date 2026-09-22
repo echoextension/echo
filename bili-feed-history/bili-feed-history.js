@@ -15,7 +15,7 @@
   const SCHEMA_VERSION = 3;
   const MAX_BATCHES = 10;
   const CARD_SELECTOR = '.feed-card';
-  const NATIVE_BUTTON_SELECTOR = '.feed-roll-btn .primary-btn.roll-btn';
+  const NATIVE_BUTTON_SELECTOR = '.feed-roll-btn .primary-btn.roll-btn, .feed-roll-btn button';
   const SETTLE_FRAMES = 2;
   const SETTLE_TIMEOUT_MS = 5000;
   const INITIAL_SETTLE_TIMEOUT_MS = 20000;
