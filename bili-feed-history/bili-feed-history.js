@@ -15,7 +15,8 @@
   const SCHEMA_VERSION = 3;
   const MAX_BATCHES = 10;
   const CARD_SELECTOR = '.feed-card';
-  const NATIVE_BUTTON_SELECTOR = '.feed-roll-btn .primary-btn.roll-btn, .feed-roll-btn button';
+  const NATIVE_BUTTON_SELECTOR = '.feed-roll-btn .primary-btn.roll-btn';
+  const NATIVE_CONTROL_SELECTOR = '.feed-roll-btn';
   const SETTLE_FRAMES = 2;
   const SETTLE_TIMEOUT_MS = 5000;
   const INITIAL_SETTLE_TIMEOUT_MS = 20000;
@@ -192,8 +193,27 @@
     return button;
   }
 
+  function findNativeButton() {
+    const exactButton = document.querySelector(NATIVE_BUTTON_SELECTOR);
+    if (exactButton) return exactButton;
+
+    const controls = [...document.querySelectorAll(NATIVE_CONTROL_SELECTOR)];
+    for (const control of controls) {
+      const semanticButton = [...control.querySelectorAll('button')]
+        .find((button) => (button.textContent || '').includes('换一换'));
+      if (semanticButton) return semanticButton;
+    }
+
+    for (const control of controls) {
+      const buttons = [...control.querySelectorAll('button')];
+      if (buttons.length === 1) return buttons[0];
+    }
+
+    return null;
+  }
+
   function injectNavigation() {
-    const nextNativeButton = document.querySelector(NATIVE_BUTTON_SELECTOR);
+    const nextNativeButton = findNativeButton();
     if (!nextNativeButton) return false;
     if (nativeButton === nextNativeButton && navigation?.isConnected) return true;
 
@@ -591,7 +611,7 @@
     controlObserverRoot = controlRoot;
     if (controlRoot) {
       controlObserver = new MutationObserver(() => {
-        const nextButton = document.querySelector(NATIVE_BUTTON_SELECTOR);
+        const nextButton = findNativeButton();
         if (nextButton !== nativeButton || !navigation?.isConnected) injectNavigation();
       });
       controlObserver.observe(controlRoot, { childList: true, subtree: true });
