@@ -271,6 +271,29 @@ async function validateWallpaperData(rootDir, errors, stats) {
   stats.wallpapers = wallpapers.length;
 }
 
+export function validateWebsiteVersions(websiteHtml, manifestVersion, errors) {
+  const schemaVersion = websiteHtml.match(/"softwareVersion"\s*:\s*"([^"]+)"/)?.[1];
+  const ctas = [...websiteHtml.matchAll(/<a\b([^>]*)>([\s\S]*?)<\/a>/gi)]
+    .map(([, attributes, body]) => ({
+      href: attributes.match(/href=["']([^"']+)["']/i)?.[1],
+      version: body.match(/class=["']cta-ver["'][^>]*>\s*v([^<\s]+)/i)?.[1]
+    }))
+    .filter(({ href, version }) => href && version);
+  const storeVersions = ctas
+    .filter(({ href }) => href.startsWith('https://microsoftedge.microsoft.com/addons/'))
+    .map(({ version }) => version);
+  const repositoryVersions = ctas
+    .filter(({ href }) => href.startsWith('https://github.com/echoextension/echo'))
+    .map(({ version }) => version);
+
+  if (!schemaVersion || !storeVersions.length || storeVersions.some((version) => version !== schemaVersion)) {
+    errors.push('官网 Edge 商店入口版本与 softwareVersion 不一致');
+  }
+  if (!repositoryVersions.length || repositoryVersions.some((version) => version !== manifestVersion)) {
+    errors.push(`官网 GitHub 入口版本与 Manifest ${manifestVersion} 不一致`);
+  }
+}
+
 async function validateJavaScript(rootDir, errors, stats) {
   const scripts = EXTENSION_FILES.filter((filePath) => filePath.endsWith('.js'));
   for (const relativePath of scripts) {
@@ -332,15 +355,7 @@ export async function validateExtension(rootDir = DEFAULT_ROOT) {
   }
 
   const websiteHtml = await readFile(path.join(normalizedRoot, 'website/index.html'), 'utf8');
-  const websiteSchemaVersion = websiteHtml.match(/"softwareVersion"\s*:\s*"([^"]+)"/)?.[1];
-  if (websiteSchemaVersion !== manifest.version) {
-    errors.push(`官网 softwareVersion ${websiteSchemaVersion || '(缺失)'} 与 Manifest ${manifest.version} 不一致`);
-  }
-  const websiteCtaVersions = [...websiteHtml.matchAll(/class=["']cta-ver["'][^>]*>\s*v([^<\s]+)/gi)]
-    .map(match => match[1]);
-  if (!websiteCtaVersions.length || websiteCtaVersions.some(version => version !== manifest.version)) {
-    errors.push(`官网安装入口版本与 Manifest ${manifest.version} 不一致`);
-  }
+  validateWebsiteVersions(websiteHtml, manifest.version, errors);
 
   return { errors, stats };
 }

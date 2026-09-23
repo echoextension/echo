@@ -49,7 +49,9 @@ Chromium 自动化不等于 Edge 品牌浏览器验收。
 - `package-lock.json` 的顶层版本和根包版本；
 - `CHANGELOG.md` 顶部最新语义版本标题。
 - 设置页版本徽标；
-- 官网结构化数据和下载入口版本标识。
+- 官网 GitHub 入口版本标识。
+
+Edge 扩展商店可能因审核周期落后于仓库版本。官网结构化数据的 `softwareVersion` 与 Edge 商店入口版本必须彼此一致，但不要求等于 Manifest；商店上架完成后再同步更新这两处标识。
 
 `npm run validate` 会阻止上述机器可校验记录中的不一致版本进入发布流程。
 

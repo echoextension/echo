@@ -12,7 +12,8 @@ import {
 } from '../../scripts/extension-files.mjs';
 import {
   validateExtension,
-  validateHtmlReferences
+  validateHtmlReferences,
+  validateWebsiteVersions
 } from '../../scripts/validate-extension.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
@@ -30,6 +31,32 @@ describe('extension repository contracts', () => {
     expect(new Set(EXTENSION_FILES).size).toBe(EXTENSION_FILES.length);
     expect(EXTENSION_FILES.every(isAllowedExtensionFile)).toBe(true);
     expect(EXTENSION_FILES.some(isForbiddenPackageFile)).toBe(false);
+  });
+
+  it('allows the Edge store version to trail the repository version', () => {
+    const html = `
+      <script type="application/ld+json">{"softwareVersion":"1.3.3"}</script>
+      <a href="https://microsoftedge.microsoft.com/addons/detail/echo"><span class="cta-ver">v1.3.3</span></a>
+      <a href="https://github.com/echoextension/echo"><span class="cta-ver">v1.4.6</span></a>
+    `;
+    const errors = [];
+
+    validateWebsiteVersions(html, '1.4.6', errors);
+
+    expect(errors).toEqual([]);
+  });
+
+  it('rejects a GitHub entry version that differs from the manifest', () => {
+    const html = `
+      <script type="application/ld+json">{"softwareVersion":"1.3.3"}</script>
+      <a href="https://microsoftedge.microsoft.com/addons/detail/echo"><span class="cta-ver">v1.3.3</span></a>
+      <a href="https://github.com/echoextension/echo"><span class="cta-ver">v1.4.5</span></a>
+    `;
+    const errors = [];
+
+    validateWebsiteVersions(html, '1.4.6', errors);
+
+    expect(errors).toEqual(['官网 GitHub 入口版本与 Manifest 1.4.6 不一致']);
   });
 
   it('rejects a packaged HTML reference that exists but is absent from the allowlist', async () => {
