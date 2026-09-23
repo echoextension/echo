@@ -1,0 +1,704 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-08-26T15:39:12.896Z",
+  "pageUrl": "https://www.bilibili.com/",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36 Edg/152.0.0.0",
+  "viewport": {
+    "width": 3432,
+    "height": 1274,
+    "devicePixelRatio": 1
+  },
+  "privacy": "No URLs, BV identifiers, titles, authors, covers, card HTML, cookies, or response bodies are included.",
+  "selector": ".feed-card",
+  "initialBatch": {
+    "capturedAt": "2026-08-26T15:38:31.706Z",
+    "cardCount": 10,
+    "uniqueTargetCount": 8,
+    "duplicateTargetCount": 0,
+    "missingTargetCount": 2,
+    "overlapWithPrevious": 0,
+    "typeCounts": {
+      "video-bv": 8,
+      "missing": 2
+    },
+    "fieldCoverage": {
+      "targetUrl": 8,
+      "title": 8,
+      "cover": 8,
+      "author": 8,
+      "duration": 8,
+      "stats": 8
+    },
+    "lateSameTargetUpdates": 0,
+    "latestObservedFieldCoverage": {
+      "targetUrl": 8,
+      "title": 8,
+      "cover": 8,
+      "author": 8,
+      "duration": 8,
+      "stats": 8
+    }
+  },
+  "batches": [
+    {
+      "capturedAt": "2026-08-26T15:38:34.469Z",
+      "cardCount": 10,
+      "uniqueTargetCount": 8,
+      "duplicateTargetCount": 0,
+      "missingTargetCount": 2,
+      "overlapWithPrevious": 0,
+      "typeCounts": {
+        "video-bv": 8,
+        "missing": 2
+      },
+      "fieldCoverage": {
+        "targetUrl": 8,
+        "title": 8,
+        "cover": 8,
+        "author": 8,
+        "duration": 8,
+        "stats": 8
+      },
+      "lateSameTargetUpdates": 0,
+      "latestObservedFieldCoverage": {
+        "targetUrl": 8,
+        "title": 8,
+        "cover": 8,
+        "author": 8,
+        "duration": 8,
+        "stats": 8
+      },
+      "settleMs": 57,
+      "framesObserved": 2,
+      "signatureChanges": 0,
+      "timedOut": false
+    },
+    {
+      "capturedAt": "2026-08-26T15:38:37.371Z",
+      "cardCount": 10,
+      "uniqueTargetCount": 9,
+      "duplicateTargetCount": 0,
+      "missingTargetCount": 1,
+      "overlapWithPrevious": 0,
+      "typeCounts": {
+        "video-bv": 9,
+        "missing": 1
+      },
+      "fieldCoverage": {
+        "targetUrl": 9,
+        "title": 9,
+        "cover": 9,
+        "author": 9,
+        "duration": 9,
+        "stats": 9
+      },
+      "lateSameTargetUpdates": 0,
+      "latestObservedFieldCoverage": {
+        "targetUrl": 9,
+        "title": 9,
+        "cover": 9,
+        "author": 9,
+        "duration": 9,
+        "stats": 9
+      },
+      "settleMs": 42,
+      "framesObserved": 2,
+      "signatureChanges": 0,
+      "timedOut": false
+    },
+    {
+      "capturedAt": "2026-08-26T15:38:39.552Z",
+      "cardCount": 10,
+      "uniqueTargetCount": 8,
+      "duplicateTargetCount": 0,
+      "missingTargetCount": 2,
+      "overlapWithPrevious": 0,
+      "typeCounts": {
+        "video-bv": 8,
+        "missing": 2
+      },
+      "fieldCoverage": {
+        "targetUrl": 8,
+        "title": 8,
+        "cover": 8,
+        "author": 8,
+        "duration": 8,
+        "stats": 8
+      },
+      "lateSameTargetUpdates": 0,
+      "latestObservedFieldCoverage": {
+        "targetUrl": 8,
+        "title": 8,
+        "cover": 8,
+        "author": 8,
+        "duration": 8,
+        "stats": 8
+      },
+      "settleMs": 43,
+      "framesObserved": 2,
+      "signatureChanges": 0,
+      "timedOut": false
+    },
+    {
+      "capturedAt": "2026-08-26T15:38:41.310Z",
+      "cardCount": 10,
+      "uniqueTargetCount": 9,
+      "duplicateTargetCount": 0,
+      "missingTargetCount": 1,
+      "overlapWithPrevious": 0,
+      "typeCounts": {
+        "video-bv": 9,
+        "missing": 1
+      },
+      "fieldCoverage": {
+        "targetUrl": 9,
+        "title": 9,
+        "cover": 9,
+        "author": 9,
+        "duration": 9,
+        "stats": 9
+      },
+      "lateSameTargetUpdates": 0,
+      "latestObservedFieldCoverage": {
+        "targetUrl": 9,
+        "title": 9,
+        "cover": 9,
+        "author": 9,
+        "duration": 9,
+        "stats": 9
+      },
+      "settleMs": 29,
+      "framesObserved": 2,
+      "signatureChanges": 0,
+      "timedOut": false
+    },
+    {
+      "capturedAt": "2026-08-26T15:38:42.821Z",
+      "cardCount": 10,
+      "uniqueTargetCount": 9,
+      "duplicateTargetCount": 0,
+      "missingTargetCount": 1,
+      "overlapWithPrevious": 0,
+      "typeCounts": {
+        "video-bv": 9,
+        "missing": 1
+      },
+      "fieldCoverage": {
+        "targetUrl": 9,
+        "title": 9,
+        "cover": 9,
+        "author": 9,
+        "duration": 9,
+        "stats": 9
+      },
+      "lateSameTargetUpdates": 0,
+      "latestObservedFieldCoverage": {
+        "targetUrl": 9,
+        "title": 9,
+        "cover": 9,
+        "author": 9,
+        "duration": 9,
+        "stats": 9
+      },
+      "settleMs": 38,
+      "framesObserved": 2,
+      "signatureChanges": 0,
+      "timedOut": false
+    },
+    {
+      "capturedAt": "2026-08-26T15:38:44.856Z",
+      "cardCount": 10,
+      "uniqueTargetCount": 9,
+      "duplicateTargetCount": 0,
+      "missingTargetCount": 1,
+      "overlapWithPrevious": 0,
+      "typeCounts": {
+        "video-bv": 9,
+        "missing": 1
+      },
+      "fieldCoverage": {
+        "targetUrl": 9,
+        "title": 9,
+        "cover": 9,
+        "author": 9,
+        "duration": 9,
+        "stats": 9
+      },
+      "lateSameTargetUpdates": 0,
+      "latestObservedFieldCoverage": {
+        "targetUrl": 9,
+        "title": 9,
+        "cover": 9,
+        "author": 9,
+        "duration": 9,
+        "stats": 9
+      },
+      "settleMs": 37,
+      "framesObserved": 2,
+      "signatureChanges": 0,
+      "timedOut": false
+    },
+    {
+      "capturedAt": "2026-08-26T15:38:46.408Z",
+      "cardCount": 10,
+      "uniqueTargetCount": 9,
+      "duplicateTargetCount": 0,
+      "missingTargetCount": 1,
+      "overlapWithPrevious": 0,
+      "typeCounts": {
+        "video-bv": 9,
+        "missing": 1
+      },
+      "fieldCoverage": {
+        "targetUrl": 9,
+        "title": 9,
+        "cover": 9,
+        "author": 9,
+        "duration": 9,
+        "stats": 9
+      },
+      "lateSameTargetUpdates": 0,
+      "latestObservedFieldCoverage": {
+        "targetUrl": 9,
+        "title": 9,
+        "cover": 9,
+        "author": 9,
+        "duration": 9,
+        "stats": 9
+      },
+      "settleMs": 35,
+      "framesObserved": 2,
+      "signatureChanges": 0,
+      "timedOut": false
+    },
+    {
+      "capturedAt": "2026-08-26T15:38:47.849Z",
+      "cardCount": 10,
+      "uniqueTargetCount": 8,
+      "duplicateTargetCount": 0,
+      "missingTargetCount": 2,
+      "overlapWithPrevious": 0,
+      "typeCounts": {
+        "video-bv": 8,
+        "missing": 2
+      },
+      "fieldCoverage": {
+        "targetUrl": 8,
+        "title": 8,
+        "cover": 8,
+        "author": 8,
+        "duration": 8,
+        "stats": 8
+      },
+      "lateSameTargetUpdates": 0,
+      "latestObservedFieldCoverage": {
+        "targetUrl": 8,
+        "title": 8,
+        "cover": 8,
+        "author": 8,
+        "duration": 8,
+        "stats": 8
+      },
+      "settleMs": 33,
+      "framesObserved": 2,
+      "signatureChanges": 0,
+      "timedOut": false
+    },
+    {
+      "capturedAt": "2026-08-26T15:38:49.554Z",
+      "cardCount": 10,
+      "uniqueTargetCount": 9,
+      "duplicateTargetCount": 0,
+      "missingTargetCount": 1,
+      "overlapWithPrevious": 0,
+      "typeCounts": {
+        "video-bv": 9,
+        "missing": 1
+      },
+      "fieldCoverage": {
+        "targetUrl": 9,
+        "title": 9,
+        "cover": 9,
+        "author": 9,
+        "duration": 9,
+        "stats": 9
+      },
+      "lateSameTargetUpdates": 0,
+      "latestObservedFieldCoverage": {
+        "targetUrl": 9,
+        "title": 9,
+        "cover": 9,
+        "author": 9,
+        "duration": 9,
+        "stats": 9
+      },
+      "settleMs": 32,
+      "framesObserved": 2,
+      "signatureChanges": 0,
+      "timedOut": false
+    },
+    {
+      "capturedAt": "2026-08-26T15:38:51.293Z",
+      "cardCount": 10,
+      "uniqueTargetCount": 9,
+      "duplicateTargetCount": 0,
+      "missingTargetCount": 1,
+      "overlapWithPrevious": 0,
+      "typeCounts": {
+        "video-bv": 9,
+        "missing": 1
+      },
+      "fieldCoverage": {
+        "targetUrl": 9,
+        "title": 9,
+        "cover": 9,
+        "author": 9,
+        "duration": 9,
+        "stats": 9
+      },
+      "lateSameTargetUpdates": 0,
+      "latestObservedFieldCoverage": {
+        "targetUrl": 9,
+        "title": 9,
+        "cover": 9,
+        "author": 9,
+        "duration": 9,
+        "stats": 9
+      },
+      "settleMs": 32,
+      "framesObserved": 2,
+      "signatureChanges": 0,
+      "timedOut": false
+    },
+    {
+      "capturedAt": "2026-08-26T15:38:58.873Z",
+      "cardCount": 10,
+      "uniqueTargetCount": 9,
+      "duplicateTargetCount": 0,
+      "missingTargetCount": 1,
+      "overlapWithPrevious": 0,
+      "typeCounts": {
+        "video-bv": 9,
+        "missing": 1
+      },
+      "fieldCoverage": {
+        "targetUrl": 9,
+        "title": 9,
+        "cover": 9,
+        "author": 9,
+        "duration": 9,
+        "stats": 9
+      },
+      "lateSameTargetUpdates": 0,
+      "latestObservedFieldCoverage": {
+        "targetUrl": 9,
+        "title": 9,
+        "cover": 9,
+        "author": 9,
+        "duration": 9,
+        "stats": 9
+      },
+      "settleMs": 33,
+      "framesObserved": 2,
+      "signatureChanges": 0,
+      "timedOut": false
+    },
+    {
+      "capturedAt": "2026-08-26T15:39:00.634Z",
+      "cardCount": 10,
+      "uniqueTargetCount": 9,
+      "duplicateTargetCount": 0,
+      "missingTargetCount": 1,
+      "overlapWithPrevious": 0,
+      "typeCounts": {
+        "video-bv": 9,
+        "missing": 1
+      },
+      "fieldCoverage": {
+        "targetUrl": 9,
+        "title": 9,
+        "cover": 9,
+        "author": 9,
+        "duration": 9,
+        "stats": 9
+      },
+      "lateSameTargetUpdates": 0,
+      "latestObservedFieldCoverage": {
+        "targetUrl": 9,
+        "title": 9,
+        "cover": 9,
+        "author": 9,
+        "duration": 9,
+        "stats": 9
+      },
+      "settleMs": 36,
+      "framesObserved": 2,
+      "signatureChanges": 0,
+      "timedOut": false
+    },
+    {
+      "capturedAt": "2026-08-26T15:39:01.915Z",
+      "cardCount": 10,
+      "uniqueTargetCount": 9,
+      "duplicateTargetCount": 0,
+      "missingTargetCount": 1,
+      "overlapWithPrevious": 0,
+      "typeCounts": {
+        "video-bv": 9,
+        "missing": 1
+      },
+      "fieldCoverage": {
+        "targetUrl": 9,
+        "title": 9,
+        "cover": 9,
+        "author": 9,
+        "duration": 9,
+        "stats": 9
+      },
+      "lateSameTargetUpdates": 0,
+      "latestObservedFieldCoverage": {
+        "targetUrl": 9,
+        "title": 9,
+        "cover": 9,
+        "author": 9,
+        "duration": 9,
+        "stats": 9
+      },
+      "settleMs": 34,
+      "framesObserved": 2,
+      "signatureChanges": 0,
+      "timedOut": false
+    },
+    {
+      "capturedAt": "2026-08-26T15:39:03.104Z",
+      "cardCount": 10,
+      "uniqueTargetCount": 9,
+      "duplicateTargetCount": 0,
+      "missingTargetCount": 1,
+      "overlapWithPrevious": 0,
+      "typeCounts": {
+        "video-bv": 9,
+        "missing": 1
+      },
+      "fieldCoverage": {
+        "targetUrl": 9,
+        "title": 9,
+        "cover": 9,
+        "author": 9,
+        "duration": 9,
+        "stats": 9
+      },
+      "lateSameTargetUpdates": 0,
+      "latestObservedFieldCoverage": {
+        "targetUrl": 9,
+        "title": 9,
+        "cover": 9,
+        "author": 9,
+        "duration": 9,
+        "stats": 9
+      },
+      "settleMs": 35,
+      "framesObserved": 2,
+      "signatureChanges": 0,
+      "timedOut": false
+    },
+    {
+      "capturedAt": "2026-08-26T15:39:04.413Z",
+      "cardCount": 10,
+      "uniqueTargetCount": 8,
+      "duplicateTargetCount": 0,
+      "missingTargetCount": 2,
+      "overlapWithPrevious": 0,
+      "typeCounts": {
+        "video-bv": 8,
+        "missing": 2
+      },
+      "fieldCoverage": {
+        "targetUrl": 8,
+        "title": 8,
+        "cover": 8,
+        "author": 8,
+        "duration": 8,
+        "stats": 8
+      },
+      "lateSameTargetUpdates": 0,
+      "latestObservedFieldCoverage": {
+        "targetUrl": 8,
+        "title": 8,
+        "cover": 8,
+        "author": 8,
+        "duration": 8,
+        "stats": 8
+      },
+      "settleMs": 34,
+      "framesObserved": 2,
+      "signatureChanges": 0,
+      "timedOut": false
+    },
+    {
+      "capturedAt": "2026-08-26T15:39:05.588Z",
+      "cardCount": 10,
+      "uniqueTargetCount": 8,
+      "duplicateTargetCount": 0,
+      "missingTargetCount": 2,
+      "overlapWithPrevious": 0,
+      "typeCounts": {
+        "video-bv": 8,
+        "missing": 2
+      },
+      "fieldCoverage": {
+        "targetUrl": 8,
+        "title": 8,
+        "cover": 8,
+        "author": 8,
+        "duration": 8,
+        "stats": 8
+      },
+      "lateSameTargetUpdates": 0,
+      "latestObservedFieldCoverage": {
+        "targetUrl": 8,
+        "title": 8,
+        "cover": 8,
+        "author": 8,
+        "duration": 8,
+        "stats": 8
+      },
+      "settleMs": 41,
+      "framesObserved": 2,
+      "signatureChanges": 0,
+      "timedOut": false
+    },
+    {
+      "capturedAt": "2026-08-26T15:39:06.979Z",
+      "cardCount": 10,
+      "uniqueTargetCount": 8,
+      "duplicateTargetCount": 0,
+      "missingTargetCount": 2,
+      "overlapWithPrevious": 0,
+      "typeCounts": {
+        "video-bv": 8,
+        "missing": 2
+      },
+      "fieldCoverage": {
+        "targetUrl": 8,
+        "title": 8,
+        "cover": 8,
+        "author": 8,
+        "duration": 8,
+        "stats": 8
+      },
+      "lateSameTargetUpdates": 0,
+      "latestObservedFieldCoverage": {
+        "targetUrl": 8,
+        "title": 8,
+        "cover": 8,
+        "author": 8,
+        "duration": 8,
+        "stats": 8
+      },
+      "settleMs": 34,
+      "framesObserved": 2,
+      "signatureChanges": 0,
+      "timedOut": false
+    },
+    {
+      "capturedAt": "2026-08-26T15:39:08.160Z",
+      "cardCount": 10,
+      "uniqueTargetCount": 9,
+      "duplicateTargetCount": 0,
+      "missingTargetCount": 1,
+      "overlapWithPrevious": 0,
+      "typeCounts": {
+        "video-bv": 9,
+        "missing": 1
+      },
+      "fieldCoverage": {
+        "targetUrl": 9,
+        "title": 9,
+        "cover": 9,
+        "author": 9,
+        "duration": 9,
+        "stats": 9
+      },
+      "lateSameTargetUpdates": 0,
+      "latestObservedFieldCoverage": {
+        "targetUrl": 9,
+        "title": 9,
+        "cover": 9,
+        "author": 9,
+        "duration": 9,
+        "stats": 9
+      },
+      "settleMs": 34,
+      "framesObserved": 2,
+      "signatureChanges": 0,
+      "timedOut": false
+    },
+    {
+      "capturedAt": "2026-08-26T15:39:09.441Z",
+      "cardCount": 10,
+      "uniqueTargetCount": 9,
+      "duplicateTargetCount": 0,
+      "missingTargetCount": 1,
+      "overlapWithPrevious": 0,
+      "typeCounts": {
+        "video-bv": 9,
+        "missing": 1
+      },
+      "fieldCoverage": {
+        "targetUrl": 9,
+        "title": 9,
+        "cover": 9,
+        "author": 9,
+        "duration": 9,
+        "stats": 9
+      },
+      "lateSameTargetUpdates": 0,
+      "latestObservedFieldCoverage": {
+        "targetUrl": 9,
+        "title": 9,
+        "cover": 9,
+        "author": 9,
+        "duration": 9,
+        "stats": 9
+      },
+      "settleMs": 33,
+      "framesObserved": 2,
+      "signatureChanges": 0,
+      "timedOut": false
+    },
+    {
+      "capturedAt": "2026-08-26T15:39:10.802Z",
+      "cardCount": 10,
+      "uniqueTargetCount": 9,
+      "duplicateTargetCount": 0,
+      "missingTargetCount": 1,
+      "overlapWithPrevious": 0,
+      "typeCounts": {
+        "video-bv": 9,
+        "missing": 1
+      },
+      "fieldCoverage": {
+        "targetUrl": 9,
+        "title": 9,
+        "cover": 9,
+        "author": 9,
+        "duration": 9,
+        "stats": 9
+      },
+      "lateSameTargetUpdates": 0,
+      "latestObservedFieldCoverage": {
+        "targetUrl": 9,
+        "title": 9,
+        "cover": 9,
+        "author": 9,
+        "duration": 9,
+        "stats": 9
+      },
+      "settleMs": 35,
+      "framesObserved": 2,
+      "signatureChanges": 0,
+      "timedOut": false
+    }
+  ]
+}

@@ -19,7 +19,7 @@
         <div class="brand-header">
           <img src="../icons/icon128.png" class="logo-icon" alt="ECHO Logo">
           <div class="brand-title">
-            <h1>ECHO <span class="brand-cn">易可</span><a href="../docs-viewer.html?file=CHANGELOG.md" target="_blank" class="version-link"><span class="version-badge">v1.3.3</span></a></h1>
+            <h1>ECHO <span class="brand-cn">易可</span><a href="../docs-viewer.html?file=CHANGELOG.md" target="_blank" class="version-link"><span class="version-badge">v1.4.6</span></a></h1>
           </div>
         </div>
         <p class="description">让 Edge 更懂中国用户</p>
@@ -139,7 +139,7 @@
           <div class="option-info">
             <h3>拖拽链接/文字</h3>
             <p>拖拽链接在新标签打开；拖拽选中文字用 Bing 搜索</p>
-            <p class="note" style="color: #e6a23c;">⚠️ Edge 新版本正在内置类似的拖拽功能，若两者同时启用可能产生冲突。因此此功能默认关闭，如需使用请手动开启</p>
+            <p class="note">💡 可与 Edge 自带拖拽同时使用、互不冲突；ECHO 还额外支持链接拖拽，因此默认开启</p>
           </div>
           <label class="switch">
             <input type="checkbox" id="superDrag">
@@ -500,7 +500,35 @@
         </div>
       </section>
 
-      <!-- B站视频优化工具 -->
+      <!-- 知乎黑名单内容过滤 -->
+      <section class="card" id="zhihuBlocklistCard">
+        <div class="card-header">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            <path d="M9 9l6 6M15 9l-6 6"/>
+          </svg>
+          <h2>知乎黑名单内容过滤</h2>
+        </div>
+        <div class="option">
+          <div class="option-info">
+            <h3>隐藏黑名单用户发布的内容</h3>
+            <p>同步官方黑名单后，在回答、信息流与评论中折叠命中作者的内容；搜索结果保留原样，识别失败时也不会隐藏</p>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="zhihuBlocklistFilter">
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div class="option sub-option zhihu-sync-option" id="zhihuBlocklistSyncOption" hidden>
+          <div class="option-info">
+            <h3 id="zhihuBlocklistSyncTitle">同步知乎黑名单</h3>
+            <p id="zhihuBlocklistStatus" class="zhihu-sync-status">尚未同步。名单按知乎账号保存在本地，不进入同步或备份</p>
+          </div>
+          <button type="button" class="backup-btn export-btn zhihu-sync-button" id="zhihuBlocklistSync">同步知乎黑名单</button>
+        </div>
+      </section>
+
+      <!-- B站专属增强 -->
       <section class="card" id="biliToolCard">
         <div class="card-header">
           <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -508,11 +536,11 @@
             <path d="M8 2L10 5"/>
             <path d="M16 2L14 5"/>
           </svg>
-          <h2>B站视频优化工具</h2>
+          <h2>B站专属增强</h2>
         </div>
         <div class="option">
           <div class="option-info">
-            <h3>颜色变换、旋转镜像、超级变速</h3>
+            <h3>B站视频优化工具</h3>
 
             <!-- 演示动画 + 功能说明 并排 -->
             <div style="display: flex; gap: 14px; margin-top: 14px; align-items: stretch;">
@@ -542,29 +570,85 @@
               </div>
             </div>
 
-            <!-- 功能说明 -->
-            <div style="flex: 1; min-width: 0; padding: 12px; background: rgba(128, 128, 128, 0.05); border-radius: 6px; border: 1px solid rgba(128, 128, 128, 0.1);">
-              <div style="display: flex; gap: 8px; margin-bottom: 8px;">
-                <span style="flex-shrink: 0;">📺</span>
-                <div style="font-size: 13px; color: var(--text); line-height: 1.5;">
-                  在 Bilibili 视频播放页左侧悬浮显示优化工具
-                </div>
-              </div>
-              
-              <div style="margin-left: 24px; padding-top: 8px; border-top: 1px dashed rgba(128, 128, 128, 0.2);">
-                <ul style="margin: 0; padding-left: 16px; font-size: 12px; color: var(--text-secondary); line-height: 1.8; opacity: 0.9;">
-                  <li>颜色反转与通道交换（全色以及分通道调整）</li>
-                  <li>旋转镜像（以及缩放、适配，特别适合看小姐姐，避免歪脖子）</li>
-                  <li>超级变速（0.25× 超慢速和 3.0× 极速播放）</li>
-                </ul>
-                <div style="font-size: 12px; font-weight: 600; color: var(--text-secondary); margin-top: 6px;">完全自由组合，也可以随时关闭或暂时隐藏</div>
-              </div>
+            <div class="bili-option-summary">
+              <p>在 Bilibili 视频播放页左侧悬浮显示优化工具。</p>
+              <ul>
+                <li>旋转、镜像，以及适应、填充和画面位置调整</li>
+                <li>画面反色与 RGB 通道交换</li>
+                <li>0.25× 超慢速与 3× 极速播放</li>
+                <li>上述画面能力可组合使用，工具可随时恢复或关闭</li>
+              </ul>
             </div>
 
             </div>
           </div>
           <label class="switch">
             <input type="checkbox" id="biliTool">
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <div class="option">
+          <div class="option-info">
+            <h3>B站推荐回退</h3>
+
+            <div class="bili-feed-option-layout">
+              <div class="options-bili-feed-demo bili-feed-demo" aria-hidden="true">
+                <div class="site-demo-window">
+                  <div class="site-demo-topbar">
+                    <div class="site-demo-wordmark bili-feed-wordmark">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="2" y="5" width="20" height="14" rx="3" fill="rgba(251,114,153,.08)"/>
+                        <path d="M8 2l2 3M16 2l-2 3"/>
+                        <circle cx="9" cy="11" r="1" fill="currentColor" stroke="none"/>
+                        <circle cx="15" cy="11" r="1" fill="currentColor" stroke="none"/>
+                      </svg>
+                      <span>B站</span>
+                    </div>
+                    <div class="site-demo-nav"><span></span><span></span><span></span></div>
+                    <div class="site-demo-badge">首页</div>
+                  </div>
+
+                  <div class="bili-feed-stage">
+                    <div class="bili-feed-label">首页推荐</div>
+                    <div class="bili-feed-memory">会话内 · 最近 10 批</div>
+
+                    <div class="bili-feed-batch bili-feed-batch--old">
+                      <div class="bili-feed-tile"><div class="bili-feed-cover" style="--feed-cover:linear-gradient(135deg,#6b8ba4,#d7a88b);"><span class="bili-feed-duration">05:18</span></div><div class="bili-feed-meta"><span class="bili-feed-title-line"></span><span class="bili-feed-sub-line"></span></div></div>
+                      <div class="bili-feed-tile"><div class="bili-feed-cover" style="--feed-cover:linear-gradient(135deg,#708c7b,#c9d9ba);"><span class="bili-feed-duration">12:40</span></div><div class="bili-feed-meta"><span class="bili-feed-title-line"></span><span class="bili-feed-sub-line"></span></div></div>
+                      <div class="bili-feed-tile"><div class="bili-feed-cover" style="--feed-cover:linear-gradient(135deg,#967b92,#e2c6b7);"><span class="bili-feed-duration">08:22</span></div><div class="bili-feed-meta"><span class="bili-feed-title-line"></span><span class="bili-feed-sub-line"></span></div></div>
+                      <div class="bili-feed-tile"><div class="bili-feed-cover" style="--feed-cover:linear-gradient(135deg,#8e9eb3,#d8b9ca);"><span class="bili-feed-duration">18:06</span></div><div class="bili-feed-meta"><span class="bili-feed-title-line"></span><span class="bili-feed-sub-line"></span></div></div>
+                    </div>
+
+                    <div class="bili-feed-batch bili-feed-batch--new">
+                      <div class="bili-feed-tile"><div class="bili-feed-cover" style="--feed-cover:linear-gradient(135deg,#4d6787,#a3c7d9);"><span class="bili-feed-duration">03:46</span></div><div class="bili-feed-meta"><span class="bili-feed-title-line"></span><span class="bili-feed-sub-line"></span></div></div>
+                      <div class="bili-feed-tile"><div class="bili-feed-cover" style="--feed-cover:linear-gradient(135deg,#bc8e6d,#ead1ad);"><span class="bili-feed-duration">21:15</span></div><div class="bili-feed-meta"><span class="bili-feed-title-line"></span><span class="bili-feed-sub-line"></span></div></div>
+                      <div class="bili-feed-tile"><div class="bili-feed-cover" style="--feed-cover:linear-gradient(135deg,#536e62,#a8c2a6);"><span class="bili-feed-duration">09:31</span></div><div class="bili-feed-meta"><span class="bili-feed-title-line"></span><span class="bili-feed-sub-line"></span></div></div>
+                      <div class="bili-feed-tile"><div class="bili-feed-cover" style="--feed-cover:linear-gradient(135deg,#826f91,#c3afd0);"><span class="bili-feed-duration">14:02</span></div><div class="bili-feed-meta"><span class="bili-feed-title-line"></span><span class="bili-feed-sub-line"></span></div></div>
+                    </div>
+
+                    <div class="bili-feed-controls">
+                      <div class="bili-refresh-control"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg><span>换一换</span></div>
+                      <div class="bili-history-rail"><div class="bili-history-button bili-history-button--prev"><svg viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg></div><div class="bili-history-button bili-history-button--next"><svg viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg></div></div>
+                    </div>
+
+                    <div class="bili-history-toast"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M19 12H5m6 6-6-6 6-6"/></svg>已找回上一批推荐</div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="bili-feed-option-copy">
+                <p>在 B站首页使用原生「换一换」后记录推荐批次，可通过上一批、下一批找回内容。</p>
+                <ul>
+                  <li>每个标签页会话最多保留最近 10 批</li>
+                  <li>刷新首页或同标签进入视频再返回时可恢复</li>
+                  <li>关闭标签页或关闭此功能后清除</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="biliFeedHistory">
             <span class="slider"></span>
           </label>
         </div>
@@ -611,132 +695,6 @@
 
     </div>
 
-    <!-- ===== 实验室 ===== -->
-    <div class="settings-section" id="labSection">
-      <h2 class="section-watermark">实验室</h2>
-
-      <section class="card lab-card" id="labCard">
-        <div class="card-header">
-          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="11" cy="11" r="8"/>
-            <line x1="21" y1="21" x2="16.65" y2="16.65"/>
-          </svg>
-          <h2>搜索推荐</h2>
-          <span class="lab-badge">测试中</span>
-        </div>
-        
-        <!-- 网页关联搜索推荐 (AI) -->
-        <div class="lab-feature-group" id="labRelatedSearch">
-          <div class="option lab-option lab-main-option">
-            <div class="option-info">
-              <h3>启用基于 AI 能力的网页关联搜索推荐</h3>
-              <p>实验性功能。智能分析当前网页内容，在右下角提供相关搜索推荐。</p>
-
-              <!-- 演示动画 + 隐私说明 并排 -->
-              <div style="display: flex; gap: 14px; margin-top: 14px; align-items: stretch;">
-
-              <!-- 功能效果演示动画 -->
-              <div class="demo-stage">
-                <!-- 模拟页面文本行 -->
-                <div class="demo-page-lines">
-                  <div class="demo-page-line"></div>
-                  <div class="demo-page-line"></div>
-                  <div class="demo-page-line"></div>
-                  <div class="demo-page-line"></div>
-                  <div class="demo-page-line"></div>
-                </div>
-                <!-- Peek 竖条 -->
-                <div class="demo-peek"></div>
-                <!-- 骨架屏标签 -->
-                <div class="demo-tags">
-                  <div class="demo-tag"></div>
-                  <div class="demo-tag"></div>
-                  <div class="demo-tag"></div>
-                </div>
-                <!-- 胶囊按钮 -->
-                <div class="demo-capsule">
-                  搜索推荐
-                  <svg class="demo-capsule-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
-                </div>
-              </div>
-              
-              <div style="flex: 1; min-width: 0; padding: 12px; background: rgba(128, 128, 128, 0.05); border-radius: 6px; border: 1px solid rgba(128, 128, 128, 0.1);">
-                <div style="display: flex; gap: 8px; margin-bottom: 8px;">
-                  <span style="flex-shrink: 0; color: #e6a23c;">⚠️</span>
-                  <div style="font-size: 13px; color: var(--text); line-height: 1.5;">
-                    需将少量纯文本片段发送至第三方 AI 服务 (Pollinations.ai 等)。<br>
-                    <span style="opacity: 0.7; font-size: 12px;">因使用的是免费公共接口，服务并不稳定，可能随时提取失败。</span>
-                  </div>
-                </div>
-                
-                <div style="margin-left: 24px; padding-top: 8px; border-top: 1px dashed rgba(128, 128, 128, 0.2);">
-                  <div style="font-size: 12px; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px;">隐私保护机制：</div>
-                  <ul style="margin: 0; padding-left: 16px; font-size: 12px; color: var(--text-secondary); line-height: 1.6; opacity: 0.9;">
-                    <li><strong>严格过滤：</strong> 绝不解析 localhost、内网 IP (192.168.x)、敏感域名（.gov/.edu/.mil/.corp）等</li>
-                    <li><strong>匿名传输：</strong> 仅传输纯文本，不含任何 Cookie 或用户标识</li>
-                  </ul>
-                </div>
-
-                <a href="../docs-viewer.html?file=PRIVACY_POLICY.md" target="_blank" style="display: inline-block; margin-top: 8px; margin-left: 24px; font-size: 12px; color: var(--primary); text-decoration: none; opacity: 0.9;">
-                  详细技术细节与隐私指引 →
-                </a>
-              </div>
-
-              </div><!-- /flex row -->
-
-            </div>
-            <label class="switch">
-              <input type="checkbox" id="relatedSearchRecommend">
-              <span class="slider"></span>
-            </label>
-          </div>
-          
-          <div class="option lab-option lab-sub-option" id="relatedSearchFollowZoomOption">
-            <div class="option-info">
-              <h3>跟随页面缩放</h3>
-              <p>关闭后挂件保持固定大小，不随页面缩放变化（默认）；开启后跟随页面缩放</p>
-            </div>
-            <label class="switch">
-              <input type="checkbox" id="relatedSearchFollowZoom">
-              <span class="slider"></span>
-            </label>
-          </div>
-          
-          <!-- 黑名单管理子选项 -->
-          <div class="option lab-option lab-sub-option" id="relatedSearchBlacklistOption">
-            <div class="option-info">
-              <h3>已手动屏蔽的网站</h3>
-              <p>以下网站您已设置不会显示搜索推荐，点击可移除</p>
-              
-              <!-- 黑名单列表 -->
-              <div class="blacklist-container" id="blacklistContainer">
-                <div class="blacklist-empty" id="blacklistEmpty">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                    <circle cx="12" cy="12" r="10"/>
-                    <path d="M8 12h8"/>
-                  </svg>
-                  <span>暂无屏蔽网站</span>
-                </div>
-                <div class="blacklist-items" id="blacklistItems">
-                  <!-- JS 动态生成 -->
-                </div>
-              </div>
-              
-              <!-- 清空按钮 -->
-              <button class="blacklist-clear-btn" id="blacklistClearBtn" style="display: none;">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <polyline points="3 6 5 6 21 6"/>
-                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-                </svg>
-                清空所有
-              </button>
-            </div>
-          </div>
-        </div>
-      </section>
-
-    </div>
-
   </main>
   </div><!-- /.page-wrapper -->
 
@@ -747,9 +705,9 @@
     </svg>
   </button>
 
-  <!-- 自定义确认模态框 -->
+  <!-- 知乎授权确认模态框 -->
   <div id="item-modal-overlay" class="modal-overlay" style="display: none; opacity: 0;">
-    <div class="modal-container">
+    <div class="modal-container" role="dialog" aria-modal="true" aria-labelledby="modal-title">
       <div class="modal-header">
         <div class="modal-icon-wrapper">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -758,31 +716,16 @@
             <line x1="12" y1="17" x2="12.01" y2="17"/>
           </svg>
         </div>
-        <h3 class="modal-title">开启确认 / Confirmation</h3>
+        <h3 class="modal-title" id="modal-title">开启确认 / Confirmation</h3>
       </div>
       
       <div class="modal-content">
-        <p class="modal-text-primary">您即将开启「网页关联搜索推荐」实验性功能。</p>
-        <p class="modal-text-secondary">You are enabling the "Related Search" experimental feature.</p>
+        <p class="modal-text-primary" id="modal-text-primary"></p>
+        <p class="modal-text-secondary" id="modal-text-secondary"></p>
         
-        <div class="modal-risk-box">
-          <div class="risk-item">
-            <span class="risk-icon">🌐</span>
-            <div class="risk-desc">
-              <strong>数据交互 / Data Interaction</strong>
-              <p>访问网页时，部分纯文本片段将被发送至第三方 AI 服务 (Pollinations.ai 及备选服务)。<br>Text snippets will be sent to 3rd-party AI providers.</p>
-            </div>
-          </div>
-          <div class="risk-item">
-            <span class="risk-icon">⚡</span>
-            <div class="risk-desc">
-              <strong>服务波动 / Instability</strong>
-              <p>使用免费公共接口，可能出现请求失败。<br>Service may be unstable due to free public API.</p>
-            </div>
-          </div>
-        </div>
+        <div class="modal-risk-box" id="modal-risk-box"></div>
 
-        <p class="modal-text-footer">我们承诺仅进行匿名传输且不留存数据，但您需自行评估第三方服务交互的风险。</p>
+        <p class="modal-text-footer" id="modal-text-footer"></p>
       </div>
 
       <div class="modal-actions">
@@ -793,10 +736,20 @@
   </div>
 
   <!-- 超级 Bing 悬浮搜索框 -->
+  <script src="../core/settings.js"></script>
+  <script src="../core/messages.js"></script>
+  <script src="../core/input-policy.js"></script>
+  <script src="../common/input-context.js"></script>
+  <script src="../search-box/trending-controller.js"></script>
   <script src="../search-box/search-box.js"></script>
+  <script src="../common/mouse-gesture.js"></script>
+  <script src="../common/super-drag.js"></script>
+  <script src="../common/keyboard-enhance.js"></script>
   <!-- Low Poly 背景 -->
   <script src="../common/lowpoly-bg.js"></script>
 
+  <script src="modules/backup-controller.js"></script>
+  <script src="modules/zhihu-sync-controller.js"></script>
   <script src="options.js"></script>
 </body>
 </html>

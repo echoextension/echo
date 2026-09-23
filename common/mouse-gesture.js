@@ -8,6 +8,9 @@
 (function() {
   'use strict';
 
+  const MESSAGE_ACTIONS = EchoMessages.ACTIONS;
+  const inputContext = EchoInputContext;
+
   // 避免重复初始化
   if (window.__echoMouseGestureInitialized) return;
   window.__echoMouseGestureInitialized = true;
@@ -19,20 +22,23 @@
   let preventContextMenu = false;
   let lastWheelTime = 0;
   let wheelCount = 0;  // 滚轮触发次数，用于判断是否应该阻止右键菜单
+  let gestureStarted = false;
 
   // 右键按下：重置状态 + 通知 background
   document.addEventListener('mousedown', (e) => {
-    if (e.button === 2) {
+    if (e.button === 2 && inputContext.isEnabled('mouseGesture')) {
+      gestureStarted = true;
       wheelCount = 0;  // 重置滚轮计数
-      chrome.runtime.sendMessage({ action: 'mouseGestureStart' });
+      chrome.runtime.sendMessage({ action: MESSAGE_ACTIONS.MOUSE_GESTURE_START });
       preventContextMenu = false;
     }
   });
 
   // 右键松开：通知 background
   document.addEventListener('mouseup', (e) => {
-    if (e.button === 2) {
-      chrome.runtime.sendMessage({ action: 'mouseGestureEnd' });
+    if (e.button === 2 && gestureStarted) {
+      gestureStarted = false;
+      chrome.runtime.sendMessage({ action: MESSAGE_ACTIONS.MOUSE_GESTURE_END });
       // 如果触发过滚轮手势，延迟重置 preventContextMenu
       if (wheelCount > 0) {
         setTimeout(() => {
@@ -59,7 +65,7 @@
     
     // 右键 + 滚轮（不能同时按 Ctrl/Cmd，那是缩放）
     const isCtrlOrCmd = e.ctrlKey || e.metaKey;
-    if (isRightButtonPressed && !isCtrlOrCmd) {
+    if (inputContext.isEnabled('mouseGesture') && isRightButtonPressed && !isCtrlOrCmd) {
       // 立即阻止默认滚动行为
       e.preventDefault();
       e.stopPropagation();
@@ -73,7 +79,7 @@
 
       // 切换标签（标记来源为鼠标手势）
       const direction = e.deltaY > 0 ? 'right' : 'left';
-      chrome.runtime.sendMessage({ action: 'switchTab', direction, source: 'mouseGesture' });
+      chrome.runtime.sendMessage({ action: MESSAGE_ACTIONS.SWITCH_TAB, direction, source: 'mouseGesture' });
     }
   }, { passive: false, capture: true });
 })();

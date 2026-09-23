@@ -9,6 +9,8 @@
 (async function() {
   'use strict';
 
+  const MESSAGE_ACTIONS = EchoMessages.ACTIONS;
+
   // 搜索框只应运行在顶层页面；在 iframe 中运行会导致快捷键、焦点和路由监听重复绑定。
   if (window !== window.top) {
     return;
@@ -19,13 +21,12 @@
   // 否则 bottom: 32px 会在页面放大时变成更大的物理像素距离，导致视觉位置上移。
   const BOTTOM_OFFSET_PX = 32;
 
-  // 默认设置
-  const DEFAULT_SETTINGS = {
-    floatingSearchBox: true,        // 主开关，默认开启
-    floatingSearchBoxAlwaysShow: false,  // 子选项：默认常驻显示，默认关闭
-    floatingSearchBoxTrending: false,    // 子选项：显示热搜榜，默认关闭
-    floatingSearchBoxFollowZoom: false   // 子选项：跟随页面缩放，默认关闭（即默认反向补偿）
-  };
+  const DEFAULT_SETTINGS = EchoSettings.getDefaults([
+    'floatingSearchBox',
+    'floatingSearchBoxAlwaysShow',
+    'floatingSearchBoxTrending',
+    'floatingSearchBoxFollowZoom'
+  ]);
 
   // 加载设置
   let settings = await chrome.storage.sync.get(DEFAULT_SETTINGS);
@@ -66,12 +67,9 @@
         // 动态更新缩放补偿状态
         if (settings.floatingSearchBoxFollowZoom) {
           // 关闭补偿，重置为原始大小
-          if (zoomCheckInterval) {
-            clearInterval(zoomCheckInterval);
-            zoomCheckInterval = null;
-          }
+          stopZoomCompensation();
           applyZoomCompensation(1);
-        } else {
+        } else if (getSearchWrapperVisible()) {
           // 开启补偿
           initZoomCompensation();
         }
@@ -439,11 +437,7 @@
   let searchContainer = null;
   let searchInput = null;
   let trendingPanel = null;
-  let trendingData = null;
-  let trendingScrollInterval = null;
-  let currentTrendingIndex = 0;
-  let lastFetchTime = 0;
-  const CACHE_DURATION = 10 * 60 * 1000; // 缓存 10 分钟
+  let trendingController = null;
 
   function getSearchWrapperVisible() {
     return !!(searchWrapper && searchWrapper.classList.contains('show'));
@@ -571,6 +565,16 @@
       </div>
     `;
     searchRow.appendChild(trendingPanel);
+    trendingController = EchoSearchBoxTrendingController.create({
+      chrome,
+      document,
+      panel: trendingPanel,
+      actions: MESSAGE_ACTIONS,
+      onAvailabilityChange: (available) => {
+        if (available) trendingPanel.classList.add('show');
+        else trendingPanel.classList.remove('show');
+      }
+    });
 
     searchWrapper.appendChild(searchRow);
             shadowRoot.appendChild(searchWrapper);
@@ -592,11 +596,6 @@
     // 绑定事件
     bindEvents();
 
-    // 启动光谱旋转动画
-    startSpectrumAnimation();
-
-    // 初始化缩放补偿（如果需要）
-    initZoomCompensation();
   }
 
   // ============================================
@@ -615,7 +614,7 @@
     if (settings.floatingSearchBoxFollowZoom) return;
 
     try {
-      const response = await chrome.runtime.sendMessage({ action: 'getZoom' });
+      const response = await chrome.runtime.sendMessage({ action: MESSAGE_ACTIONS.GET_ZOOM });
       if (response && typeof response.zoom === 'number') {
         currentZoom = response.zoom;
         applyZoomCompensation(currentZoom);
@@ -631,7 +630,7 @@
    */
   function initZoomCompensation() {
     // 如果跟随页面缩放，不需要补偿
-    if (settings.floatingSearchBoxFollowZoom) {
+    if (settings.floatingSearchBoxFollowZoom || zoomCheckInterval) {
       return;
     }
     
@@ -640,6 +639,12 @@
     
     // 定期检查缩放变化（每 500ms）
     zoomCheckInterval = setInterval(checkAndApplyZoom, 500);
+  }
+
+  function stopZoomCompensation() {
+    if (!zoomCheckInterval) return;
+    clearInterval(zoomCheckInterval);
+    zoomCheckInterval = null;
   }
   
   /**
@@ -658,7 +663,7 @@
     }
     
     try {
-      const response = await chrome.runtime.sendMessage({ action: 'getZoom' });
+      const response = await chrome.runtime.sendMessage({ action: MESSAGE_ACTIONS.GET_ZOOM });
       if (response && response.zoom && Math.abs(response.zoom - currentZoom) > 0.001) {
         currentZoom = response.zoom;
         applyZoomCompensation(currentZoom);
@@ -710,6 +715,7 @@
   // 光谱旋转动画（使用 JS 实现最佳兼容性）
   let spectrumAnimationId = null;
   function startSpectrumAnimation() {
+    if (spectrumAnimationId !== null) return;
     let angle = 0;
     const animate = () => {
       angle = (angle + 3) % 360;
@@ -726,6 +732,12 @@
     animate();
   }
 
+  function stopSpectrumAnimation() {
+    if (spectrumAnimationId === null) return;
+    cancelAnimationFrame(spectrumAnimationId);
+    spectrumAnimationId = null;
+  }
+
   // ============================================
   // 热搜推荐功能
   // ============================================
@@ -738,277 +750,11 @@
     
     if (settings.floatingSearchBoxTrending && searchWrapper?.classList.contains('show')) {
       trendingPanel.classList.add('show');
-      // 如果没有数据或缓存过期，获取数据
-      if (!trendingData || Date.now() - lastFetchTime > CACHE_DURATION) {
-        fetchTrendingData();
-      } else {
-        // 有缓存数据，直接启动滚动
-        startTrendingScroll();
-      }
+      trendingController?.start();
     } else {
       trendingPanel.classList.remove('show');
-      stopTrendingScroll();
+      trendingController?.stop();
     }
-  }
-
-  /**
-   * 获取热搜数据 - 使用头条官方API
-   */
-  async function fetchTrendingData(forceRefresh = false) {
-    if (!trendingPanel) return;
-
-    // 检查缓存
-    if (!forceRefresh && trendingData && Date.now() - lastFetchTime < CACHE_DURATION) {
-      startTrendingScroll();
-      return;
-    }
-
-    // 从头条获取热搜
-    const trends = await fetchToutiaoTrends();
-    
-    if (trends && trends.length > 0) {
-      trendingData = trends;
-      lastFetchTime = Date.now();
-    } else {
-      console.warn('[ECHO] 热搜获取失败，使用兜底数据');
-      trendingData = [{ title: '热搜加载失败，请稍后重试' }];
-      lastFetchTime = Date.now();
-    }
-    
-    startTrendingScroll();
-  }
-
-  /**
-   * 从头条官方API获取热搜
-   */
-  async function fetchToutiaoTrends() {
-    const api = 'https://www.toutiao.com/hot-event/hot-board/?origin=toutiao_pc';
-    
-    try {
-      const result = await chrome.runtime.sendMessage({
-        action: 'proxyFetch',
-        url: api,
-        options: {
-          method: 'GET',
-          headers: { 
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-          }
-        }
-      });
-      
-      if (!result || !result.success) {
-        console.warn('[ECHO] 头条API请求失败:', result?.error);
-        return null;
-      }
-      
-      const data = result.data;
-      
-      // 头条返回格式: { data: [{ Title, HotValue, ClusterIdStr }, ...] }
-      if (data && Array.isArray(data.data) && data.data.length > 0) {
-        return data.data.slice(0, 20).map(item => ({
-          title: item.Title || ''
-        })).filter(item => item.title);
-      }
-      
-      return null;
-    } catch (error) {
-      console.error('[ECHO] fetchToutiaoTrends 异常:', error);
-      return null;
-    }
-  }
-
-  /**
-   * 获取循环索引（真正的无缝环形）
-   */
-  function getLoopIndex(index, length) {
-    return ((index % length) + length) % length;
-  }
-
-  // 每行高度常量
-  const ITEM_HEIGHT = 18;
-
-  /**
-   * 渲染当前可见的热词
-   * 只渲染3条：-1, 0, +1
-   */
-  function renderVisibleWords() {
-    if (!trendingPanel || !trendingData || trendingData.length === 0) return;
-    
-    const scrollTrack = trendingPanel.querySelector('.trending-scroll-track');
-    if (!scrollTrack) return;
-    
-    const len = trendingData.length;
-    
-    // 只渲染3条：-1, 0, +1
-    const items = [];
-    for (let i = -1; i <= 1; i++) {
-      const dataIndex = getLoopIndex(currentTrendingIndex + i, len);
-      const item = trendingData[dataIndex];
-      const isActive = (i === 0);
-      const isAdjacent = (i !== 0);
-      let classes = 'trending-word';
-      if (isActive) classes += ' active';
-      if (isAdjacent) classes += ' adjacent';
-      
-      items.push(`
-        <a class="${classes}" 
-           data-offset="${i}" 
-           data-query="${escapeHtml(item.title)}" 
-           title="${escapeHtml(item.title)}">${escapeHtml(item.title)}</a>
-      `);
-    }
-    
-    scrollTrack.innerHTML = items.join('');
-    
-    // 绑定点击事件（只有 active 响应）
-    scrollTrack.querySelectorAll('.trending-word.active').forEach(word => {
-      word.addEventListener('click', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        const query = word.dataset.query;
-        if (query) {
-          const searchUrl = `https://www.bing.com/search?q=${encodeURIComponent(query)}`;
-          chrome.runtime.sendMessage({ 
-            action: 'openInNewTab', 
-            url: searchUrl, 
-            active: true,
-            forceAdjacentPosition: true
-          });
-        }
-      });
-    });
-    
-    // 轨道位置-18px，让第2条（offset=0）显示在容器中
-    scrollTrack.style.transform = 'translateY(-18px)';
-  }
-
-  // 热搜状态
-  let trendingPaused = false;
-  let scrollWrapper = null;
-  let isScrollAnimating = false;
-
-  /**
-   * 滚动到下一条/上一条（无跳动）
-   */
-  function scrollByDelta(delta) {
-    if (isScrollAnimating || !trendingData) return;
-    
-    const scrollTrack = trendingPanel?.querySelector('.trending-scroll-track');
-    if (!scrollTrack) return;
-    
-    isScrollAnimating = true;
-    
-    // 1. 先更新索引
-    currentTrendingIndex = getLoopIndex(currentTrendingIndex + delta, trendingData.length);
-    
-    // 2. 重新渲染数据（不带transition）
-    scrollTrack.style.transition = 'none';
-    renderVisibleWords();  // 这里会自动保持expanded状态
-    
-    // 3. 设置起始偏移（从反方向快速设置）
-    const startOffset = 18 - (delta * ITEM_HEIGHT);
-    scrollTrack.style.transform = `translateY(-${startOffset}px)`;
-    
-    // 4. 强制reflow后加动画回到中心
-    scrollTrack.offsetHeight;
-    scrollTrack.style.transition = 'transform 0.3s ease-out';
-    scrollTrack.style.transform = 'translateY(-18px)';
-    
-    // 5. 滚动期间给active元素添加hovered类（因为鼠标在上面）
-    if (trendingPaused) {
-      const activeWord = scrollTrack.querySelector('.trending-word.active');
-      if (activeWord) {
-        activeWord.classList.add('hovered');
-      }
-    }
-    
-    setTimeout(() => {
-      isScrollAnimating = false;
-    }, 300);
-  }
-
-
-
-  /**
-   * 启动热词滚动
-   */
-  function startTrendingScroll() {
-    stopTrendingScroll();
-    
-    if (!trendingData || trendingData.length <= 1) return;
-    
-    scrollWrapper = trendingPanel?.querySelector('.trending-scroll-wrapper');
-    if (!scrollWrapper) return;
-    
-    currentTrendingIndex = 0;
-    trendingPaused = false;
-    
-    renderVisibleWords();
-    
-    // 每 7 秒自动滚动
-    trendingScrollInterval = setInterval(() => {
-      if (trendingPaused || isScrollAnimating) return;
-      scrollByDelta(1);
-    }, 7000);
-    
-    // 鼠标事件 - 绑定到整个 trendingPanel 容器
-    trendingPanel.addEventListener('mouseenter', handleTrendingMouseEnter);
-    trendingPanel.addEventListener('mouseleave', handleTrendingMouseLeave);
-    trendingPanel.addEventListener('wheel', handleTrendingWheel, { passive: false });
-  }
-
-  function handleTrendingMouseEnter() {
-    trendingPaused = true;
-    if (trendingPanel) trendingPanel.classList.add('hint-arrows');
-  }
-
-  function handleTrendingMouseLeave() {
-    trendingPaused = false;
-    if (trendingPanel) {
-      trendingPanel.classList.remove('hint-arrows');
-      // 清除残留的 hovered 类，恢复正常文字颜色
-      trendingPanel.querySelectorAll('.trending-word.hovered').forEach(el => {
-        el.classList.remove('hovered');
-      });
-    }
-  }
-
-  function handleTrendingWheel(e) {
-    e.preventDefault();
-    e.stopPropagation();
-    
-    if (!trendingData || isScrollAnimating) return;
-    
-    if (e.deltaY > 0) {
-      scrollByDelta(1);
-    } else if (e.deltaY < 0) {
-      scrollByDelta(-1);
-    }
-  }
-
-  /**
-   * 停止热词滚动
-   */
-  function stopTrendingScroll() {
-    if (trendingScrollInterval) {
-      clearInterval(trendingScrollInterval);
-      trendingScrollInterval = null;
-    }
-    
-    if (trendingPanel) {
-      trendingPanel.removeEventListener('mouseenter', handleTrendingMouseEnter);
-      trendingPanel.removeEventListener('mouseleave', handleTrendingMouseLeave);
-      trendingPanel.removeEventListener('wheel', handleTrendingWheel);
-    }
-  }
-
-  /**
-   * HTML 转义
-   */
-  function escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
   }
 
   function bindEvents() {
@@ -1182,6 +928,8 @@
     }
 
     searchWrapper.classList.add('show');
+    startSpectrumAnimation();
+    initZoomCompensation();
 
     // 只在搜索框首次显示时清空输入框，避免清空用户正在输入的内容
     if (!wasAlreadyShown) {
@@ -1216,12 +964,14 @@
     }
     if (trendingPanel) {
       trendingPanel.classList.remove('show');
-      stopTrendingScroll();
+      trendingController?.stop();
     }
     // 隐藏时彻底禁用 iframe 指针事件，防止遮挡底部页面元素（如播放器控件）
     if (host) {
       host.style.pointerEvents = 'none';
     }
+    stopZoomCompensation();
+    stopSpectrumAnimation();
   }
 
   /**
@@ -1246,7 +996,7 @@
     
     // 在新标签页打开搜索结果（紧贴当前标签，设置父标签关系）
     chrome.runtime.sendMessage({ 
-      action: 'openInNewTab', 
+      action: MESSAGE_ACTIONS.OPEN_IN_NEW_TAB,
       url: searchUrl, 
       active: true,
       forceAdjacentPosition: true

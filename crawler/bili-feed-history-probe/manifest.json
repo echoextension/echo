@@ -1,0 +1,14 @@
+{
+  "manifest_version": 3,
+  "name": "ECHO Bilibili Feed History Probe (Local Research Only)",
+  "version": "0.1.0",
+  "description": "Read-only local probe for Bilibili homepage feed batch size, card types, field coverage, and settle timing.",
+  "content_scripts": [
+    {
+      "matches": ["https://www.bilibili.com/*"],
+      "js": ["probe.js"],
+      "run_at": "document_idle",
+      "all_frames": false
+    }
+  ]
+}

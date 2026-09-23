@@ -9,30 +9,30 @@ const SETTING_IDS = [
   'quickMute',
   'fineZoom',
   'fineZoomLargeStep',    // 大比例时加速步进
+  'superDrag',            // 超级拖拽（默认开启）
   'tabSwitchKey',         // F2/F3 切换标签
-  'quickSaveImage'        // Alt+点击快速保存图片
+  'quickSaveImage',       // Alt+点击快速保存图片
+  'biliTool',             // B站视频优化工具（默认开启）
+  'biliFeedHistory'       // B站推荐回退（默认开启）
 ];
 
-// 开关类设置 - 默认关闭（非实验室）
+// 开关类设置 - 默认关闭
 const SETTING_IDS_DEFAULT_OFF = [
-  'superDrag',                   // 超级拖拽（默认关闭，避免与 Edge 内置拖拽冲突）
   'superDragActivate',         // 拖拽产生的标签立即激活（默认关闭，即后台打开）
   'quickSaveImageDateFolder',  // 按日期创建子文件夹
   'applyToPlusButton'          // 同时应用于「+」新建标签页
 ];
 
-// 开关类设置 - 默认关闭（实验室功能）
+// 开关类设置 - 默认关闭
 const SETTING_IDS_OFF = [
   'floatingSearchBoxAlwaysShow',  // 悬浮搜索框常驻显示（默认关闭）
-  'floatingSearchBoxFollowZoom',  // 悬浮搜索框跟随页面缩放（默认关闭）
-  'relatedSearchFollowZoom'       // 关联搜索推荐跟随页面缩放（默认关闭）
+  'floatingSearchBoxFollowZoom'   // 悬浮搜索框跟随页面缩放（默认关闭）
 ];
 
-// 开关类设置 - 默认开启（实验室功能）
+// 开关类设置 - 默认开启
 const SETTING_IDS_ON_LAB = [
   'floatingSearchBox',        // 悬浮搜索框（默认开启）
-  'floatingSearchBoxTrending', // 悬浮搜索框热搜榜（默认关闭）
-  'biliTool'                   // B站视频优化工具（默认开启）
+  'floatingSearchBoxTrending' // 悬浮搜索框热搜榜（默认关闭）
 ];
 
 // 单选设置
@@ -42,34 +42,14 @@ const RADIO_SETTINGS = [
   'newTabOrder'
 ];
 
-// 默认设置（与 background.js 保持一致）
-// 注意：所有开关默认开启，实验室功能默认关闭
-const DEFAULT_SETTINGS = {
-  mouseGesture: true,
-  bossKey: true,
-  quickMute: true,
-  fineZoom: true,
-  fineZoomLargeStep: true,     // 大比例时加速步进
-  superDrag: false,
-  superDragActivate: false,    // 拖拽产生的标签立即激活（默认关闭，即后台打开）
-  tabSwitchKey: true,          // F2/F3 切换标签
-  quickSaveImage: true,        // Alt+点击快速保存图片
-  quickSaveImageDateFolder: false, // 按日期创建子文件夹（默认关闭）
-  floatingSearchBox: true,     // 悬浮搜索框（默认开启）
-  floatingSearchBoxAlwaysShow: false,  // 悬浮搜索框常驻显示（默认关闭）
-  floatingSearchBoxFollowZoom: false,  // 悬浮搜索框跟随页面缩放（默认关闭）
-  biliTool: true,                        // B站视频优化工具（默认开启）
-  floatingSearchBoxTrending: false,    // 悬浮搜索框热搜榜（默认关闭）
-  relatedSearchRecommend: false, // 网页关联搜索推荐（实验室，默认关闭）
-  relatedSearchFollowZoom: false,  // 关联搜索推荐跟随页面缩放（默认关闭）
-  customBookmarkBar: false,    // 自绘书签栏（已隐藏，默认关闭）
-  bookmarkOpenInNewTab: false, // 收藏栏点击链接新标签打开（已隐藏，默认关闭）
-  bookmarkBarPinned: true,     // 收藏栏常驻显示（已隐藏）
-  closeTabActivate: 'left',    // 关闭标签后激活左侧
-  newTabPosition: 'afterCurrent',
-  newTabOrder: 'newest',
-  applyToPlusButton: false     // 同时应用于「+」新建标签页
-};
+// 唯一设置 schema 由 core/settings.js 提供。
+const DEFAULT_SETTINGS = EchoSettings.getAreaDefaults('sync', { includeDeprecated: false });
+const backupController = EchoOptionsBackupController.create({
+  chrome,
+  document,
+  settingsSchema: EchoSettings,
+  onSettingsRestored: () => loadSettings()
+});
 
 /**
  * 加载并应用设置到 UI
@@ -85,7 +65,7 @@ async function loadSettings() {
     }
   });
   
-  // 加载开关状态（默认关闭的 - 非实验室）
+  // 加载开关状态（默认关闭的）
   SETTING_IDS_DEFAULT_OFF.forEach(id => {
     const checkbox = document.getElementById(id);
     if (checkbox) {
@@ -93,7 +73,7 @@ async function loadSettings() {
     }
   });
   
-  // 加载开关状态（默认关闭的 - 实验室）
+  // 加载其他默认关闭的开关状态
   SETTING_IDS_OFF.forEach(id => {
     const checkbox = document.getElementById(id);
     if (checkbox) {
@@ -101,13 +81,7 @@ async function loadSettings() {
     }
   });
 
-  // 加载关联搜索推荐（单独处理）
-  const relatedSearchCheckbox = document.getElementById('relatedSearchRecommend');
-  if (relatedSearchCheckbox) {
-    relatedSearchCheckbox.checked = settings['relatedSearchRecommend'];
-  }
-  
-  // 加载开关状态（实验室子功能，默认开启的）
+  // 加载开关状态（默认开启的）
   SETTING_IDS_ON_LAB.forEach(id => {
     const checkbox = document.getElementById(id);
     if (checkbox) {
@@ -137,9 +111,6 @@ async function loadSettings() {
   
   // 更新精细缩放子选项状态
   updateFineZoomOptionState(settings.fineZoom);
-  
-  // 更新关联搜索推荐子选项状态
-  updateRelatedSearchOptionState(settings.relatedSearchRecommend);
   
   // 初始化动画演示
   initDemos(settings);
@@ -174,22 +145,6 @@ function updateFloatingSearchBoxOptionState(floatingSearchBox) {
     if (alwaysShowOption) alwaysShowOption.style.display = 'none';
     if (trendingOption) trendingOption.style.display = 'none';
     if (followZoomOption) followZoomOption.style.display = 'none';
-  }
-}
-
-/**
- * 更新关联搜索推荐子选项的可用状态（显示/隐藏）
- */
-function updateRelatedSearchOptionState(relatedSearchRecommend) {
-  const followZoomOption = document.getElementById('relatedSearchFollowZoomOption');
-  const blacklistOption = document.getElementById('relatedSearchBlacklistOption');
-  
-  if (relatedSearchRecommend) {
-    if (followZoomOption) followZoomOption.style.display = 'flex';
-    if (blacklistOption) blacklistOption.style.display = 'flex';
-  } else {
-    if (followZoomOption) followZoomOption.style.display = 'none';
-    if (blacklistOption) blacklistOption.style.display = 'none';
   }
 }
 
@@ -563,7 +518,39 @@ document.addEventListener('visibilitychange', async () => {
  * 保存单个设置
  */
 function saveSetting(key, value) {
-  chrome.storage.sync.set({ [key]: value });
+  return chrome.storage.sync.set({ [key]: value });
+}
+
+function applySettingValue(key, value) {
+  const checkbox = document.getElementById(key);
+  if (checkbox?.type === 'checkbox') checkbox.checked = value;
+  document.querySelectorAll(`input[name="${key}"]`).forEach(radio => {
+    radio.checked = radio.value === value;
+  });
+  if (key === 'superDrag') updateSuperDragOptionState(value);
+  else if (key === 'quickSaveImage') updateQuickSaveImageOptionState(value);
+  else if (key === 'fineZoom') updateFineZoomOptionState(value);
+  else if (key === 'floatingSearchBox') updateFloatingSearchBoxOptionState(value);
+  else if (key === 'closeTabActivate') playCloseTabDemo(value);
+  else if (key === 'newTabPosition') {
+    updateNewTabOrderState(value);
+    playPositionDemo(value);
+  } else if (key === 'newTabOrder') {
+    playOrderDemo(value);
+  }
+}
+
+async function persistSetting(key, value) {
+  try {
+    await saveSetting(key, value);
+  } catch (error) {
+    console.error(`[ECHO] 保存设置 ${key} 失败:`, error);
+    const stored = await chrome.storage.sync.get({ [key]: EchoSettings.getDefault(key) });
+    const authoritativeValue = EchoSettings.isValid(key, stored[key])
+      ? stored[key]
+      : EchoSettings.getDefault(key);
+    applySettingValue(key, authoritativeValue);
+  }
 }
 
 /**
@@ -572,6 +559,14 @@ function saveSetting(key, value) {
 async function resetToDefaults() {
   // 保存默认设置
   await chrome.storage.sync.set(DEFAULT_SETTINGS);
+  await chrome.storage.sync.remove([
+    'customBookmarkBar',
+    'bookmarkBarPinned',
+    'bookmarkOpenInNewTab',
+    'bookmarkBarDensity',
+    'searchEngine'
+  ]);
+  await chrome.storage.local.set({ zhihuBlocklistFilter: false });
   
   // 重新加载 UI
   await loadSettings();
@@ -583,9 +578,21 @@ async function resetToDefaults() {
 function initializeEventListeners() {
   // 监听来自其他地方的设置变化，实时更新 UI
   chrome.storage.onChanged.addListener((changes, areaName) => {
-    if (areaName === 'sync') {
-      // 可以在这里添加其他设置变化的监听
-    }
+    if (areaName !== 'sync') return;
+    const checkboxIds = new Set([
+      ...SETTING_IDS,
+      ...SETTING_IDS_DEFAULT_OFF,
+      ...SETTING_IDS_OFF,
+      ...SETTING_IDS_ON_LAB
+    ]);
+    Object.entries(changes).forEach(([key, change]) => {
+      if (!checkboxIds.has(key) && !RADIO_SETTINGS.includes(key)) return;
+      const value = change.newValue === undefined
+        ? EchoSettings.getDefault(key)
+        : change.newValue;
+      if (!EchoSettings.isValid(key, value)) return;
+      applySettingValue(key, value);
+    });
   });
 
   // 监听开关变化（默认开启的）
@@ -593,7 +600,7 @@ function initializeEventListeners() {
     const checkbox = document.getElementById(id);
     if (checkbox) {
       checkbox.addEventListener('change', (e) => {
-        saveSetting(id, e.target.checked);
+        void persistSetting(id, e.target.checked);
         
         // 超级拖拽开关联动子选项
         if (id === 'superDrag') {
@@ -613,32 +620,32 @@ function initializeEventListeners() {
     }
   });
   
-  // 监听开关变化（默认关闭的 - 非实验室）
+  // 监听开关变化（默认关闭的）
   SETTING_IDS_DEFAULT_OFF.forEach(id => {
     const checkbox = document.getElementById(id);
     if (checkbox) {
       checkbox.addEventListener('change', (e) => {
-        saveSetting(id, e.target.checked);
+        void persistSetting(id, e.target.checked);
       });
     }
   });
   
-  // 监听开关变化（默认关闭的 - 实验室）
+  // 监听其他默认关闭的开关变化
   SETTING_IDS_OFF.forEach(id => {
     const checkbox = document.getElementById(id);
     if (checkbox) {
       checkbox.addEventListener('change', (e) => {
-        saveSetting(id, e.target.checked);
+        void persistSetting(id, e.target.checked);
       });
     }
   });
   
-  // 监听开关变化（实验室功能，默认开启的）
+  // 监听开关变化（默认开启的）
   SETTING_IDS_ON_LAB.forEach(id => {
     const checkbox = document.getElementById(id);
     if (checkbox) {
       checkbox.addEventListener('change', (e) => {
-        saveSetting(id, e.target.checked);
+        void persistSetting(id, e.target.checked);
         
         // 悬浮搜索框开关联动子选项
         if (id === 'floatingSearchBox') {
@@ -648,81 +655,12 @@ function initializeEventListeners() {
     }
   });
   
-  // 监听关联搜索推荐开关（单独处理，需要隐私确认）
-  const relatedSearchCheckbox = document.getElementById('relatedSearchRecommend');
-  if (relatedSearchCheckbox) {
-    // 使用 'click' 事件以更好拦截状态改变
-    relatedSearchCheckbox.addEventListener('click', (e) => {
-      // 如果当前是选中状态，说明用户刚点击想开启（点击前是未选中，点击后浏览器置为选中）
-      if (e.target.checked) {
-        e.preventDefault(); // 阻止复选框状态改变（保持未选中）
-        
-        // 显示模态框
-        const modal = document.getElementById('item-modal-overlay');
-        const confirmBtn = document.getElementById('modal-confirm-btn');
-        const cancelBtn = document.getElementById('modal-cancel-btn');
-        
-        if (modal) {
-          // 清除可能存在的 inline opacity (关键修复：解决 opacity: 0 覆盖 CSS 问题)
-          modal.style.opacity = ''; 
-          modal.style.display = 'flex';
-          
-          // 强制重绘
-          requestAnimationFrame(() => {
-             modal.classList.add('show');
-          });
-
-          // Defines callbacks
-          let onConfirm, onCancel;
-
-          // 清理函数
-          const cleanup = () => {
-             modal.classList.remove('show');
-             // 这里的延时最好配合 CSS transition 时间
-             setTimeout(() => {
-                if (!modal.classList.contains('show')) { // 双重检查防止快速切换
-                    modal.style.display = 'none';
-                }
-             }, 300);
-             
-             confirmBtn.removeEventListener('click', onConfirm);
-             cancelBtn.removeEventListener('click', onCancel);
-          };
-
-          // 确认开启
-          onConfirm = () => {
-             relatedSearchCheckbox.checked = true; // 程序化勾选
-             saveSetting('relatedSearchRecommend', true);
-             updateRelatedSearchOptionState(true);
-             cleanup();
-          };
-
-          // 取消/拒绝
-          onCancel = () => {
-             // 保持未选中
-             // saveSetting 确保状态为 false
-             saveSetting('relatedSearchRecommend', false);
-             updateRelatedSearchOptionState(false);
-             cleanup();
-          };
-
-          confirmBtn.addEventListener('click', onConfirm);
-          cancelBtn.addEventListener('click', onCancel);
-        }
-      } else {
-        // 用户想关闭 -> 直接允许，并保存
-        saveSetting('relatedSearchRecommend', false);
-        updateRelatedSearchOptionState(false);
-      }
-    }); // End of listener
-  }
-  
   // 监听 radio 按钮变化
   RADIO_SETTINGS.forEach(name => {
     const radios = document.querySelectorAll(`input[name="${name}"]`);
     radios.forEach(radio => {
       radio.addEventListener('change', (e) => {
-        saveSetting(name, e.target.value);
+        void persistSetting(name, e.target.value);
         
         // 播放对应的动画
         if (name === 'closeTabActivate') {
@@ -765,113 +703,18 @@ async function loadShortcuts() {
   }
 }
 
-// ============================================
-// 自绘收藏栏初始化
-// ============================================
-
-/**
- * 获取当前收藏栏高度（根据密度设置）
- */
-async function getBookmarkBarHeight() {
-  // 密度配置映射（与 bookmark-bar/state.js 保持一致）
-  const DENSITY_CONFIG = {
-    compact:     { barHeight: 28 },
-    default:     { barHeight: 32 },
-    comfortable: { barHeight: 40 },
-    spacious:    { barHeight: 48 }
-  };
-  
-  const settings = await chrome.storage.sync.get({
-    bookmarkBarDensity: 'default'
-  });
-  
-  const density = settings.bookmarkBarDensity || 'default';
-  return DENSITY_CONFIG[density]?.barHeight || 32;
-}
-
-/**
- * 设置收藏栏高度 CSS 变量
- * 注意：设置页使用 CSS zoom 缩放，需要考虑缩放比例
- */
-function setBookmarkBarHeightVar(height) {
-  document.documentElement.style.setProperty('--bookmark-bar-height', height + 'px');
-}
-
-/**
- * 初始化自绘收藏栏
- */
-async function initBookmarkBar() {
-  // 检查 EchoBookmarkBar 模块是否已加载
-  if (!window.EchoBookmarkBar || !window.EchoBookmarkBar.init) {
-    console.warn('[ECHO Options] BookmarkBar module not loaded');
-    return;
-  }
-  
-  // 读取用户设置，检查是否启用了自绘收藏栏
-  const settings = await chrome.storage.sync.get({
-    customBookmarkBar: false,
-    bookmarkOpenInNewTab: true
-  });
-  
-  // 在设置页显示收藏栏（如果用户开启了该功能）
-  if (settings.customBookmarkBar) {
-    // 获取并设置收藏栏高度
-    const barHeight = await getBookmarkBarHeight();
-    setBookmarkBarHeightVar(barHeight);
-    
-    await window.EchoBookmarkBar.init({
-      customBookmarkBar: true,
-      bookmarkOpenInNewTab: settings.bookmarkOpenInNewTab
-    });
-  }
-}
-
-// 监听设置变化（包括密度变化、收藏栏开关变化）
-chrome.storage.onChanged.addListener(async (changes, areaName) => {
-  if (areaName !== 'sync') return;
-  
-  // 密度变化时更新高度
-  if (changes.bookmarkBarDensity) {
-    const barHeight = await getBookmarkBarHeight();
-    setBookmarkBarHeightVar(barHeight);
-  }
-  
-  // 收藏栏开关变化时重新初始化或移除
-  if (changes.customBookmarkBar) {
-    if (changes.customBookmarkBar.newValue) {
-      // 开启收藏栏
-      await initBookmarkBar();
-    } else {
-      // 关闭收藏栏
-      setBookmarkBarHeightVar(0);
-      if (window.EchoBookmarkBar && window.EchoBookmarkBar.destroy) {
-        window.EchoBookmarkBar.destroy();
-      }
-    }
-  }
-});
-
-// 监听来自 background 的消息（书签更新）
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  if (message.action === 'bookmarkBarUpdated' || message.action === 'bookmarkFolderUpdated') {
-    if (window.EchoBookmarkBar && window.EchoBookmarkBar.handleMessage) {
-      const settings = { customBookmarkBar: true }; // 设置页上已初始化就认为开启了
-      window.EchoBookmarkBar.handleMessage(message, settings);
-    }
-    sendResponse({ ok: true });
-    return false;
-  }
-  return false;
-});
-
 // 页面加载完成后初始化
 document.addEventListener('DOMContentLoaded', async () => {
-  // 初始化自绘收藏栏
-  await initBookmarkBar();
-  
   await loadSettings();
   initializeEventListeners();
   await loadShortcuts();
+  const zhihuSyncController = EchoOptionsZhihuSyncController.create({
+    chrome,
+    document,
+    messages: EchoMessages,
+    settingsSchema: EchoSettings
+  });
+  await zhihuSyncController.init();
   
   // 快捷键设置入口
   document.getElementById('openShortcutSettings').addEventListener('click', (e) => {
@@ -893,9 +736,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     window.location.href = 'mai' + 'lto:' + u + '@' + d;
   });
   
-  // 初始化设置页鼠标手势和精细缩放支持
-  initOptionsPageGestures();
-  
   // 初始化返回顶部按钮
   initBackToTop();
   
@@ -903,471 +743,136 @@ document.addEventListener('DOMContentLoaded', async () => {
   initScrollNav();
   
   // 初始化备份与恢复
-  initBackupRestore();
-  
-  // 如果 URL hash 指向某个 section，滚动到对应位置
-  if (window.location.hash) {
-    const targetId = window.location.hash.slice(1);
-    setTimeout(() => {
-      const el = document.getElementById(targetId);
-      if (el) {
-        el.scrollIntoView({ behavior: 'smooth' });
-        // 短暂高亮提示
-        el.style.transition = 'box-shadow 0.3s';
-        el.style.boxShadow = '0 0 0 2px #fb7299';
-        setTimeout(() => { el.style.boxShadow = ''; }, 2000);
-      }
-    }, 300);
-  }
+  backupController.init();
 });
-
-// ============================================
-// 设置页鼠标手势和精细缩放支持
-// 让用户在设置页就能直接体验这些功能
-// ============================================
-
-function initOptionsPageGestures() {
-  let isRightMouseDown = false;
-  let preventContextMenu = false;
-  let lastWheelTime = 0;
-  let wheelCount = 0;  // 滚轮触发次数
-  
-  // 右键按下
-  document.addEventListener('mousedown', (e) => {
-    if (e.button === 2) {
-      isRightMouseDown = true;
-      wheelCount = 0;
-      preventContextMenu = false;
-    }
-  });
-  
-  // 右键松开
-  document.addEventListener('mouseup', (e) => {
-    if (e.button === 2) {
-      isRightMouseDown = false;
-      if (wheelCount > 0) {
-        setTimeout(() => {
-          preventContextMenu = false;
-          wheelCount = 0;
-        }, 50);
-      }
-    }
-  });
-  
-  // 右键菜单：如果触发了手势则阻止
-  document.addEventListener('contextmenu', (e) => {
-    if (preventContextMenu || wheelCount > 0) {
-      e.preventDefault();
-      e.stopPropagation();
-      preventContextMenu = false;
-    }
-  }, true);
-  
-  // 滚轮事件：鼠标手势 + 精细缩放
-  document.addEventListener('wheel', async (e) => {
-    // 获取当前设置状态
-    const mouseGestureEnabled = document.getElementById('mouseGesture')?.checked;
-    const fineZoomEnabled = document.getElementById('fineZoom')?.checked;
-    const fineZoomLargeStepEnabled = document.getElementById('fineZoomLargeStep')?.checked;
-    
-    // 精细缩放：Ctrl + 滚轮
-    if (e.ctrlKey && fineZoomEnabled) {
-      e.preventDefault();
-      e.stopPropagation();
-      
-      // 获取当前缩放
-      const response = await chrome.runtime.sendMessage({ action: 'getZoom' });
-      const currentZoom = response?.zoom || 1;
-      const currentZoomRounded = Math.round(currentZoom * 100);
-      const isZoomingIn = e.deltaY < 0;
-      
-      let newZoom;
-      
-      // 大比例加速步进逻辑
-      if (fineZoomLargeStepEnabled) {
-        if (isZoomingIn) {
-          if (currentZoomRounded >= 175) {
-            newZoom = currentZoom + 0.25;
-            newZoom = Math.round(newZoom * 4) / 4;
-          } else {
-            newZoom = currentZoom + 0.05;
-            newZoom = Math.round(newZoom * 20) / 20;
-          }
-        } else {
-          if (currentZoomRounded > 175) {
-            newZoom = currentZoom - 0.25;
-            newZoom = Math.round(newZoom * 4) / 4;
-            if (newZoom < 1.75) newZoom = 1.75;
-          } else {
-            newZoom = currentZoom - 0.05;
-            newZoom = Math.round(newZoom * 20) / 20;
-          }
-        }
-      } else {
-        newZoom = isZoomingIn ? currentZoom + 0.05 : currentZoom - 0.05;
-        newZoom = Math.round(newZoom * 20) / 20;
-      }
-      
-      // 限制范围 25% - 500%
-      newZoom = Math.max(0.25, Math.min(5.0, newZoom));
-      
-      await chrome.runtime.sendMessage({ action: 'setZoom', zoom: newZoom });
-      showZoomIndicator(Math.round(newZoom * 100));
-      return;
-    }
-    
-    // 鼠标手势：右键 + 滚轮切换标签（使用 e.buttons 实时检测）
-    const isRightButtonPressed = (e.buttons & 2) !== 0;
-    if (isRightButtonPressed && !e.ctrlKey && mouseGestureEnabled) {
-      e.preventDefault();
-      e.stopPropagation();
-      preventContextMenu = true;
-      wheelCount++;
-      
-      // 优化节流：50ms
-      const currentTime = Date.now();
-      if (currentTime - lastWheelTime < 50) return;
-      lastWheelTime = currentTime;
-      
-      const direction = e.deltaY > 0 ? 'right' : 'left';
-      chrome.runtime.sendMessage({ action: 'switchTab', direction, source: 'mouseGesture' });
-    }
-  }, { passive: false, capture: true });
-  
-  // F2/F3 切换标签 - 使用 keydown 捕获阶段，优先于浏览器内置快捷键
-  document.addEventListener('keydown', (e) => {
-    const tabSwitchKeyEnabled = document.getElementById('tabSwitchKey')?.checked;
-    
-    if (tabSwitchKeyEnabled && (e.key === 'F2' || e.key === 'F3')) {
-      // 不在输入框中触发
-      const activeEl = document.activeElement;
-      const isInInput = activeEl && (
-        activeEl.tagName === 'INPUT' ||
-        activeEl.tagName === 'TEXTAREA' ||
-        activeEl.isContentEditable
-      );
-      
-      if (!isInInput) {
-        // 必须同时使用 preventDefault 和 stopImmediatePropagation 来阻止 F3 的查找功能
-        e.preventDefault();
-        e.stopPropagation();
-        e.stopImmediatePropagation();
-        const direction = e.key === 'F2' ? 'left' : 'right';
-        chrome.runtime.sendMessage({ action: 'switchTab', direction, source: 'keyboard' });
-        return false;
-      }
-    }
-  }, true);  // 捕获阶段
-}
-
-// 缩放指示器
-let zoomIndicator = null;
-let zoomTimeout = null;
-
-function showZoomIndicator(zoom) {
-  if (!zoomIndicator) {
-    zoomIndicator = document.createElement('div');
-    zoomIndicator.id = 'echo-zoom-indicator';
-    zoomIndicator.style.cssText = `
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      background: rgba(0, 0, 0, 0.8);
-      color: white;
-      padding: 16px 32px;
-      border-radius: 8px;
-      font-size: 24px;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      z-index: 2147483647;
-      pointer-events: none;
-      transition: opacity 0.2s;
-    `;
-    document.body.appendChild(zoomIndicator);
-  }
-
-  zoomIndicator.textContent = zoom + '%';
-  zoomIndicator.style.opacity = '1';
-
-  if (zoomTimeout) {
-    clearTimeout(zoomTimeout);
-  }
-
-  zoomTimeout = setTimeout(() => {
-    if (zoomIndicator) {
-      zoomIndicator.style.opacity = '0';
-    }
-  }, 1000);
-}
-
-// ============================================
-// 超级拖拽：拖拽链接/文字
-// ============================================
-
-(function initOptionsSuperDrag() {
-  let dragStartPos = { x: 0, y: 0 };
-  let isDraggingForSuperDrag = false;
-
-  // 判断是否是输入框
-  const isTextInput = (element) => element.matches(
-    'input[type="email"], input[type="number"], input[type="password"], input[type="search"], ' +
-    'input[type="tel"], input[type="text"], input[type="url"], input:not([type]), textarea, ' +
-    '[contenteditable="true"], [contenteditable=""]'
-  );
-
-  // 工具函数
-  function isValidUrl(text) {
-    const urlPatterns = [
-      /^https?:\/\//i,
-      /^www\./i,
-      /^[a-zA-Z0-9][-a-zA-Z0-9]*\.[a-zA-Z]{2,}/
-    ];
-    return urlPatterns.some(pattern => pattern.test(text));
-  }
-
-  function ensureProtocol(url) {
-    if (!/^https?:\/\//i.test(url)) {
-      return 'https://' + url;
-    }
-    return url;
-  }
-
-  // dragstart: 记录起始位置
-  document.addEventListener('dragstart', (e) => {
-    dragStartPos = { x: e.clientX, y: e.clientY };
-    isDraggingForSuperDrag = true;
-  }, false);
-
-  // dragover: 允许在页面任意位置释放
-  document.addEventListener('dragover', (e) => {
-    if (!isDraggingForSuperDrag) return;
-    if (isTextInput(e.target)) return;
-    
-    const types = e.dataTransfer.types;
-    if (types.includes('text/uri-list') || types.includes('text/plain')) {
-      e.dataTransfer.dropEffect = 'copy';
-      e.preventDefault();
-    }
-  }, false);
-
-  // drop: 执行操作
-  document.addEventListener('drop', (e) => {
-    if (!isDraggingForSuperDrag) return;
-    if (isTextInput(e.target)) return;
-    
-    const types = e.dataTransfer.types;
-    
-    // 计算拖拽距离
-    const distance = Math.sqrt(
-      Math.pow(e.clientX - dragStartPos.x, 2) + 
-      Math.pow(e.clientY - dragStartPos.y, 2)
-    );
-    
-    // 最小拖拽距离
-    if (distance < 30) {
-      isDraggingForSuperDrag = false;
-      return;
-    }
-    
-    // 处理链接拖拽
-    if (types.includes('text/uri-list')) {
-      const url = e.dataTransfer.getData('URL') || e.dataTransfer.getData('text/uri-list');
-      if (url && !url.startsWith('javascript:')) {
-        e.preventDefault();
-        chrome.runtime.sendMessage({ action: 'openInNewTab', url: url });
-        isDraggingForSuperDrag = false;
-        return;
-      }
-    }
-    
-    // 处理文字拖拽
-    if (types.includes('text/plain')) {
-      const text = e.dataTransfer.getData('text/plain')?.trim();
-      if (text && text.length > 0 && text.length < 1000) {
-        e.preventDefault();
-        
-        if (isValidUrl(text)) {
-          chrome.runtime.sendMessage({
-            action: 'openInNewTab',
-            url: ensureProtocol(text)
-          });
-        } else {
-          chrome.runtime.sendMessage({
-            action: 'searchInNewTab',
-            text: text
-          });
-        }
-      }
-    }
-    
-    isDraggingForSuperDrag = false;
-  }, false);
-
-  // dragend: 清理状态
-  document.addEventListener('dragend', () => {
-    isDraggingForSuperDrag = false;
-  }, false);
-})();
-
-// ============================================
-// 黑名单管理
-// ============================================
-
-/**
- * 初始化黑名单管理功能
- */
-async function initBlacklistManager() {
-  const container = document.getElementById('blacklistContainer');
-  const itemsDiv = document.getElementById('blacklistItems');
-  const emptyDiv = document.getElementById('blacklistEmpty');
-  const clearBtn = document.getElementById('blacklistClearBtn');
-  
-  if (!container || !itemsDiv || !emptyDiv || !clearBtn) return;
-  
-  // 加载并渲染黑名单
-  await renderBlacklist();
-  
-  // 监听 storage 变化，实时更新
-  chrome.storage.onChanged.addListener((changes, namespace) => {
-    if (namespace === 'sync' && changes.relatedSearchBlacklist) {
-      renderBlacklist();
-    }
-  });
-  
-  // 清空按钮点击事件
-  clearBtn.addEventListener('click', async () => {
-    if (confirm('确定要清空所有已屏蔽的网站吗？')) {
-      await chrome.storage.sync.set({ relatedSearchBlacklist: [] });
-      renderBlacklist();
-    }
-  });
-}
-
-/**
- * 渲染黑名单列表
- */
-async function renderBlacklist() {
-  const itemsDiv = document.getElementById('blacklistItems');
-  const emptyDiv = document.getElementById('blacklistEmpty');
-  const clearBtn = document.getElementById('blacklistClearBtn');
-  
-  if (!itemsDiv || !emptyDiv || !clearBtn) return;
-  
-  // 获取黑名单数据
-  const { relatedSearchBlacklist = [] } = await chrome.storage.sync.get('relatedSearchBlacklist');
-  
-  // 清空现有内容
-  itemsDiv.innerHTML = '';
-  
-  if (relatedSearchBlacklist.length === 0) {
-    // 显示空状态
-    emptyDiv.style.display = 'flex';
-    itemsDiv.style.display = 'none';
-    clearBtn.style.display = 'none';
-  } else {
-    // 显示列表
-    emptyDiv.style.display = 'none';
-    itemsDiv.style.display = 'flex';
-    clearBtn.style.display = 'inline-flex';
-    
-    // 渲染每个域名
-    relatedSearchBlacklist.forEach(domain => {
-      const item = document.createElement('div');
-      item.className = 'blacklist-item';
-      item.innerHTML = `
-        <span class="domain-text" title="${domain}">${domain}</span>
-        <button class="remove-btn" title="移除此网站">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="18" y1="6" x2="6" y2="18"/>
-            <line x1="6" y1="6" x2="18" y2="18"/>
-          </svg>
-        </button>
-      `;
-      
-      // 点击移除按钮
-      const removeBtn = item.querySelector('.remove-btn');
-      removeBtn.addEventListener('click', async (e) => {
-        e.stopPropagation();
-        await removeDomainFromBlacklist(domain);
-      });
-      
-      itemsDiv.appendChild(item);
-    });
-  }
-}
-
-/**
- * 从黑名单中移除指定域名
- * @param {string} domain - 要移除的域名
- */
-async function removeDomainFromBlacklist(domain) {
-  const { relatedSearchBlacklist = [] } = await chrome.storage.sync.get('relatedSearchBlacklist');
-  const newList = relatedSearchBlacklist.filter(d => d !== domain);
-  await chrome.storage.sync.set({ relatedSearchBlacklist: newList });
-  renderBlacklist();
-}
 
 // ============================================
 // 滚动跟随导航
 // ============================================
 
 /**
- * 初始化滚动跟随导航
- * 使用 Intersection Observer 监听分区进入视口
+ * 初始化滚动跟随导航。
+ * 只跟踪左侧已有的五个目标。
  */
 function initScrollNav() {
-  const navItems = document.querySelectorAll('.scroll-nav-item');
-  const sections = document.querySelectorAll('.settings-section[id]');
-  
-  if (!navItems.length || !sections.length) return;
-  
-  // 点击导航项时平滑滚动到对应分区
-  navItems.forEach(item => {
-    item.addEventListener('click', (e) => {
-      e.preventDefault();
-      const targetId = item.getAttribute('data-target');
-      const targetSection = document.getElementById(targetId);
-      
-      if (targetSection) {
-        // 计算滚动位置，考虑顶部间距
-        const offsetTop = targetSection.offsetTop - 48;
-        window.scrollTo({
-          top: offsetTop,
-          behavior: 'smooth'
-        });
-        
-        // 立即更新激活状态
-        navItems.forEach(nav => nav.classList.remove('active'));
-        item.classList.add('active');
+  if (initScrollNav.initialized) return;
+  initScrollNav.initialized = true;
+
+  const navItems = [...document.querySelectorAll('.scroll-nav-item[data-target]')];
+  const targets = navItems.map(item => ({
+    item,
+    section: document.getElementById(item.dataset.target)
+  })).filter(target => target.section);
+
+  if (!targets.length) return;
+
+  let frameId = 0;
+  let pendingTargetId = null;
+  let pendingTimer = 0;
+
+  const getTopOffset = () => {
+    const bookmarkHeight = parseFloat(getComputedStyle(document.documentElement)
+      .getPropertyValue('--bookmark-bar-height')) || 0;
+    const settings = document.querySelector('.settings');
+    const settingsStyle = settings ? getComputedStyle(settings) : null;
+    const paddingTop = parseFloat(settingsStyle?.paddingTop) || 0;
+    const zoom = parseFloat(getComputedStyle(document.documentElement).zoom) || 1;
+    return bookmarkHeight + paddingTop * zoom;
+  };
+
+  const setActive = (targetId) => {
+    navItems.forEach(item => item.classList.toggle('active', item.dataset.target === targetId));
+  };
+
+  const updateFromPosition = () => {
+    frameId = 0;
+    const activationLine = getTopOffset() + 8;
+    if (pendingTargetId) {
+      const pending = document.getElementById(pendingTargetId);
+      if (pending && Math.abs(pending.getBoundingClientRect().top - getTopOffset()) <= 3) {
+        clearTimeout(pendingTimer);
+        pendingTargetId = null;
+      } else {
+        return;
       }
-    });
-  });
-  
-  // 使用 Intersection Observer 监听分区可见性
-  const observerOptions = {
-    root: null,
-    rootMargin: '-10% 0px -70% 0px', // 当分区进入视口上部时触发
-    threshold: 0
+    }
+
+    let activeId = targets[0].section.id;
+    for (const target of targets) {
+      if (target.section.getBoundingClientRect().top <= activationLine) {
+        activeId = target.section.id;
+      } else {
+        break;
+      }
+    }
+    setActive(activeId);
+  };
+
+  const scheduleUpdate = () => {
+    if (!frameId) frameId = requestAnimationFrame(updateFromPosition);
+  };
+
+  const scrollToTarget = (target, behavior = 'smooth') => {
+    pendingTargetId = target.section.id;
+    clearTimeout(pendingTimer);
+    setActive(pendingTargetId);
+    const top = window.scrollY + target.section.getBoundingClientRect().top - getTopOffset();
+    window.scrollTo({ top, behavior });
+    pendingTimer = setTimeout(() => {
+      pendingTargetId = null;
+      scheduleUpdate();
+    }, behavior === 'smooth' ? 2000 : 0);
   };
   
-  const observer = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-      if (entry.isIntersecting) {
-        const sectionId = entry.target.id;
-        
-        // 更新导航激活状态
-        navItems.forEach(nav => {
-          if (nav.getAttribute('data-target') === sectionId) {
-            navItems.forEach(n => n.classList.remove('active'));
-            nav.classList.add('active');
-          }
-        });
-      }
+  // 点击导航项时平滑滚动到对应分区
+  targets.forEach(target => {
+    const { item } = target;
+    item.addEventListener('click', (e) => {
+      e.preventDefault();
+      history.replaceState(null, '', `#${target.section.id}`);
+      scrollToTarget(target);
     });
-  }, observerOptions);
-  
-  // 观察所有分区
-  sections.forEach(section => observer.observe(section));
+  });
+
+  window.addEventListener('scroll', scheduleUpdate, { passive: true });
+  window.addEventListener('resize', scheduleUpdate);
+  window.addEventListener('wheel', () => {
+    if (!pendingTargetId) return;
+    clearTimeout(pendingTimer);
+    pendingTargetId = null;
+    scheduleUpdate();
+  }, { passive: true });
+  window.addEventListener('touchstart', () => {
+    if (!pendingTargetId) return;
+    clearTimeout(pendingTimer);
+    pendingTargetId = null;
+    scheduleUpdate();
+  }, { passive: true });
+  document.addEventListener('pointerdown', () => {
+    if (!pendingTargetId) return;
+    clearTimeout(pendingTimer);
+    pendingTargetId = null;
+    scheduleUpdate();
+  }, { passive: true, capture: true });
+  document.addEventListener('keydown', (event) => {
+    if (!pendingTargetId || !['ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'End', ' '].includes(event.key)) return;
+    clearTimeout(pendingTimer);
+    pendingTargetId = null;
+    scheduleUpdate();
+  }, true);
+  window.addEventListener('scrollend', () => {
+    if (!pendingTargetId) return;
+    clearTimeout(pendingTimer);
+    pendingTargetId = null;
+    scheduleUpdate();
+  });
+
+  const hashTarget = targets.find(target => `#${target.section.id}` === window.location.hash);
+  if (hashTarget) {
+    setTimeout(() => scrollToTarget(hashTarget), 300);
+  } else {
+    scheduleUpdate();
+  }
 }
 
 // ============================================
@@ -1395,6 +900,47 @@ function initBackToTop() {
     window.scrollTo({
       top: 0,
       behavior: 'smooth'
+    });
+  });
+}
+
+function initSiteEnhancementDemos() {
+  const demos = document.querySelectorAll('.bili-demo-stage, .options-bili-feed-demo');
+  if (!demos.length) return;
+
+  const setRunning = (demo, running, restart = false) => {
+    demo.classList.toggle('animating', running);
+    requestAnimationFrame(() => {
+      demo.getAnimations({ subtree: true }).forEach(animation => {
+        if (running) {
+          if (restart) animation.currentTime = 0;
+          animation.play();
+        } else {
+          animation.pause();
+        }
+      });
+    });
+  };
+
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      const running = entry.isIntersecting && entry.intersectionRatio >= 0.15;
+      setRunning(entry.target, running, running);
+    });
+  }, { threshold: [0, 0.15, 0.4] });
+
+  demos.forEach(demo => {
+    observer.observe(demo);
+    const rect = demo.getBoundingClientRect();
+    const visible = rect.bottom > 0 && rect.top < window.innerHeight;
+    setRunning(demo, visible, true);
+  });
+
+  document.addEventListener('visibilitychange', () => {
+    demos.forEach(demo => {
+      const rect = demo.getBoundingClientRect();
+      const visible = rect.bottom > 0 && rect.top < window.innerHeight;
+      setRunning(demo, visible, false);
     });
   });
 }
@@ -1455,10 +1001,8 @@ function adaptShortcutsForPlatform() {
 
 // 页面加载完成后初始化
 document.addEventListener('DOMContentLoaded', () => {
-  initScrollNav();
-  initBackToTop();
+  initSiteEnhancementDemos();
   adaptShortcutsForPlatform();
-  initBlacklistManager();
 });
 
 // ============================================
@@ -1469,176 +1013,26 @@ document.addEventListener('DOMContentLoaded', () => {
  * 初始化备份与恢复功能
  */
 function initBackupRestore() {
-  const exportBtn = document.getElementById('exportBackup');
-  const importBtn = document.getElementById('importBackup');
-  const fileInput = document.getElementById('importFileInput');
-  
-  exportBtn?.addEventListener('click', handleExportBackup);
-  importBtn?.addEventListener('click', () => fileInput?.click());
-  fileInput?.addEventListener('change', handleImportBackup);
+  backupController.init();
 }
 
 /**
  * 导出备份
  */
 async function handleExportBackup() {
-  const resultEl = document.getElementById('backupResult');
-  try {
-    // 收集所有需要备份的数据
-    const syncData = await chrome.storage.sync.get(null);
-    const localData = await chrome.storage.local.get(['echo_ntp_wallpaper_v2']);
-    
-    // 分离收藏和扩展设置（排除自定义壁纸，它们仅存在于本地 IndexedDB）
-    const favorites = (syncData.echo_ntp_wallpaper_favorites || []).filter(d => !d.startsWith('custom:'));
-    
-    // 扩展功能开关（排除收藏数据，其余都是设置）
-    const extensionSettings = { ...syncData };
-    delete extensionSettings.echo_ntp_wallpaper_favorites;
-    
-    const backup = {
-      version: chrome.runtime.getManifest().version,
-      exportDate: new Date().toISOString().split('T')[0],
-      exportTimestamp: Date.now(),
-      favorites: favorites,
-      wallpaperSettings: localData.echo_ntp_wallpaper_v2 || {},
-      extensionSettings: extensionSettings
-    };
-    
-    // 生成文件并下载
-    const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const dateStr = new Date().toISOString().split('T')[0];
-    
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `ECHO_备份_${dateStr}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    
-    showBackupResult('success', `已导出备份（含 ${favorites.length} 张壁纸收藏）`);
-  } catch (error) {
-    console.error('[ECHO] 导出备份失败:', error);
-    showBackupResult('error', `导出失败：${error.message}`);
-  }
+  return backupController.handleExportBackup();
 }
 
 /**
  * 导入备份
  */
 async function handleImportBackup(e) {
-  const file = e.target.files?.[0];
-  if (!file) return;
-  
-  // 重置 input 以便可以重复选择同一文件
-  e.target.value = '';
-  
-  try {
-    const text = await file.text();
-    let backup;
-    
-    try {
-      backup = JSON.parse(text);
-    } catch {
-      showBackupResult('error', '文件格式错误：不是有效的 JSON 文件');
-      return;
-    }
-    
-    // 基本校验
-    if (!backup.version || !backup.exportDate) {
-      showBackupResult('error', '文件格式错误：不是 ECHO 备份文件');
-      return;
-    }
-    
-    let restoredFavCount = 0;
-    let settingsRestored = false;
-    
-    // 1. 收藏 → 合并（并集）
-    if (Array.isArray(backup.favorites) && backup.favorites.length > 0) {
-      const currentSync = await chrome.storage.sync.get(['echo_ntp_wallpaper_favorites']);
-      const currentFavorites = currentSync.echo_ntp_wallpaper_favorites || [];
-      
-      // 过滤掉备份中的自定义壁纸条目（自定义壁纸仅本地有效）
-      const importedFavorites = backup.favorites.filter(d => !d.startsWith('custom:'));
-      // 合并去重
-      const merged = [...new Set([...currentFavorites, ...importedFavorites])];
-      await chrome.storage.sync.set({ echo_ntp_wallpaper_favorites: merged });
-      
-      restoredFavCount = merged.length - currentFavorites.length;
-    }
-    
-    // 2. 壁纸设置 → 覆盖
-    if (backup.wallpaperSettings && Object.keys(backup.wallpaperSettings).length > 0) {
-      await chrome.storage.local.set({ echo_ntp_wallpaper_v2: backup.wallpaperSettings });
-      settingsRestored = true;
-    }
-    
-    // 3. 扩展功能开关 → 覆盖
-    if (backup.extensionSettings && Object.keys(backup.extensionSettings).length > 0) {
-      await chrome.storage.sync.set(backup.extensionSettings);
-      settingsRestored = true;
-      // 刷新当前页面的开关 UI
-      await loadSettings();
-    }
-    
-    // 结果提示
-    const parts = [];
-    if (restoredFavCount > 0) {
-      parts.push(`新增 ${restoredFavCount} 张壁纸收藏`);
-    } else if (Array.isArray(backup.favorites) && backup.favorites.length > 0) {
-      parts.push(`壁纸收藏已是最新（${backup.favorites.length} 张已存在）`);
-    }
-    if (settingsRestored) {
-      parts.push('设置已恢复');
-    }
-    
-    const msg = parts.length > 0 ? parts.join('，') : '备份文件中没有需要恢复的数据';
-    showBackupResult('success', `${msg}。新标签页将在下次打开时生效`);
-    
-  } catch (error) {
-    console.error('[ECHO] 导入备份失败:', error);
-    showBackupResult('error', `导入失败：${error.message}`);
-  }
+  return backupController.handleImportBackup(e);
 }
 
 /**
  * 显示备份操作结果（复用快速保存图片的 toast 风格）
  */
-let backupToast = null;
-let backupToastTimeout = null;
-
 function showBackupResult(type, message) {
-  if (!backupToast) {
-    backupToast = document.createElement('div');
-    backupToast.className = 'backup-toast';
-    document.body.appendChild(backupToast);
-  }
-  
-  const icons = {
-    success: `<svg width="20" height="20" viewBox="0 0 16 16" fill="none" style="flex-shrink:0">
-      <circle cx="8" cy="8" r="7" stroke="#34d399" stroke-width="1.5" fill="rgba(52,211,153,0.12)"/>
-      <path d="M5 8.2l2 2 4-4.4" stroke="#34d399" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-    </svg>`,
-    error: `<svg width="20" height="20" viewBox="0 0 16 16" fill="none" style="flex-shrink:0">
-      <circle cx="8" cy="8" r="7" stroke="#f87171" stroke-width="1.5" fill="rgba(248,113,113,0.12)"/>
-      <path d="M5.5 5.5l5 5M10.5 5.5l-5 5" stroke="#f87171" stroke-width="1.5" stroke-linecap="round"/>
-    </svg>`
-  };
-  
-  const icon = icons[type] || icons.success;
-  backupToast.innerHTML = icon + `<span>${message}</span>`;
-  
-  // 入场动画
-  requestAnimationFrame(() => {
-    backupToast.classList.add('visible');
-  });
-  
-  if (backupToastTimeout) clearTimeout(backupToastTimeout);
-  
-  backupToastTimeout = setTimeout(() => {
-    if (backupToast) {
-      backupToast.classList.remove('visible');
-    }
-  }, 4000);
+  return backupController.showBackupResult(type, message);
 }

@@ -16,10 +16,10 @@ This document is divided into three parts: The first part covers architecture an
 │            (Service Worker · Central Hub)             │
 │                                                       │
 │  ┌──────────┐  ┌──────────┐  ┌──────────────────┐   │
-│  │ Tab Mgmt  │  │ Shortcuts │  │ AI Proxy / Msg    │   │
-│  │ (Position/│  │ (Boss Key/│  │ Forwarding       │   │
-│  │ Activation│  │ Mute/F2F3)│  │ (Pollinations/   │   │
-│  │ Policy)   │  │           │  │  Ollama proxy)   │   │
+│  │ Tab Mgmt  │  │ Shortcuts │  │ Message Routing  │   │
+│  │ (Position/│  │ (Boss Key/│  │ & Site Features  │   │
+│  │ Activation│  │ Mute/F2F3)│  │ Coordination     │   │
+│  │ Policy)   │  │           │  │                  │   │
 │  └──────────┘  └──────────┘  └──────────────────┘   │
 │                                                       │
 │  ┌──────────┐  ┌──────────┐  ┌──────────────────┐   │
@@ -29,15 +29,15 @@ This document is divided into three parts: The first part covers architecture an
 │  └──────────┘  └──────────┘  └──────────────────┘   │
 └──────────────────────┬───────────────────────────────┘
                         │ chrome.runtime.sendMessage
-           ┌────────────┼────────────────┐
-           ▼            ▼                ▼
-    ┌────────────┐ ┌──────────┐  ┌──────────────┐
-    │ content.js │ │search-box│  │related-search│
-    │ (Gestures/ │ │  .js     │  │    .js       │
-    │  Drag/Zoom)│ │(Floating │  │(AI Related   │
-    │            │ │ Search)  │  │ Search)      │
-    └────────────┘ └──────────┘  └──────────────┘
-          │          Shadow DOM      Shadow DOM
+               ┌────────────┴────────────┐
+               ▼                         ▼
+            ┌────────────┐            ┌──────────┐
+            │ content.js │            │search-box│
+            │ (Gestures/ │            │  .js     │
+            │  Drag/Zoom)│            │(Floating │
+            │            │            │ Search)  │
+            └────────────┘            └──────────┘
+              │                    Shadow DOM
           │          (closed)        (closed)
           ▼
     ┌────────────┐
@@ -49,7 +49,20 @@ This document is divided into three parts: The first part covers architecture an
     └────────────┘
 ```
 
-**Core Communication Pattern**: all modules communicate with `background.js` via `chrome.runtime.sendMessage`, establishing `background` as the sole authority for state and API proxying. Content Scripts do not invoke external APIs directly.
+**Core Communication Pattern**: general-purpose modules communicate with `background.js` through `chrome.runtime.sendMessage`; the background worker owns browser-level state and cross-page routing. Site-specific modules remain isolated. Bilibili feed history is stored per tab in `chrome.storage.session` by the background worker. Zhihu synchronization uses a Port from the options page through the background worker to a logged-in Zhihu content script, which performs same-origin read-only requests and atomically stores the completed snapshot in `chrome.storage.local` for both `www.zhihu.com` and `zhuanlan.zhihu.com`. Outside this constrained same-origin synchronization path, Content Scripts do not invoke external APIs directly.
+
+Version `1.4.1` further narrows runtime responsibilities while retaining the build-free classic-script structure:
+
+- `options/modules/zhihu-sync-controller.js`: options-page snapshot validation, Port lifecycle, and synchronization UI;
+- `options/modules/backup-controller.js`: backup validation, import/export, cross-storage compensation, and result rendering;
+- `search-box/trending-controller.js`: Toutiao request handling, three-item rendering, and rotation for the floating search box;
+- `bili-tool/svg-assets.js` and `bili-tool/styles.js`: read-only assets and Shadow DOM styles for the Bilibili video tool;
+- owning entry scripts continue to assemble settings propagation and page lifecycles; asset modules do not own mutable business state.
+
+Site enhancement modules:
+
+- `bili-feed-history/`: captures homepage recommendation batches with a schema-v3 structured model for content and native presentation variants. The history layer clones a compatible live Bilibili card structure as its runtime template and replaces only historical fields; it stores no site HTML and does not replace Vue-managed nodes. The background worker stores state in `chrome.storage.session` by `tabId`, restores it after reload or same-tab return, and clears it when the tab closes.
+- `zhihu-tool/`: manually synchronizes the official blocklist and filters answers and comments by stable user ID; unidentified authors are left untouched.
 
 ---
 
@@ -155,7 +168,7 @@ IndexedDB stores raw Blobs (not URL strings). `cleanOldWallpaperCache()` runs at
 
 ### 🛡️ Shadow DOM Isolation & Scroll Compensation
 
-**Problem**: The floating search box and AI related search need to be injected into arbitrary web pages without being affected by the host page's CSS (and vice-versa). More trickily, when users zoom the page with Ctrl+Scroll, the injected UI scales up/down along with it.
+**Problem**: The floating search box needs to be injected into arbitrary web pages without being affected by the host page's CSS (and vice-versa). More trickily, when users zoom the page with Ctrl+Scroll, the injected UI scales up/down along with it.
 
 **Solution**:
 
@@ -191,67 +204,6 @@ Polling interval is 500ms, obtaining precise values via `chrome.tabs.getZoom()` 
 
 ---
 
-### 🤖 AI Response: Triple-Strategy Fault-Tolerant Parser
-
-**Problem**: Free AI APIs (Pollinations.ai / Ollama) return highly unstable output formats—standard JSON arrays, nested objects, Markdown code blocks wrapping JSON, numbered plain text lists, or even mixed formats. Prompts ask for "plain text lists," but actual returns often disobey.
-
-**Solution**: A three-tier waterfall parsing strategy, degrading gracefully:
-
-```
-AI Raw Response
-    │
-    ▼
-┌─────────────────────────────────────┐
-│ Strategy A: Structured JSON Parsing  │
-│  - Strip ```json ``` wrappers        │
-│  - Regex extract outermost {} or []  │
-│  - Array → flatMap extract strings   │
-│  - Object → Find queries/keywords    │
-│    candidate keys, or recurse values │
-│  - Clean reasoning chain fields      │
-│  - Handle {"content":"Line1\nLine2"} │
-│    multi-line value cases            │
-│  - Try Keys as keywords if Values    │
-│    are invalid                       │
-└──────────┬──────────────────────────┘
-           │ Failed
-           ▼
-┌─────────────────────────────────────┐
-│ Strategy B: Regex Quote Extraction   │
-│  - Match all "..." quoted content    │
-│  - Filter out JSON keys (contain ":")│
-│  - Filter mechanics markers like     │
-│    "assistant"/"user"                │
-└──────────┬──────────────────────────┘
-           │ Failed
-           ▼
-┌─────────────────────────────────────┐
-│ Strategy C: Plain Text Line Split    │
-│  - Strip code block wrappers         │
-│  - Split by newline                  │
-│  - Regex strip leading numbers       │
-│    (1. 2) 3-) and bullets            │
-│  - Strip surrounding quotes          │
-└─────────────────────────────────────┘
-           │
-           ▼
-┌─────────────────────────────────────┐
-│ Unified Post-Processing               │
-│  - Deduplication (Set)               │
-│  - CJK Detection: CN 4-35 chars, EN  │
-│    must contain space & 10-100 chars │
-│  - Filter pure punctuation/digits    │
-│  - Blacklist filter (null/keywords)  │
-│  - Anti-duplication (compare with    │
-│    document.title)                   │
-│  → Finally keep ≥3 valid keywords    │
-└─────────────────────────────────────┘
-```
-
-Strategy A includes a specific fallback: when all Values in a JSON object are empty strings (e.g., `{"keyword1":"", "keyword2":""}` ), it inverts logic to use Keys as keywords—because some models write keywords in keys rather than values.
-
-📍 Code location: [related-search/related-search.js](related-search/related-search.js) L168-L405
-
 ---
 
 ### 🔎 Fine-Grained Zoom: Dual Threshold System
@@ -270,30 +222,6 @@ Strategy A includes a specific fallback: when all Values in a JSON object are em
 📍 Code location: [content.js](content.js) Zoom handling section
 
 ---
-
-### 📊 Content Signal-to-Noise Ratio Detection
-
-**Problem**: AI related search should only trigger on "content-heavy article pages," not wasting API calls on homepages, search results, or navigation pages. But how to determine if a page is an "article page"?
-
-**Solution**: Besides URL blacklists (.gov/.mil/.edu/search engines, etc.), there is a **Content Signal-to-Noise Ratio Detection**:
-
-```javascript
-const lines = content.split('\n');
-const validLines = lines.filter(l => l.trim().length > 0);
-const avgLineLen = validLines.reduce((acc, l) => acc + l.length, 0) / (validLines.length || 1);
-const hasLongParagraph = lines.some(l => l.length > 80);
-
-// Aggregator page characteristics: high word count, but all short titles, no long paragraphs
-if (!hasLongParagraph && avgLineLen < 30) {
-  // Skip analysis
-}
-```
-
-Logic: An article page definitely has "long paragraphs" (>80 char lines). If a page extracts to all short lines (avg <30 chars) and has no long paragraphs, it's likely a title aggregator (like YouTube home, news list pages)—skip it.
-
-This detection runs after URL filtering and before API calls, **consuming no API quota**.
-
-📍 Code location: [related-search/related-search.js](related-search/related-search.js) L190-L202
 
 ---
 

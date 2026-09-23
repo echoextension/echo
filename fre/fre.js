@@ -120,9 +120,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // ========== Step 2 卡片轮播逻辑 ==========
-  initStep2Carousel();
-
   // Step 4 特定按钮
   const settingsBtn = document.getElementById('settingsBtn');
   if (settingsBtn) {
@@ -188,73 +185,3 @@ function startBrowsing() {
   window.location.href = '../ntp/ntp.html';
 }
 
-/**
- * Step 2 卡片轮播初始化
- * 仅在 fre-step2.html 页面生效
- */
-function initStep2Carousel() {
-  const cards = document.querySelectorAll('.feature-card');
-  if (cards.length === 0) return; // 不是 Step 2 页面，直接返回
-
-  let activeIndex = 0;
-  let isHovering = false;
-  let autoPlayInterval = null;
-  const ANIMATION_DURATION = 4500; // 4.5秒
-
-  function setActiveCard(index) {
-    cards.forEach((card, i) => {
-      const isActive = i === index;
-      const demoArea = card.querySelector('.demo-area');
-      
-      // 1. 切换 active 状态
-      card.classList.toggle('active', isActive);
-      
-      // 2. 动画控制逻辑
-      if (isActive && demoArea) {
-        // 强制重绘 (Reflow) 以重置动画
-        demoArea.classList.remove('animating');
-        void demoArea.offsetWidth; // 触发 reflow
-        demoArea.classList.add('animating');
-      } else if (demoArea) {
-        // 停止动画并复位
-        demoArea.classList.remove('animating');
-      }
-    });
-    activeIndex = index;
-  }
-
-  function nextCard() {
-    if (!isHovering) {
-      const next = (activeIndex + 1) % cards.length;
-      setActiveCard(next);
-    }
-  }
-
-  function startAutoPlay() {
-    if (autoPlayInterval) clearInterval(autoPlayInterval);
-    autoPlayInterval = setInterval(nextCard, ANIMATION_DURATION);
-  }
-
-  // 鼠标交互
-  cards.forEach((card, index) => {
-    card.addEventListener('mouseenter', () => {
-      isHovering = true;
-      setActiveCard(index);
-    });
-
-    card.addEventListener('mouseleave', () => {
-      isHovering = false;
-      // 从当前卡片继续自动轮播
-      startAutoPlay();
-    });
-  });
-
-  // 启动自动轮播
-  startAutoPlay();
-  
-  // 立即激活第一个卡片的动画
-  const firstCardDemo = document.querySelector('.feature-card.active .demo-area');
-  if (firstCardDemo) {
-    firstCardDemo.classList.add('animating');
-  }
-}
