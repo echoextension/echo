@@ -188,7 +188,10 @@ wallpaperRenderer = EchoNtpWallpaperRenderer.create({
   addToHistory: date => wallpaperRepository.addViewHistory(wallpaperState, date),
   updateInfo: wallpaper => autoHideController.update(wallpaper),
   updateStatus: () => wallpaperStatusView.updateActions(),
-  updateStatusText: () => wallpaperStatusView.updateSummary()
+  updateStatusText: () => {
+    wallpaperStatusView.updateSummary();
+    wallpaperStatusView.updateSourceSelector();
+  }
 });
 wallpaperPageController = EchoNtpWallpaperPageController.create({
   state: wallpaperState,

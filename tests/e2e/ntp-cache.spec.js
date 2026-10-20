@@ -86,6 +86,9 @@ for (const pinDuringDownload of [false, true]) {
       const image = anchorPage.locator('#wallpaperBg img');
       await expect(image).toBeVisible();
       await expect(image).toHaveAttribute('alt', cached.desc);
+      await expect(anchorPage.locator('#wallpaperTitle')).toHaveText(cached.desc);
+      await expect(anchorPage.locator('#sourceDailyCurrent')).toHaveText(cached.desc);
+      await expect(anchorPage.locator('#sourceDailyCurrent')).toHaveClass(/visible/);
       const cachedSrc = await image.getAttribute('src');
       expect(imageRequests).toEqual([]);
       await anchorPage.screenshot({ path: testInfo.outputPath('cached-first.png') });
@@ -105,6 +108,11 @@ for (const pinDuringDownload of [false, true]) {
       expect(await image.evaluate(element => element.naturalWidth)).toBeGreaterThan(0);
       if (pinDuringDownload) await expect(image).toHaveAttribute('src', cachedSrc);
       else expect(await image.getAttribute('src')).not.toBe(cachedSrc);
+      await expect(anchorPage.locator('#wallpaperTitle'))
+        .toHaveText(pinDuringDownload ? cached.desc : '必应每日壁纸');
+      if (!pinDuringDownload) {
+        await expect(anchorPage.locator('#sourceDailyCurrent')).toHaveText('必应每日壁纸');
+      }
       await anchorPage.screenshot({ path: testInfo.outputPath('refresh-finished.png') });
       expect(pageErrors).toEqual([]);
     } finally {
@@ -203,6 +211,9 @@ test('keeps warm random changes ready while metadata and one historical image ar
       expect(ready).toBeTruthy();
       await page.locator('#wpRandom').click();
       await expect.poll(() => page.evaluate(() => wallpaperState.current.id)).toBe(ready);
+      const description = await page.evaluate(() => wallpaperState.current.desc);
+      await expect(page.locator('#wallpaperTitle')).toHaveText(description);
+      await expect(page.locator('#sourceDailyCurrent')).toHaveText(description);
       expect(await slowImage.evaluate((image, url) => image === wallpaperState.preloadedImages.get(url), slowUrl)).toBe(true);
     }
     expect(foregroundFetches).toEqual([]);
