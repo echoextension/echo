@@ -272,7 +272,7 @@
         if (!enabled || !expanded || card.contains(event.target) || dot.contains(event.target)) return;
         clearTimeout(collapseTimer);
         collapse();
-      });
+      }, true);
     }
 
     return Object.freeze({ disable, enable, init, onWallpaperChange, searchCurrent, update });

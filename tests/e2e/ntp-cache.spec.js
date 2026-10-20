@@ -210,6 +210,10 @@ test('keeps warm random changes ready while metadata and one historical image ar
         .find(([, image]) => image.complete && image.naturalWidth > 0)?.[1].wpData.id);
       expect(ready).toBeTruthy();
       await page.locator('#wpRandom').click();
+      if (index === 0) {
+        expect(await page.locator('#wallpaperInfoWrapper').evaluate(element =>
+          element.classList.contains('expanded'))).toBe(true);
+      }
       await expect.poll(() => page.evaluate(() => wallpaperState.current.id)).toBe(ready);
       const description = await page.evaluate(() => wallpaperState.current.desc);
       await expect(page.locator('#wallpaperTitle')).toHaveText(description);

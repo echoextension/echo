@@ -21,6 +21,8 @@ async function setup(settings = {}) {
         </article>
       </div>
       <input id="autoHideInfoSwitch" type="checkbox">
+      <button id="wpRandom">换一换</button>
+      <button id="outside">其他操作</button>
     </body></html>`
   });
   await executeWindowScript(dom, 'ntp/modules/wallpaper-info-controller.js');
@@ -63,6 +65,23 @@ describe('wallpaper info controller', () => {
     expect(wrapper.classList.contains('custom-position')).toBe(true);
     expect(state.settings.lastShownWallpaperId).toBe('wallpaper-1');
     expect(saveSettings).toHaveBeenCalled();
+  });
+
+  it('keeps the card open when a ready wallpaper is committed during the random click', async () => {
+    const { controller, state } = await setup({ autoHideInfo: true });
+    controller.init();
+    const wrapper = dom.window.document.getElementById('wallpaperInfoWrapper');
+    dom.window.document.getElementById('wpRandom').addEventListener('click', () => {
+      state.current = { id: 'wallpaper-2' };
+      controller.onWallpaperChange();
+    });
+
+    dom.window.document.getElementById('wpRandom').click();
+    expect(wrapper.classList.contains('expanded')).toBe(true);
+    expect(state.settings.lastShownWallpaperId).toBe('wallpaper-2');
+
+    dom.window.document.getElementById('outside').click();
+    expect(wrapper.classList.contains('collapsed')).toBe(true);
   });
 
   it('updates metadata and hides dates outside the recent API window', async () => {
