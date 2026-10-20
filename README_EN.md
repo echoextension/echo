@@ -68,7 +68,8 @@ This project was built entirely by a **non-technical PM** through AI-assisted pr
   - Collection shuffle: random pick from favorites (stable within same day)
   - Locked: pin a specific wallpaper
 - **Wallpaper Gallery**: Browse wallpaper history, one-click favorite/unfavorite
-- **3-tier caching**: Memory preload → IndexedDB offline cache → Network fetch — near-instant loading
+- **3-tier caching**: Memory preload → IndexedDB offline cache → Network fetch. Cached content and the latest daily image take priority; historical images preload later during idle time.
+- **Optional product branding**: Hide the central logo and brand name in NTP settings while keeping search and other features.
 - **Trending lists**: Multiple categories (trending, novels, movies, etc.)
 - **Wallpaper info card**: Auto-reveals on mouse proximity, draggable
 - **Low Poly dynamic background**: Triangulated mesh with mouse parallax effect
@@ -79,7 +80,7 @@ This project was built entirely by a **non-technical PM** through AI-assisted pr
 - **Rainbow spectrum border animation** + focus pulse effect
 - Integrated trending list with infinite scroll
 - Always-show mode or shortcut-only mode
-- Shadow DOM isolation — zero interference with page styles
+- iframe isolation for styles and layout; compatibility still depends on host-page policies
 - Auto zoom compensation at any page zoom level
 
 #### 🛡️ Zhihu Blocklist Content Filter
@@ -167,7 +168,7 @@ ECHO/
 ```
 
 - **Manifest V3**: Service Worker architecture
-- **Shadow DOM**: The floating search box uses Closed Shadow DOM for complete style isolation
+- **iframe**: The floating search box uses a same-origin iframe for style and layout isolation, without a security sandbox
 - **IndexedDB**: Wallpaper blob offline caching with 7-day TTL
 - **declarativeNetRequest**: Temporary request-header adjustments for Quick Save Image when needed
 

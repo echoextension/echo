@@ -70,6 +70,88 @@ afterEach(() => {
 });
 
 describe('wallpaper renderer', () => {
+  it.each([false, true])('allows cache decoding alongside a daily target (new image first: %s)', async newFirst => {
+    const { images, renderer, state, options } = await setup();
+    renderer.setRefreshPending(true);
+    const old = { id: 'old', date: '2026-10-19' };
+    const latest = { id: 'new', date: '2026-10-20' };
+    state.history = [latest, old];
+    options.cache.getFirst.mockResolvedValue({ url: 'https://images.test/old', blob: new Blob(['old']) });
+    options.fetch.mockResolvedValue(new Response(new Blob(['new']), { headers: { 'Content-Type': 'image/jpeg' } }));
+    const cached = renderer.displayCached(state.history, () => true);
+    await flushAsyncWork();
+    const target = renderer.display(latest, 0, () => true);
+    const duplicate = renderer.display(latest, 0, () => true);
+    await flushAsyncWork();
+    expect(options.fetch).toHaveBeenCalledOnce();
+    expect(images).toHaveLength(2);
+    if (newFirst) {
+      images[1].dispatchEvent(new dom.window.Event('load'));
+      await target;
+      images[0].dispatchEvent(new dom.window.Event('load'));
+    } else {
+      images[0].dispatchEvent(new dom.window.Event('load'));
+      await cached;
+      expect(state.current).toBe(old);
+      expect(state.isWallpaperLoading).toBe(true);
+      images[1].dispatchEvent(new dom.window.Event('load'));
+    }
+    await Promise.all([cached, target, duplicate]);
+    expect(state.current).toBe(latest);
+    expect(state.isWallpaperLoading).toBe(false);
+    expect(options.cache.put).toHaveBeenCalledOnce();
+  });
+
+  it('lets an explicit user choice invalidate the pending first paint and daily target', async () => {
+    const { images, renderer, state, options } = await setup();
+    renderer.setRefreshPending(true);
+    state.history = [{ id: 'old', date: '2026-10-19' }];
+    options.cache.getFirst.mockResolvedValue({ url: 'https://images.test/old', blob: new Blob(['old']) });
+    options.fetch.mockImplementation(async () => new Response(new Blob(['image']), { headers: { 'Content-Type': 'image/jpeg' } }));
+    const cached = renderer.displayCached(state.history, () => true);
+    await flushAsyncWork();
+    const daily = renderer.display({ id: 'daily', date: '2026-10-20' }, 0, () => true);
+    await flushAsyncWork();
+    const user = renderer.display({ id: 'user', date: '2026-10-18' });
+    await flushAsyncWork();
+    images[2].dispatchEvent(new dom.window.Event('load'));
+    images[0].dispatchEvent(new dom.window.Event('load'));
+    images[1].dispatchEvent(new dom.window.Event('load'));
+    await Promise.all([cached, daily, user]);
+    expect(state.current.id).toBe('user');
+  });
+
+  it('preloads only one historical image at a time after the primary update finishes', async () => {
+    const tasks = new Map();
+    let nextTask = 0;
+    const { images, renderer, state } = await setup({
+      requestIdleCallback: callback => { tasks.set(++nextTask, callback); return nextTask; },
+      cancelIdleCallback: id => tasks.delete(id)
+    });
+    const runIdle = () => {
+      const [id, callback] = tasks.entries().next().value;
+      tasks.delete(id);
+      callback();
+    };
+    state.current = { id: 'current' };
+    state.history = ['one', 'two', 'three'].map(id => ({ id }));
+    renderer.setRefreshPending(true);
+    renderer.preload();
+    expect(tasks.size).toBe(0);
+    expect(images).toHaveLength(0);
+    renderer.setRefreshPending(false);
+    runIdle();
+    expect(images).toHaveLength(1);
+    expect(tasks.size).toBe(0);
+    images[0].dispatchEvent(new dom.window.Event('load'));
+    runIdle();
+    expect(images).toHaveLength(2);
+    expect(tasks.size).toBe(0);
+    renderer.setRefreshPending(true);
+    expect(state.preloadedImages.size).toBe(1);
+    expect(images[1].hasAttribute('src')).toBe(false);
+  });
+
   it('displays an older cached image before starting any wallpaper download', async () => {
     const { images, renderer, state, options } = await setup();
     const latest = { id: 'latest', date: '2026-09-17' };

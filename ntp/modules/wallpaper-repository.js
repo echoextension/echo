@@ -102,6 +102,10 @@
       if (storedSettings && typeof storedSettings === 'object' && !Array.isArray(storedSettings)) {
         Object.assign(state.settings, storedSettings);
       }
+      state.settings.showBrand = storedSettings?.showBrand !== false;
+      try {
+        localStorageApi.setItem('echo_ntp_show_brand', String(state.settings.showBrand));
+      } catch {}
       if (typeof storedSettings?.blankMode === 'boolean') {
         try {
           localStorageApi.setItem(keys.blankMode, storedSettings.blankMode ? 'true' : 'false');
@@ -157,10 +161,22 @@
       return state;
     }
 
+    async function loadBrandPreference() {
+      const stored = await chromeApi.storage.local.get(keys.settings);
+      const showBrand = stored[keys.settings]?.showBrand !== false;
+      try {
+        localStorageApi.setItem('echo_ntp_show_brand', String(showBrand));
+      } catch {}
+      return showBrand;
+    }
+
     async function saveSettings(settings) {
       const storedSettings = { ...settings };
       const blankMode = storedSettings.blankMode === true;
       await chromeApi.storage.local.set({ [keys.settings]: storedSettings });
+      try {
+        localStorageApi.setItem('echo_ntp_show_brand', String(storedSettings.showBrand !== false));
+      } catch {}
       try {
         localStorageApi.setItem(keys.blankMode, blankMode ? 'true' : 'false');
       } catch (error) {
@@ -209,6 +225,7 @@
     return Object.freeze({
       addViewHistory,
       load,
+      loadBrandPreference,
       loadViewHistory,
       normalizeFavorites,
       readCurrentFavorites,

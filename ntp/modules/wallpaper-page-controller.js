@@ -230,6 +230,9 @@
         console.warn('[ECHO NTP] 没有可用的壁纸数据');
       }
 
+      // Fetch metadata alongside the local first paint, without waiting for it.
+      void options.dataSource.refresh();
+
       if (state.settings.mode !== 'off') {
         toggle.checked = true;
         documentApi.body.classList.add('wallpaper-mode');
@@ -239,7 +242,7 @@
         if (canRefreshDaily()) await options.renderer.displayCached(state.history, canRefreshDaily);
         if (state.settings.mode !== 'off' && !options.blankMode.isEnabled()
             && !state.isPreview && !state.isWallpaperLoading) {
-          if (canRefreshDaily() && state.current) refreshDaily(select());
+          if (canRefreshDaily()) refreshDaily(select());
           else display(select());
         }
       } else {
@@ -248,7 +251,6 @@
         options.lowPoly.show();
       }
 
-      void options.dataSource.refresh();
       await ensureRendered();
       persistedToggleState = captureToggleState(background);
     }

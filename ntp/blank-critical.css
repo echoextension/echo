@@ -1,3 +1,7 @@
+html.brand-hidden .brand {
+  display: none !important;
+}
+
 html.blank-mode body {
   margin: 0;
   background: #ffffff;

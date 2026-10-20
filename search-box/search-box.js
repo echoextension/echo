@@ -448,7 +448,7 @@
   function createSearchBox() {
     if (host) return;
 
-    // 创建 iframe 宿主以实现沙盒隔离并解决 SPA 路由冲突
+    // 创建 iframe 宿主以隔离样式和布局；同源且未设置 sandbox，不是安全沙箱
     host = document.createElement('iframe');
     host.id = 'echo-search-box-host';
     host.src = 'about:blank';
@@ -812,7 +812,7 @@
 
   /**
    * 播放聚焦动画 - 椭圆光环脉冲扩散效果
-   * 注意：动画元素直接添加到 document.body（Shadow DOM 外部），才能覆盖全屏
+   * 注意：动画元素直接添加到 document.body（搜索框 iframe 外部），才能覆盖全屏
    */
   function playFocusBurstAnimation() {
     // 搜索框尺寸（根据 trending 设置动态调整宽度）
@@ -835,7 +835,7 @@
     const compensatedBottom = bottomOffset * inverseScale;
     const compensatedBorderRadius = 24 * inverseScale;
     
-    // 创建动画容器（直接在 document.body 上，不在 Shadow DOM 内）
+    // 创建动画容器（直接在 document.body 上，不在搜索框 iframe 内）
     const burst = document.createElement('div');
     burst.id = 'echo-focus-burst';
     burst.style.cssText = `
@@ -981,7 +981,7 @@
     if (searchWrapper && searchWrapper.classList.contains('show')) {
       hideSearchBox('toggle-close');
     } else {
-      // 保持 Ctrl+B 后可直接输入，继续验证是否是 closed Shadow DOM + focus 的组合导致页面异常
+      // 保持 Ctrl+B 后可直接输入，焦点位于搜索框 iframe 内
       showSearchBox(true, true);
     }
   }

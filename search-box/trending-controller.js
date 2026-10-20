@@ -26,12 +26,6 @@
     let unavailable = false;
     let requestVersion = 0;
 
-    function escapeHtml(text) {
-      const element = documentApi.createElement('div');
-      element.textContent = text;
-      return element.innerHTML;
-    }
-
     function getLoopIndex(index, length) {
       return ((index % length) + length) % length;
     }
@@ -48,14 +42,15 @@
         let classes = 'trending-word';
         if (offset === 0) classes += ' active';
         else classes += ' adjacent';
-        items.push(`
-          <a class="${classes}"
-             data-offset="${offset}"
-             data-query="${escapeHtml(item.title)}"
-             title="${escapeHtml(item.title)}">${escapeHtml(item.title)}</a>
-        `);
+        const word = documentApi.createElement('a');
+        word.className = classes;
+        word.dataset.offset = String(offset);
+        word.dataset.query = item.title;
+        word.title = item.title;
+        word.textContent = item.title;
+        items.push(word);
       }
-      scrollTrack.innerHTML = items.join('');
+      scrollTrack.replaceChildren(...items);
       scrollTrack.querySelectorAll('.trending-word.active').forEach(word => {
         word.addEventListener('click', event => {
           event.preventDefault();

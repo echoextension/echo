@@ -19,6 +19,40 @@ afterEach(() => {
 });
 
 describe('floating search trending controller', () => {
+  it.each(['他说"你好"', "single ' quote & <tag>", '" onmouseover="globalThis.injected = true', '<img src=x onerror=alert(1)>'])(
+    'keeps title %s as data and searches the complete query', async title => {
+      const chrome = createFakeChrome();
+      const messages = [];
+      chrome.runtime.onMessage.addListener(message => {
+        messages.push(message);
+        if (message.action === 'proxyFetch') {
+          return Promise.resolve({ success: true, data: { data: [{ Title: title }, { Title: 'Second' }] } });
+        }
+        return undefined;
+      });
+      dom = await createScriptDom({ chrome, html: '<div class="trending-panel"><div class="trending-scroll-wrapper"><div class="trending-scroll-track"></div></div></div>' });
+      await executeWindowScript(dom, 'search-box/trending-controller.js');
+      const panel = dom.window.document.querySelector('.trending-panel');
+      const controller = dom.window.EchoSearchBoxTrendingController.create({
+        chrome, document: dom.window.document, panel,
+        actions: { OPEN_IN_NEW_TAB: 'openInNewTab', PROXY_FETCH: 'proxyFetch' },
+        setInterval: () => 1, clearInterval() {}
+      });
+      controller.start();
+      await flushAsyncWork(8);
+      const word = panel.querySelector('.trending-word.active');
+      expect(word.textContent).toBe(title);
+      expect(word.title).toBe(title);
+      expect(word.dataset.query).toBe(title);
+      expect(word.getAttributeNames().sort()).toEqual(['class', 'data-offset', 'data-query', 'title']);
+      expect(panel.querySelector('img')).toBeNull();
+      word.click();
+      await flushAsyncWork();
+      const search = messages.find(message => message.action === 'openInNewTab');
+      expect(new URL(search.url).searchParams.get('q')).toBe(title);
+    }
+  );
+
   it('does not restart its interval when a hidden request resolves late', async () => {
     const chrome = createFakeChrome();
     const response = deferred();

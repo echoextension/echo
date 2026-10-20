@@ -114,17 +114,6 @@
       updatePlayModeButtons();
     }
 
-    function setCollectionPlayMode(mode = state.settings.collectionPlayMode) {
-      documentApi.getElementById('playModeRandom')?.classList.toggle('active', mode === 'random');
-      documentApi.getElementById('playModeFixed')?.classList.toggle('active', mode === 'fixed');
-      const hint = documentApi.getElementById('collectionHintText');
-      if (hint) {
-        hint.textContent = mode === 'random'
-          ? '每天从收藏中随机展示一张壁纸'
-          : '点击下方壁纸将其设为固定壁纸';
-      }
-    }
-
     function refresh() {
       updateFavoriteCount();
       updateActions();
@@ -133,7 +122,6 @@
 
     return Object.freeze({
       refresh,
-      setCollectionPlayMode,
       updateActions,
       updateFavoriteCount,
       updatePlayModeButtons,

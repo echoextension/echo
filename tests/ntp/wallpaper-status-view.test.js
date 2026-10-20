@@ -21,8 +21,6 @@ async function setup() {
       <span id="manageCollectionCount"></span><div id="playModeSelector"></div>
       <div id="lockedStatusCard"><span id="lockedStatusTitle"></span></div>
       <button id="playModeRandomBtn"></button><button id="playModeFixedBtn"></button>
-      <button id="playModeRandom"></button><button id="playModeFixed"></button>
-      <span id="collectionHintText"></span>
     </body></html>`
   });
   await executeWindowScript(dom, 'ntp/modules/wallpaper-domain.js');
@@ -77,16 +75,6 @@ describe('wallpaper status view', () => {
     expect(dom.window.document.getElementById('lockedStatusTitle').textContent).toBe('本地上传壁纸');
     expect(dom.window.document.getElementById('wpSetWallpaper').classList.contains('active')).toBe(true);
   });
-
-  it('updates the legacy collection playback controls', async () => {
-    const { state, view } = await setup();
-
-    view.setCollectionPlayMode('fixed');
-
-    expect(state.settings.collectionPlayMode).toBe('random');
-    expect(dom.window.document.getElementById('playModeFixed').classList.contains('active')).toBe(true);
-    expect(dom.window.document.getElementById('collectionHintText').textContent).toBe('点击下方壁纸将其设为固定壁纸');
-   });
 
   it('does not count unavailable remote custom placeholders', async () => {
     const { state, view } = await setup();

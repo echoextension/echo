@@ -228,16 +228,6 @@
       documentApi.getElementById('tabHistory')?.addEventListener('click', () => setActiveTab('history'));
       documentApi.getElementById('collectionClose')?.addEventListener('click', hide);
       documentApi.getElementById('collectionBackdrop')?.addEventListener('click', hide);
-      documentApi.getElementById('playModeRandom')?.addEventListener('click', async () => {
-        await options.commands.setCollectionPlayback('random');
-        options.view.setCollectionPlayMode('random');
-        show();
-      });
-      documentApi.getElementById('playModeFixed')?.addEventListener('click', async () => {
-        await options.commands.setCollectionPlayback('fixed');
-        options.view.setCollectionPlayMode('fixed');
-        show();
-      });
       documentApi.getElementById('collectionBackupLink')?.addEventListener('click', event => {
         event.preventDefault();
         options.openBackup();

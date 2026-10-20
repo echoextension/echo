@@ -30,6 +30,34 @@ afterEach(() => {
 });
 
 describe('wallpaper settings repository', () => {
+  it.each([false, true, undefined, 'false'])('normalizes showBrand=%s and corrects its first-paint mirror', async value => {
+    const chrome = createFakeChrome({ storage: { local: { settings: { showBrand: value } } } });
+    const repository = await loadRepository(chrome);
+    dom.window.localStorage.setItem('echo_ntp_show_brand', String(value !== false ? false : true));
+    const state = { settings: {}, favorites: [], viewHistory: [] };
+    await repository.load(state);
+    expect(state.settings.showBrand).toBe(value !== false);
+    expect(dom.window.localStorage.getItem('echo_ntp_show_brand')).toBe(String(value !== false));
+  });
+
+  it('updates the brand mirror only after successful authoritative persistence', async () => {
+    const chrome = createFakeChrome();
+    const repository = await loadRepository(chrome);
+    await repository.saveSettings({ showBrand: false });
+    expect(dom.window.localStorage.getItem('echo_ntp_show_brand')).toBe('false');
+    chrome.__testing.failNextStorageSet('local', new Error('storage unavailable'));
+    await expect(repository.saveSettings({ showBrand: true })).rejects.toThrow('storage unavailable');
+    expect(dom.window.localStorage.getItem('echo_ntp_show_brand')).toBe('false');
+  });
+
+  it('reads the actual saved brand preference for rollback and corrects a stale mirror', async () => {
+    const chrome = createFakeChrome({ storage: { local: { settings: { showBrand: false } } } });
+    const repository = await loadRepository(chrome);
+    dom.window.localStorage.setItem('echo_ntp_show_brand', 'true');
+    await expect(repository.loadBrandPreference()).resolves.toBe(false);
+    expect(dom.window.localStorage.getItem('echo_ntp_show_brand')).toBe('false');
+  });
+
   it('loads typed settings, sync favorites and sanitized history', async () => {
     const chrome = createFakeChrome({
       storage: {
@@ -45,7 +73,7 @@ describe('wallpaper settings repository', () => {
     await repository.load(state);
 
     expect(state).toEqual({
-      settings: { mode: 'off', blankMode: true },
+      settings: { mode: 'off', blankMode: true, showBrand: true },
       favorites: ['2026-09-01'],
       availableFavorites: ['2026-09-01'],
       viewHistory: ['a', 'b']

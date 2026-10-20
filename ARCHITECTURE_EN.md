@@ -37,8 +37,8 @@ This document is divided into three parts: The first part covers architecture an
             │  Drag/Zoom)│            │(Floating │
             │            │            │ Search)  │
             └────────────┘            └──────────┘
-              │                    Shadow DOM
-          │          (closed)        (closed)
+              │                    iframe
+          │
           ▼
     ┌────────────┐
     │  ntp.js    │
@@ -142,8 +142,8 @@ Open New Tab
     │
     ▼
 ┌─────────────────┐
-│ 1. Memory Cache  │ ← Blob URL loaded in current session
-│   (Var ref)      │    Hit → Render immediately, 0 latency
+│ 1. Memory Cache  │ ← Image preloaded in this page
+│   (Var ref)      │    Hit → Reuse the loaded image
 └────────┬────────┘
          │ Miss
          ▼
@@ -155,30 +155,35 @@ Open New Tab
          │ Miss
          ▼
 ┌─────────────────┐
-│ 3. Network Req   │ ← Bing Wallpaper API
-│   (fetch+Blob)   │    Success → Write to Memory + IndexedDB
+│ 3. Network Req   │ ← Bing wallpaper image
+│   (fetch+Blob)   │    Success → Display and cache Blob
 └─────────────────┘
 ```
 
-IndexedDB stores raw Blobs (not URL strings). `cleanOldWallpaperCache()` runs at startup to clear entries older than 7 days. This ensures wallpapers load instantly even if completely offline, provided NTP was opened within the last week.
+IndexedDB stores raw Blobs (not URL strings), with cleanup scheduled after startup for entries older than seven days. After local metadata is ready, cached first paint and Bing/website metadata refresh run in parallel. Bing uses a 15-second request timeout and one retry; the website index retains its 24-hour cache and five-second timeout. Each source applies independently. A new image replaces the old one only after it loads successfully and the current daily/pin/blank/preview state still allows it. Concurrent requests for the same daily target are reused; a late cached image cannot overwrite a newer commit. Historical image preloads pause during the primary update and resume one at a time during idle time, without waiting for the independent website request. Existing collection selection and image quality remain unchanged.
 
-📍 Code location: [ntp/ntp.js](ntp/ntp.js) L25-L120
+The NTP-only “显示产品标识” (Show product branding) switch defaults to enabled. Hiding it removes the central logo and brand name and adjusts search layout. The preference is stored with local NTP settings, mirrored for first paint, and supported by backup import/export. Blank mode retains precedence.
+
+📍 Code location: [wallpaper-renderer.js](ntp/modules/wallpaper-renderer.js), [wallpaper-data-source.js](ntp/modules/wallpaper-data-source.js), [wallpaper-page-controller.js](ntp/modules/wallpaper-page-controller.js)
 
 ---
 
-### 🛡️ Shadow DOM Isolation & Scroll Compensation
+### 🛡️ iframe Style Isolation & Zoom Compensation
 
 **Problem**: The floating search box needs to be injected into arbitrary web pages without being affected by the host page's CSS (and vice-versa). More trickily, when users zoom the page with Ctrl+Scroll, the injected UI scales up/down along with it.
 
 **Solution**:
 
-**Isolation**: Using Closed Shadow DOM:
+**Isolation**: Use a same-origin `about:blank` iframe, with its body as the mount point:
 
 ```javascript
-const host = document.createElement('div');
-const shadow = host.attachShadow({ mode: 'closed' });
-// External JS cannot access internal structure via host.shadowRoot
+const host = document.createElement('iframe');
+host.src = 'about:blank';
+document.body.appendChild(host);
+const mount = host.contentDocument.body;
 ```
+
+This isolates styles and layout, not security privileges. There is no `sandbox` attribute: page scripts in the frame can access its same-origin parent, and host CSP policies can affect compatibility. Injected styles translate the former `:host` selectors to `body`. Trending titles are written through DOM text and attribute APIs, rather than interpreted as HTML.
 
 **Zoom Compensation**: Periodically polling page zoom level to calculate inverse scale:
 
@@ -200,7 +205,7 @@ Note that not only `scale` needs compensation, but also `bottom` positioning—o
 
 Polling interval is 500ms, obtaining precise values via `chrome.tabs.getZoom()` (proxied through background).
 
-📍 Code location: [search-box/search-box.js](search-box/search-box.js) L550-L645
+📍 Code location: [search-box.js](search-box/search-box.js): `createSearchBox()`, `initZoomCompensation()` and `applyZoomCompensation()`
 
 ---
 
@@ -332,7 +337,7 @@ When the user calls out the floating search box with Ctrl+B, a 0.4-second ellipt
 Several details are worth noting in this animation:
 
 - The ring shape matches the search box dimensions and border radius exactly, and **dynamically adjusts width based on whether the hot search panel is shown** (710px vs 420px).
-- Rings must be placed **outside** the Shadow DOM (directly attached to `document.body` ), because they cover the full screen and cannot be clipped by Shadow DOM's `overflow`.
+- Rings must be placed **outside** the search iframe (directly attached to `document.body` ), because they cover the full screen and cannot be clipped by the iframe viewport.
 - When the page is zoomed, rings also need inverse scaling compensation, otherwise ring and search box sizes/positions will misalign.
 
 This animation lasts less than 1 second in total; perhaps 90% of users won't notice its existence. But it gives the moment of "search box popping up" a sense of "response," changing from "a box appearing" to "a box saying hello to you."

@@ -18,7 +18,6 @@ async function setup() {
         <span id="tabHistoryCount"></span>
         <div id="collectionEmpty"><svg class="empty-icon"></svg><p></p><p class="empty-hint"></p></div>
         <div id="collectionGrid"></div>
-        <button id="playModeRandom"></button><button id="playModeFixed"></button>
         <a id="collectionBackupLink" href="#"></a>
         <input id="customWallpaperInput" type="file">
       </section>
@@ -52,7 +51,7 @@ async function setup() {
     cache: { get: vi.fn(async () => null) },
     commands,
     display,
-    view: { setCollectionPlayMode: vi.fn(), updateActions: vi.fn() },
+    view: { updateActions: vi.fn() },
     loadHistory: vi.fn(),
     uploadCustomWallpaper: vi.fn(async () => null),
     openBackup: vi.fn()

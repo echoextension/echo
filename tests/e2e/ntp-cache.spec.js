@@ -35,12 +35,15 @@ for (const pinDuringDownload of [false, true]) {
     let releaseApi;
     let releaseImage;
     let imageRequested = false;
+    let apiRequested = false;
+    const imageRequests = [];
     const apiGate = new Promise(resolve => { releaseApi = resolve; });
     const imageGate = new Promise(resolve => { releaseImage = resolve; });
     const pageErrors = [];
     anchorPage.on('pageerror', error => pageErrors.push(error.message));
     await context.route('https://**/*', route => route.abort('internetdisconnected'));
     await context.route(BING_API_PATTERN, async route => {
+      apiRequested = true;
       await apiGate;
       await route.fulfill({
         contentType: 'application/json',
@@ -48,6 +51,7 @@ for (const pinDuringDownload of [false, true]) {
       });
     });
     await context.route(BING_IMAGE_PATTERN, async route => {
+      imageRequests.push(route.request().url());
       if (!route.request().url().includes('EchoLatest')) return route.abort('internetdisconnected');
       imageRequested = true;
       await imageGate;
@@ -55,11 +59,31 @@ for (const pinDuringDownload of [false, true]) {
     });
 
     try {
+      await anchorPage.addInitScript(() => {
+        if (!location.pathname.endsWith('/ntp/ntp.html')) return;
+        const descriptor = Object.getOwnPropertyDescriptor(HTMLImageElement.prototype, 'src');
+        let held = false;
+        Object.defineProperty(HTMLImageElement.prototype, 'src', {
+          ...descriptor,
+          set(value) {
+            if (!held && String(value).startsWith('blob:')) {
+              held = true;
+              window.releaseCachedDecode = () => descriptor.set.call(this, value);
+            } else descriptor.set.call(this, value);
+          }
+        });
+      });
       await anchorPage.goto(extensionUrl('ntp/ntp.html'));
+      await expect.poll(() => anchorPage.evaluate(() => typeof window.releaseCachedDecode)).toBe('function');
+      await expect.poll(() => apiRequested).toBe(true);
+      await expect(anchorPage.locator('#wallpaperBg img')).toHaveCount(0);
+      expect(imageRequests).toEqual([]);
+      await anchorPage.evaluate(() => window.releaseCachedDecode());
       const image = anchorPage.locator('#wallpaperBg img');
       await expect(image).toBeVisible();
       await expect(image).toHaveAttribute('alt', cached.desc);
       const cachedSrc = await image.getAttribute('src');
+      expect(imageRequests).toEqual([]);
       await anchorPage.screenshot({ path: testInfo.outputPath('cached-first.png') });
 
       releaseApi();

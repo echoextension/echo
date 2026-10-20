@@ -6,6 +6,12 @@
   window.LowPolyConfig = { autoInit: false };
 
   try {
+    if (localStorage.getItem('echo_ntp_show_brand') === 'false') {
+      document.documentElement.classList.add('brand-hidden');
+    }
+  } catch {}
+
+  try {
     const storedValue = localStorage.getItem(BLANK_MODE_KEY);
     const blankModeEnabled = storedValue === 'true';
 

@@ -6,6 +6,49 @@
     const documentApi = options.document;
     let initialized = false;
 
+    function initBrandSwitch() {
+      const toggle = documentApi.getElementById('showBrandSwitch');
+      if (!toggle) return;
+      let persisted = state.settings.showBrand !== false;
+      let version = 0;
+      let saving = Promise.resolve();
+      const apply = value => {
+        toggle.checked = value;
+        documentApi.documentElement.classList.toggle('brand-hidden', !value);
+        documentApi.body.classList.toggle('brand-hidden', !value);
+      };
+      apply(persisted);
+      toggle.addEventListener('change', () => {
+        const operation = ++version;
+        const desired = toggle.checked;
+        state.settings.showBrand = desired;
+        apply(desired);
+        saving = saving.then(async () => {
+          try {
+            // Other NTP controls can change while a brand write is queued.
+            // Preserve their latest values rather than replaying a stale snapshot.
+            await options.saveSettings({ ...state.settings, showBrand: desired });
+            persisted = desired;
+          } catch (error) {
+            if (operation === version) {
+              let saved = persisted;
+              try {
+                if (options.loadBrandPreference) saved = await options.loadBrandPreference();
+              } catch (readError) {
+                console.warn('[ECHO NTP] 无法读取已保存的产品标识偏好:', readError);
+              }
+              if (operation === version) {
+                persisted = saved;
+                state.settings.showBrand = saved;
+                apply(saved);
+              }
+            }
+            console.error('[ECHO NTP] 产品标识设置保存失败:', error);
+          }
+        });
+      });
+    }
+
     function initMinimalMode() {
       const toggle = documentApi.getElementById('minimalModeSwitch');
       if (!toggle) return;
@@ -110,6 +153,7 @@
       options.view.refresh();
       options.blankMode.initSwitch();
       options.blankMode.updateUi();
+      initBrandSwitch();
       initMinimalMode();
       initSourceSelector();
       initPlaybackButtons();

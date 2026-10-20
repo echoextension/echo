@@ -62,7 +62,7 @@ This data is **NOT** proprietary to this extension, nor is it official data from
 
 ### 4. Search Redirection
 
-Features that initiate searches (e.g., Floating Search Box, Super Drag Search) simply construct a standard URL (`bing.com/search?q=...`) and open it in a new tab. ECHO does not intercept or log your search queries.
+Features that initiate searches (e.g., Floating Search Box, Super Drag Search) simply construct a standard URL (`bing.com/search?q=...`) and open it in a new tab. ECHO does not intercept or log your search queries. When you type in the New Tab Page search field, search suggestions send your current query to Bing (`api.bing.com/osjson.aspx`) after approximately 200ms of inactivity, before you submit the search. These suggestion requests omit credentials. Submitting a search separately opens Bing results. This is a third-party request for suggestions; it is not sent to the extension developer.
 
 ### 5. Code Transparency Note
 
@@ -146,7 +146,7 @@ ECHO 遵循 **"Local First"（本地优先）** 的开发原则。
 
 ### 4. 搜索重定向
 
-ECHO 提供的「使用 Bing 搜索」功能（如悬浮搜索框、超级拖拽搜索）仅将您的搜索词拼接为标准 URL (`bing.com/search?q=...`) 并打开新标签页。这与您在地址栏直接搜索的行为一致，插件本身不拦截或记录搜索内容。
+ECHO 提供的「使用 Bing 搜索」功能（如悬浮搜索框、超级拖拽搜索）仅将您的搜索词拼接为标准 URL (`bing.com/search?q=...`) 并打开新标签页。这与您在地址栏直接搜索的行为一致，插件本身不拦截或记录搜索内容。在新标签页搜索框输入时，搜索联想会在约 200ms 无新输入后将当前查询词发送给 Bing（`api.bing.com/osjson.aspx`），发生在提交搜索之前；该联想请求不携带凭据。提交搜索则另行打开 Bing 结果页。这是向第三方获取搜索建议的请求，不会发送给扩展开发者。
 
 ### 5. 代码透明度声明
 

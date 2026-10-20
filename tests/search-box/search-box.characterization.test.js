@@ -116,7 +116,8 @@ describe('floating search box', () => {
     expect(panel.classList.contains('show')).toBe(true);
   });
 
-  it('renders three escaped Toutiao trends and opens the active item', async () => {
+  it.each(['First trend', '他说"你好"', '" onmouseover="globalThis.unexpected = true', '<img src=x onerror=alert(1)>'])(
+    'renders three Toutiao trends as data and opens the complete active title: %s', async title => {
     const { messages, window } = await loadSearchBox(
       { floatingSearchBoxAlwaysShow: true, floatingSearchBoxTrending: true },
       null,
@@ -126,7 +127,7 @@ describe('floating search box', () => {
           success: true,
           data: {
             data: [
-              { Title: 'First trend' },
+              { Title: title },
               { Title: '<unsafe trend>' },
               { Title: 'Third trend' }
             ]
@@ -143,15 +144,19 @@ describe('floating search box', () => {
     expect(words).toHaveLength(3);
     expect(words.map(word => word.textContent)).toEqual([
       'Third trend',
-      'First trend',
+      title,
       '<unsafe trend>'
     ]);
-    expect(panel.querySelector('.trending-word.active').innerHTML).toBe('First trend');
+    const active = panel.querySelector('.trending-word.active');
+    expect(active.dataset.query).toBe(title);
+    expect(active.title).toBe(title);
+    expect(active.getAttributeNames().sort()).toEqual(['class', 'data-offset', 'data-query', 'title']);
+    expect(panel.querySelector('img')).toBeNull();
 
     panel.querySelector('.trending-word.active').click();
     expect(messages).toContainEqual({
       action: 'openInNewTab',
-      url: 'https://www.bing.com/search?q=First%20trend',
+      url: `https://www.bing.com/search?q=${encodeURIComponent(title)}`,
       active: true,
       forceAdjacentPosition: true
     });

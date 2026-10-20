@@ -34,8 +34,8 @@
             │ (手势/拖拽 │            │  .js     │
             │  /缩放)    │            │(悬浮搜索)│
             └────────────┘            └──────────┘
-              │                    Shadow DOM
-          │          (closed)        (closed)
+              │                    iframe
+          │
           ▼
     ┌────────────┐
     │  ntp.js    │
@@ -138,8 +138,8 @@ chrome.tabs.onCreated.addListener((tab) => {
     │
     ▼
 ┌─────────────────┐
-│ 1. 内存缓存      │ ← 当前会话已加载的 Blob URL
-│   (变量引用)      │    命中 → 直接渲染，0 延迟
+│ 1. 内存缓存      │ ← 当前页面预加载的 Image
+│   (变量引用)      │    命中 → 复用已加载图片
 └────────┬────────┘
          │ 未命中
          ▼
@@ -151,32 +151,37 @@ chrome.tabs.onCreated.addListener((tab) => {
          │ 未命中
          ▼
 ┌─────────────────┐
-│ 3. 网络请求      │ ← Bing 壁纸 API
-│   (fetch+Blob)   │    成功 → 同时写入内存 + IndexedDB
+│ 3. 网络请求      │ ← Bing 壁纸图片
+│   (fetch+Blob)   │    成功 → 显示并缓存 Blob
 └─────────────────┘
 ```
 
 IndexedDB 存储原始 Blob（非 URL 字符串），启动后延迟清理超过 7 天的条目。每日模式先合并本地壁纸元数据，再按日期查找当前画质下已有的图片缓存并显示，不等待 Bing 接口。没有可用图片缓存时，才通过网络加载首图。
 
-首屏缓存处理完成后，独立刷新 Bing 与官网壁纸数据；Bing 请求单次最多 15 秒，失败后最多重试一次，官网仍使用 24 小时缓存和 5 秒请求超时。新图片下载并解码成功后才替换旧图，失败时保留已显示图片。后台刷新保留自定义壁纸记录，并在图片提交前检查每日、锁定、空白与预览状态，避免覆盖用户期间的操作。收藏模式仍按原有规则选图。
+本地历史准备完成后，并行显示缓存与刷新 Bing、官网壁纸数据；Bing 请求单次最多 15 秒，失败后最多重试一次，官网仍使用 24 小时缓存和 5 秒请求超时。新图片下载并解码成功后才替换旧图，失败时保留已显示图片。后台刷新保留自定义壁纸记录，并在图片提交前检查每日、锁定、空白与预览状态，避免覆盖用户期间的操作。收藏模式仍按原有规则选图。每日目标图尚未准备好时保留已显示图片；独立的缓存首屏与目标请求避免相互取消，已提交的新图不会被迟到旧图覆盖。同一目标的进行中请求复用。日更期间暂停历史预加载，日更结束后于空闲时逐张补充，不等待独立官网请求结束。
 
-📍 代码位置：[ntp/ntp.js](ntp/ntp.js) L25-L120
+NTP 内部“显示产品标识”默认开启，可整体隐藏中央图标和品牌文字并调整搜索布局。偏好保存在本地 NTP 设置中，以首屏镜像避免闪现；备份支持恢复该布尔偏好，空白模式仍具有优先级。
+
+📍 代码位置：[wallpaper-renderer.js](ntp/modules/wallpaper-renderer.js)、[wallpaper-data-source.js](ntp/modules/wallpaper-data-source.js)、[wallpaper-page-controller.js](ntp/modules/wallpaper-page-controller.js)
 
 ---
 
-### 🛡️ Shadow DOM 隔离与缩放补偿
+### 🛡️ iframe 样式隔离与缩放补偿
 
 **问题**：悬浮搜索框需要注入到任意网页，但不能被宿主页面的 CSS 影响（反之亦然）。更棘手的是，当用户 Ctrl+滚轮缩放页面时，注入的 UI 也会跟着变大/变小。
 
 **方案**：
 
-**隔离**：使用 Closed Shadow DOM：
+**隔离**：使用 `about:blank` 同源 iframe，内部 body 为挂载点：
 
 ```javascript
-const host = document.createElement('div');
-const shadow = host.attachShadow({ mode: 'closed' });
-// 外部 JS 无法通过 host.shadowRoot 访问内部结构
+const host = document.createElement('iframe');
+host.src = 'about:blank';
+document.body.appendChild(host);
+const mount = host.contentDocument.body;
 ```
+
+这提供样式与布局隔离，不是安全沙箱：iframe 未设置 `sandbox`，内部页面脚本可访问同源父页面，兼容性仍受宿主 CSP 等策略影响。样式注入时将原 `:host` 选择器替换为 `body`；热搜标题通过 DOM API 写入文本、属性，不解释为 HTML。
 
 **缩放补偿**：定期轮询页面缩放级别，计算反向 scale：
 
@@ -198,7 +203,7 @@ function applyZoomCompensation(zoomLevel) {
 
 轮询间隔 500ms，通过 `chrome.tabs.getZoom()` （经 background 中转）获取精确值。
 
-📍 代码位置：[search-box/search-box.js](search-box/search-box.js) L550-L645
+📍 代码位置：[search-box.js](search-box/search-box.js) 的 `createSearchBox()`、`initZoomCompensation()` 和 `applyZoomCompensation()`
 
 ---
 
@@ -330,7 +335,7 @@ fre.js 还做了平台检测：Mac 用户看到的是 `⌘ + B`，Windows 用户
 这个动画有几个细节值得注意：
 
 - 光环形状精确匹配搜索框的尺寸和圆角，并且**根据热搜面板是否展示动态调整宽度**（710px vs 420px）
-- 光环必须放在 Shadow DOM **外部**（直接挂在 `document.body` 上），因为光环要覆盖全屏，不能被 Shadow DOM 的 `overflow` 裁剪
+- 光环必须放在搜索框 iframe **外部**（直接挂在 `document.body` 上），因为光环要覆盖全屏，不能被 iframe 的可视区域裁剪
 - 当页面有缩放时，光环也要做反向缩放补偿，否则光环和搜索框的大小/位置会错位
 
 这个动画总共持续不到 1 秒，可能 90% 的用户不会注意到它的存在。但它给了"搜索框弹出"这个瞬间一种"呼应感"，从"弹出一个框"变成了"这个框在向你打招呼"。

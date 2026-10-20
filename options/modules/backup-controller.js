@@ -10,6 +10,7 @@
     lastActiveMode: value => ['daily', 'collection'].includes(value),
     autoHideInfo: value => typeof value === 'boolean',
     minimalMode: value => typeof value === 'boolean',
+    showBrand: value => typeof value === 'boolean',
     blankMode: value => typeof value === 'boolean',
     infoPositionY: value => value === null || Number.isFinite(value),
     lastShownWallpaperId: value => value === null || typeof value === 'string'
@@ -252,6 +253,12 @@
         }
 
         const restoredFavoriteCount = mergedFavorites.length - currentFavorites.length;
+        if (hasWallpaperSettings) {
+          try {
+            const localStorageApi = options.localStorage || root.localStorage;
+            localStorageApi.setItem('echo_ntp_show_brand', String(payload.wallpaperSettings.showBrand !== false));
+          } catch {}
+        }
         const settingsRestored = hasWallpaperSettings
           || Object.keys(payload.extensionSettings).length > 0;
         if (Object.keys(payload.extensionSettings).length > 0) {

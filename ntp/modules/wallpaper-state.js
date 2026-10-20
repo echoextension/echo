@@ -11,6 +11,7 @@
         lastActiveMode: 'daily',
         autoHideInfo: true,
         minimalMode: false,
+        showBrand: true,
         blankMode: options.blankMode === true,
         infoPositionY: null,
         lastShownWallpaperId: null,

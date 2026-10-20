@@ -77,7 +77,7 @@ afterEach(() => {
 });
 
 describe('wallpaper page controller', () => {
-  it('finishes displaying the local cache before starting background metadata refresh', async () => {
+  it('starts background metadata refresh while the local cache is still decoding', async () => {
     const cachedDisplay = deferred();
     const { controller, options, state, wallpaper } = await setup();
     options.renderer.displayCached.mockImplementation(async () => {
@@ -90,7 +90,7 @@ describe('wallpaper page controller', () => {
     const initialization = controller.init();
     await flushAsyncWork();
     expect(options.renderer.displayCached).toHaveBeenCalledOnce();
-    expect(options.dataSource.refresh).not.toHaveBeenCalled();
+    expect(options.dataSource.refresh).toHaveBeenCalledOnce();
     expect(options.renderer.display).not.toHaveBeenCalled();
     cachedDisplay.resolve();
     await initialization;

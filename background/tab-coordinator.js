@@ -135,7 +135,7 @@
       if (isNtpUrl(effectiveUrl) && !settings.applyToPlusButton) return;
 
       const windowId = tab.windowId;
-      let state = getInsertState(windowId);
+      const state = getInsertState(windowId);
       let effectiveBaseTabId = tab.openerTabId || snapshotBaseTabId || state.baseTabId;
       if (effectiveBaseTabId === tab.id) {
         effectiveBaseTabId = snapshotBaseTabId && snapshotBaseTabId !== tab.id
@@ -147,7 +147,9 @@
         try {
           const baseTabIndex = (await chromeApi.tabs.get(effectiveBaseTabId)).index;
           if (effectiveBaseTabId !== state.baseTabId) {
-            state = { baseTabId: effectiveBaseTabId, baseTabIndex, insertCount: 0 };
+            state.baseTabId = effectiveBaseTabId;
+            state.baseTabIndex = baseTabIndex;
+            state.insertCount = 0;
           } else {
             state.baseTabIndex = baseTabIndex;
           }

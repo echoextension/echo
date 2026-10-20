@@ -275,6 +275,23 @@ describe('background tab behavior', () => {
     expect(chrome.__testing.snapshotTabs().map((tab) => tab.id)).toEqual([1, first.id, second.id, third.id, 2]);
   });
 
+  it.each(['ordered', 'newest'])('keeps %s ordering with an opener after a worker cold start', async order => {
+    const chrome = await loadBackground({
+      sync: { newTabOrder: order },
+      tabs: [activeTab, { id: 2, windowId: 1, index: 1, url: 'https://two.example/' }]
+    });
+    const children = [];
+    for (const name of ['first', 'second', 'third']) {
+      children.push(await chrome.tabs.create({
+        url: `https://${name}.example/`, active: false, openerTabId: activeTab.id
+      }));
+    }
+    await flushAsyncWork(12);
+    const ids = children.map(tab => tab.id);
+    expect(chrome.__testing.snapshotTabs().map(tab => tab.id))
+      .toEqual([1, ...(order === 'ordered' ? ids : ids.reverse()), 2]);
+  });
+
   it('uses the queried active tab when the cached insertion base is stale', async () => {
     const chrome = await loadBackground({
       tabs: [

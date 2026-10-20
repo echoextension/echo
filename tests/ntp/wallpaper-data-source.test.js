@@ -27,6 +27,7 @@ describe('wallpaper data source', () => {
       settings: { mode: 'daily', pinnedDate: null }, history: [previous], current: previous
     };
     const onDailyWallpaper = vi.fn();
+    const onPrimaryRefreshStateChange = vi.fn();
     const fetch = vi.fn((url, init) => {
       if (url === module.BING_API) return fetchBing(init);
       if (url === module.REMOTE_URL) return fetchRemote(init);
@@ -38,14 +39,26 @@ describe('wallpaper data source', () => {
       runtimeGetUrl: path => `chrome-extension://test/${path}`,
       state,
       getLatestBingWallpaper: () => state.history.find(wallpaper => wallpaper.type !== 'custom'),
-      onDailyWallpaper
+      onDailyWallpaper,
+      onPrimaryRefreshStateChange
     });
-    return { module, state, source, onDailyWallpaper, fetch };
+    return { module, state, source, onDailyWallpaper, onPrimaryRefreshStateChange, fetch };
   }
 
   function bingResponse() {
     return new Response(JSON.stringify({ images: [{ urlbase: '/th?id=OHR.latest', enddate: '20260917' }] }));
   }
+
+  it('releases the primary update without waiting for the independent remote request', async () => {
+    let resolveRemote;
+    const remote = new Promise(resolve => { resolveRemote = resolve; });
+    const { source, onPrimaryRefreshStateChange } = await setupRefresh(async () => bingResponse(), () => remote);
+    const refresh = source.refresh();
+    await flushAsyncWork(8);
+    expect(onPrimaryRefreshStateChange.mock.calls).toEqual([[true], [false]]);
+    resolveRemote(new Response('[]'));
+    await refresh;
+  });
 
   it('caches and applies a Bing result arriving after the former five-second deadline', async () => {
     let resolveBing;

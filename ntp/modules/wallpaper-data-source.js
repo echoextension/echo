@@ -127,12 +127,17 @@
 
     function refresh() {
       if (refreshing) return refreshing;
+      options.onPrimaryRefreshStateChange?.(true);
       refreshing = Promise.all([
         refreshRemoteInBackground(readCache(localStorageApi, REMOTE_CACHE_KEY)),
         (async () => {
-          let data = await fetchBing();
-          if (!data.length) data = await fetchBing();
-          return applyRefresh(data, BING_CACHE_KEY);
+          try {
+            let data = await fetchBing();
+            if (!data.length) data = await fetchBing();
+            return await applyRefresh(data, BING_CACHE_KEY);
+          } finally {
+            options.onPrimaryRefreshStateChange?.(false);
+          }
         })()
       ]).catch(error => {
         console.warn('[ECHO NTP] 壁纸刷新失败:', error);
