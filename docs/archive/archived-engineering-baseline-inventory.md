@@ -14,7 +14,7 @@
 
 ## 1. 清单用途与证据边界
 
-本清单是 [`engineering-governance-implementation-plan.md`](../engineering-governance-implementation-plan.md) 阶段 0 的交付物，用于在测试和重构前冻结当前系统事实。
+本清单是 [`engineering-governance-implementation-plan-2026-09-01.md`](../engineering-governance-implementation-plan-2026-09-01.md) 阶段 0 的交付物，用于在测试和重构前冻结当前系统事实。
 
 本清单遵守以下边界：
 
