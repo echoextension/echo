@@ -11,7 +11,11 @@ for (const pinDuringDownload of [false, true]) {
       echo_ntp_trending: false,
       echo_ntp_wallpaper_v2: { mode: 'daily', blankMode: false, quality: '4k' }
     });
-    const cached = { id: 'EchoCached', date: '2099-01-01', desc: 'Cached fixture' };
+    const now = new Date();
+    const yesterday = new Date(now);
+    yesterday.setDate(now.getDate() - 1);
+    const dateString = date => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+    const cached = { id: 'EchoCached', date: dateString(yesterday), desc: 'Cached fixture' };
     await controlPage.evaluate(async ({ cached, bytes }) => {
       localStorage.setItem('echo_bing_api_cache', JSON.stringify({ timestamp: 1, data: [cached] }));
       localStorage.setItem('echo_remote_wallpaper_cache', JSON.stringify({ timestamp: Date.now(), data: [] }));
@@ -47,7 +51,7 @@ for (const pinDuringDownload of [false, true]) {
       await apiGate;
       await route.fulfill({
         contentType: 'application/json',
-        body: JSON.stringify({ images: [{ urlbase: '/th?id=OHR.EchoLatest', enddate: '20990102' }] })
+        body: JSON.stringify({ images: [{ urlbase: '/th?id=OHR.EchoLatest', enddate: dateString(now).replaceAll('-', '') }] })
       });
     });
     await context.route(BING_IMAGE_PATTERN, async route => {
@@ -125,6 +129,90 @@ async function readCachedBingEntries(page) {
     };
   }));
 }
+
+test('keeps warm random changes ready while metadata and one historical image are slow', async ({ extension }) => {
+  const { controlPage, context } = extension;
+  await extension.setStorage('local', {
+    echo_ntp_trending: false,
+    echo_ntp_wallpaper_v2: { mode: 'daily', blankMode: false, quality: '4k' }
+  });
+  const current = { id: 'WarmCurrent', date: '2099-01-01', desc: 'Current daily fixture' };
+  await controlPage.evaluate(async ({ current, bytes }) => {
+    localStorage.setItem('echo_bing_api_cache', JSON.stringify({ timestamp: Date.now(), data: [current] }));
+    localStorage.setItem('echo_remote_wallpaper_cache', JSON.stringify({ timestamp: Date.now(), data: [] }));
+    await new Promise((resolve, reject) => {
+      const request = indexedDB.open('echo_wallpaper_cache', 1);
+      request.onupgradeneeded = () => request.result.createObjectStore('images', { keyPath: 'url' });
+      request.onerror = () => reject(request.error);
+      request.onsuccess = () => {
+        const database = request.result;
+        const transaction = database.transaction('images', 'readwrite');
+        transaction.objectStore('images').put({
+          url: `https://cn.bing.com/th?id=OHR.${current.id}_UHD.jpg&rf=LaDigue_UHD.jpg&pid=hp&w=3840&h=2160&rs=1&c=4`,
+          blob: new Blob([new Uint8Array(bytes)], { type: 'image/png' }), timestamp: Date.now()
+        });
+        transaction.oncomplete = () => { database.close(); resolve(); };
+        transaction.onerror = () => reject(transaction.error);
+      };
+    });
+  }, { current, bytes: [...PIXEL_PNG] });
+  let releaseApi;
+  let releaseSlow;
+  let slowUrl;
+  let apiRequested = false;
+  let cancelledSlow = false;
+  const apiGate = new Promise(resolve => { releaseApi = resolve; });
+  const slowGate = new Promise(resolve => { releaseSlow = resolve; });
+  const foregroundFetches = [];
+  context.on('request', request => {
+    if (BING_IMAGE_PATTERN.test(request.url()) && request.resourceType() === 'fetch') foregroundFetches.push(request.url());
+  });
+  context.on('requestfailed', request => {
+    if (request.url() === slowUrl) cancelledSlow = true;
+  });
+  await context.route('https://**/*', route => route.abort('internetdisconnected'));
+  await context.route(BING_API_PATTERN, async route => {
+    apiRequested = true;
+    await apiGate;
+    await route.fulfill({ contentType: 'application/json', body: JSON.stringify({
+      images: [{ urlbase: '/th?id=OHR.WarmCurrent', enddate: '20990101' }]
+    }) });
+  });
+  await context.route(BING_IMAGE_PATTERN, async route => {
+    if (!slowUrl) {
+      slowUrl = route.request().url();
+      await slowGate;
+    }
+    await route.fulfill({ contentType: 'image/png', body: PIXEL_PNG });
+  });
+  try {
+    const page = await extension.openExtensionPage('ntp/ntp.html');
+    const themeWarnings = [];
+    page.on('console', message => {
+      if (/无法提取壁纸主题|无法计算壁纸亮度/.test(message.text())) themeWarnings.push(message.text());
+    });
+    await expect(page.locator('#wallpaperBg img')).toHaveAttribute('alt', current.desc);
+    await expect.poll(() => apiRequested).toBe(true);
+    await expect.poll(() => page.evaluate(() => [...wallpaperState.preloadedImages.values()]
+      .filter(image => image.complete && image.naturalWidth > 0).length)).toBeGreaterThanOrEqual(4);
+    const slowImage = await page.evaluateHandle(url => wallpaperState.preloadedImages.get(url), slowUrl);
+    expect(await slowImage.evaluate(image => image.complete)).toBe(false);
+    for (let index = 0; index < 4; index += 1) {
+      const ready = await page.evaluate(() => [...wallpaperState.preloadedImages.entries()]
+        .find(([, image]) => image.complete && image.naturalWidth > 0)?.[1].wpData.id);
+      expect(ready).toBeTruthy();
+      await page.locator('#wpRandom').click();
+      await expect.poll(() => page.evaluate(() => wallpaperState.current.id)).toBe(ready);
+      expect(await slowImage.evaluate((image, url) => image === wallpaperState.preloadedImages.get(url), slowUrl)).toBe(true);
+    }
+    expect(foregroundFetches).toEqual([]);
+    expect(cancelledSlow).toBe(false);
+    expect(themeWarnings).toEqual([]);
+  } finally {
+    releaseApi();
+    releaseSlow();
+  }
+});
 
 async function waitForWallpaper(page, diagnostics) {
   try {

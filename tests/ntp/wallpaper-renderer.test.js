@@ -26,7 +26,7 @@ async function setup(overrides = {}) {
   }
 
   const state = {
-    settings: { quality: '4k' },
+    settings: { quality: '4k', mode: 'daily' },
     current: null,
     browseIndex: 0,
     history: [],
@@ -121,7 +121,7 @@ describe('wallpaper renderer', () => {
     expect(state.current.id).toBe('user');
   });
 
-  it('preloads only one historical image at a time after the primary update finishes', async () => {
+  it('restores the warm five-image batch after the primary update, without a slow image blocking its peers', async () => {
     const tasks = new Map();
     let nextTask = 0;
     const { images, renderer, state } = await setup({
@@ -134,22 +134,98 @@ describe('wallpaper renderer', () => {
       callback();
     };
     state.current = { id: 'current' };
-    state.history = ['one', 'two', 'three'].map(id => ({ id }));
+    state.history = ['one', 'two', 'three', 'four', 'five', 'six'].map(id => ({ id }));
     renderer.setRefreshPending(true);
     renderer.preload();
     expect(tasks.size).toBe(0);
     expect(images).toHaveLength(0);
     renderer.setRefreshPending(false);
     runIdle();
-    expect(images).toHaveLength(1);
+    expect(images).toHaveLength(5);
     expect(tasks.size).toBe(0);
-    images[0].dispatchEvent(new dom.window.Event('load'));
-    runIdle();
-    expect(images).toHaveLength(2);
+    for (const image of images.slice(1)) image.dispatchEvent(new dom.window.Event('load'));
+    expect(state.preloadedImages.size).toBe(5);
     expect(tasks.size).toBe(0);
     renderer.setRefreshPending(true);
-    expect(state.preloadedImages.size).toBe(1);
-    expect(images[1].hasAttribute('src')).toBe(false);
+    expect(state.preloadedImages.size).toBe(4);
+    expect(images[0].hasAttribute('src')).toBe(false);
+  });
+
+  it('does not cancel warm preloads when the user displays a wallpaper', async () => {
+    const idleTasks = [];
+    const { images, renderer, state, options } = await setup({ requestIdleCallback: callback => idleTasks.push(callback) });
+    state.current = { id: 'today', date: '2099-01-01' };
+    state.history = [state.current, ...['one', 'two', 'three', 'four', 'five'].map(id => ({ id }))];
+    renderer.preload();
+    idleTasks.shift()();
+    expect(images).toHaveLength(5);
+    const urls = images.map(image => image.src);
+    options.cache.get.mockResolvedValue(new Blob(['chosen']));
+    const display = renderer.display({ id: 'chosen' });
+    await flushAsyncWork();
+    expect(state.preloadedImages.size).toBe(5);
+    expect(images.slice(0, 5).map(image => image.src)).toEqual(urls);
+    images[5].dispatchEvent(new dom.window.Event('load'));
+    await display;
+  });
+
+  it('continues warm preloads while revalidating metadata for an already current daily image', async () => {
+    const idleTasks = [];
+    const { images, renderer, state } = await setup({
+      requestIdleCallback: callback => idleTasks.push(callback), today: () => '2026-10-20'
+    });
+    state.current = { id: 'today', date: '2026-10-20' };
+    state.history = [state.current, ...['one', 'two', 'three', 'four', 'five'].map(id => ({ id }))];
+    renderer.setRefreshPending(true);
+    expect(idleTasks).toHaveLength(1);
+    idleTasks.shift()();
+    expect(images).toHaveLength(5);
+  });
+
+  it('consumes an already loaded random candidate directly without IndexedDB, fetch or another Image', async () => {
+    const { images, renderer, state, options } = await setup({ requestIdleCallback: () => 1 });
+    await executeWindowScript(dom, 'ntp/modules/wallpaper-command-controller.js');
+    state.current = { id: 'today', date: '2099-01-01' };
+    const next = { id: 'ready', date: '2026-10-19' };
+    state.history = [state.current, next];
+    const ready = dom.window.document.createElement('img');
+    Object.defineProperty(ready, 'complete', { value: true });
+    Object.defineProperty(ready, 'naturalWidth', { value: 100 });
+    ready.wpData = next;
+    state.preloadedImages.set(options.domain.buildBingUrl(next.id), ready);
+    const commands = dom.window.EchoNtpWallpaperCommandController.create({
+      state, domain: options.domain, display: renderer.display, refresh() {}
+    });
+    expect(commands.randomPreview()).toBe(next);
+    // Commit is synchronous on the ready path, before promise/idle work.
+    expect(state.current).toBe(next);
+    expect(dom.window.document.getElementById('wallpaperBg').firstElementChild).toBe(ready);
+    expect(state.preloadedImages.size).toBe(0);
+    expect(images).toHaveLength(0);
+    expect(options.cache.get).not.toHaveBeenCalled();
+    expect(options.fetch).not.toHaveBeenCalled();
+    await flushAsyncWork();
+  });
+
+  it('transfers preload ownership before a queued load event so later pauses cannot clear the displayed image', async () => {
+    const tasks = [];
+    const { images, renderer, state, options } = await setup({ requestIdleCallback: callback => tasks.push(callback) });
+    state.current = { id: 'today', date: '2099-01-01' };
+    const ready = { id: 'ready', date: '2026-10-19' };
+    state.history = [state.current, ready];
+    renderer.preload();
+    tasks.shift()();
+    const image = images[0];
+    const source = image.src;
+    // The resource is available but its load event has not run yet.
+    Object.defineProperty(image, 'complete', { value: true });
+    Object.defineProperty(image, 'naturalWidth', { value: 100 });
+    await renderer.display(ready);
+    expect(dom.window.document.getElementById('wallpaperBg').firstElementChild).toBe(image);
+    renderer.setRefreshPending(true);
+    expect(image.src).toBe(source);
+    expect(state.current).toBe(ready);
+    expect(options.fetch).not.toHaveBeenCalled();
   });
 
   it('displays an older cached image before starting any wallpaper download', async () => {

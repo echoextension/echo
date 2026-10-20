@@ -104,7 +104,6 @@
           || history.find(wallpaper => !domain.isCustomWallpaper(wallpaper)
             && domain.buildBingUrl(wallpaper.id, settings.quality) === url);
         if (!selected) continue;
-        preloadedImages.delete(url);
         break;
       }
 

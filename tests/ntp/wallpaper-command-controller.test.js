@@ -70,7 +70,8 @@ describe('wallpaper command controller', () => {
     expect(selected).toBe(second);
     expect(state.isPreview).toBe(true);
     expect(state.browseIndex).toBe(1);
-    expect(state.preloadedImages.size).toBe(0);
+    // The renderer owns consumption, so it can reuse this loaded Image.
+    expect(state.preloadedImages.size).toBe(1);
     expect(dependencies.display).toHaveBeenCalledWith(second);
   });
 

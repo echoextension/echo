@@ -19,8 +19,12 @@
     let cacheVersion = 0;
     let refreshPending = false;
     let idleTask = null;
-    let preloading = null;
+    const preloading = new Map();
     let preloadTarget = 5;
+    const today = options.today || (() => {
+      const date = new Date();
+      return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+    });
     const failedPreloads = new Set();
     const jobs = new Set();
     const dailyRequests = new Map();
@@ -36,18 +40,30 @@
     function stopPreload() {
       if (idleTask !== null) cancelIdle(idleTask);
       idleTask = null;
-      if (preloading) {
-        preloading.image.onload = null;
-        preloading.image.onerror = null;
-        preloading.image.removeAttribute('src');
-        state.preloadedImages.delete(preloading.url);
-        preloading = null;
+      for (const [url, image] of preloading) {
+        image.onload = null;
+        image.onerror = null;
+        image.removeAttribute('src');
+        state.preloadedImages.delete(url);
       }
+      preloading.clear();
+    }
+
+    function hasPriorityWork() {
+      const daily = state.settings.mode === 'daily' && !state.settings.pinnedDate
+        && !state.settings.blankMode && !state.isPreview;
+      const currentDate = state.current && !options.domain.isCustomWallpaper(state.current)
+        ? state.current.date : null;
+      const currentToday = typeof currentDate === 'string' && currentDate >= today();
+      // A metadata revalidation is not a missing daily image. Once today's
+      // picture is visible, keep the user's random-image pool productive.
+      return (refreshPending && daily && !currentToday)
+        || [...jobs].some(job => job.priority && job.isCurrent());
     }
 
     function updateLoading() {
       state.isWallpaperLoading = [...jobs].some(job => job.isCurrent());
-      if (state.isWallpaperLoading || refreshPending) stopPreload();
+      if (hasPriorityWork() || state.settings.mode === 'off' || state.settings.blankMode) stopPreload();
       else schedulePreload();
     }
 
@@ -105,12 +121,12 @@
     }
 
     function schedulePreload() {
-      if (refreshPending || state.isWallpaperLoading || idleTask !== null || preloading
+      if (hasPriorityWork() || idleTask !== null
           || !state.current || state.settings.mode === 'off' || state.settings.blankMode
           || state.preloadedImages.size >= preloadTarget) return;
       idleTask = idle(() => {
         idleTask = null;
-        if (refreshPending || state.isWallpaperLoading || state.settings.mode === 'off'
+        if (hasPriorityWork() || state.settings.mode === 'off'
             || state.settings.blankMode) return;
         const currentUrl = options.domain.isCustomWallpaper(state.current)
           ? null : options.domain.buildBingUrl(state.current.id, state.settings.quality);
@@ -119,28 +135,32 @@
           const url = options.domain.buildBingUrl(wallpaper.id, state.settings.quality);
           return url !== currentUrl && !state.preloadedImages.has(url) && !failedPreloads.has(url);
         });
-        if (!candidates.length || state.preloadedImages.size >= preloadTarget) return;
-        const wallpaper = candidates[Math.floor(Math.random() * candidates.length)];
-        const url = options.domain.buildBingUrl(wallpaper.id, state.settings.quality);
-        const image = new ImageConstructor();
-        preloading = { image, url };
-        image.wpData = wallpaper;
-        state.preloadedImages.set(url, image);
-        image.onload = () => {
-          if (preloading?.image !== image) return;
-          preloading = null;
-          schedulePreload();
-        };
-        image.onerror = () => {
-          if (preloading?.image !== image) return;
-          image.error = true;
-          state.preloadedImages.delete(url);
-          failedPreloads.add(url);
-          preloading = null;
-          schedulePreload();
-        };
-        image.src = url;
-      });
+        // Bound the pool, not its throughput: a slow historical image must not
+        // prevent the remaining candidates from becoming ready.
+        while (candidates.length && state.preloadedImages.size < preloadTarget) {
+          const [wallpaper] = candidates.splice(Math.floor(Math.random() * candidates.length), 1);
+          const url = options.domain.buildBingUrl(wallpaper.id, state.settings.quality);
+          if (state.preloadedImages.has(url)) continue;
+          const image = new ImageConstructor();
+          preloading.set(url, image);
+          image.wpData = wallpaper;
+          state.preloadedImages.set(url, image);
+          image.onload = () => {
+            if (preloading.get(url) !== image) return;
+            preloading.delete(url);
+            schedulePreload();
+          };
+          image.onerror = () => {
+            if (preloading.get(url) !== image) return;
+            image.error = true;
+            state.preloadedImages.delete(url);
+            failedPreloads.add(url);
+            preloading.delete(url);
+            schedulePreload();
+          };
+          image.src = url;
+        }
+      }, { timeout: 200 });
     }
 
     function preload(count = 5) {
@@ -198,7 +218,7 @@
       if (!canCommit) interactionVersion += 1;
       state.wallpaperRenderRequestId = requestId;
       const isCurrent = () => requestId === renderRequestId && (!canCommit || canCommit());
-      const job = { isCurrent };
+      const job = { isCurrent, priority: Boolean(canCommit) };
       jobs.add(job);
       updateLoading();
       const promise = displayTarget(wallpaper, fallbackAttempts, canCommit, isCurrent).finally(() => {
@@ -220,7 +240,10 @@
         const preloaded = state.preloadedImages.get(imageUrl);
         if (preloaded?.complete && preloaded.naturalWidth > 0 && isCurrent()) {
           state.preloadedImages.delete(imageUrl);
-          commit(wallpaper, preloaded.cloneNode(), container);
+          preloading.delete(imageUrl);
+          preloaded.onload = null;
+          preloaded.onerror = null;
+          commit(wallpaper, preloaded, container);
           return;
         }
       }
