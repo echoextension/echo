@@ -78,6 +78,19 @@ test('the NTP-only branding preference persists, applies before async settings, 
   await context.route('https://**/*', route => route.abort('internetdisconnected'));
   await extension.setStorage('local', { echo_ntp_trending: false, echo_ntp_wallpaper_v2: { mode: 'off', blankMode: false } });
   const page = await extension.openExtensionPage('ntp/ntp.html');
+  await expect(page.locator('#trendingSection')).toBeHidden();
+  const viewports = [{ width: 1920, height: 1080 }, { width: 1440, height: 900 },
+    { width: 1280, height: 720 }, { width: 1024, height: 768 }];
+  const searchLayout = () => page.locator('.search-form').evaluate(element => {
+    const form = element.getBoundingClientRect();
+    const box = element.querySelector('.search-box').getBoundingClientRect();
+    return { x: form.x, y: form.y, width: form.width, boxWidth: box.width };
+  });
+  const originalLayouts = [];
+  for (const viewport of viewports) {
+    await page.setViewportSize(viewport);
+    originalLayouts.push(await searchLayout());
+  }
   await expect(page.locator('.brand')).toBeVisible();
   await page.locator('#wpSettingsBtn').click();
   const brand = page.locator('#showBrandSwitch');
@@ -85,6 +98,10 @@ test('the NTP-only branding preference persists, applies before async settings, 
   await page.locator('label').filter({ has: brand }).click();
   await expect(page.locator('.brand')).toBeHidden();
   await expect(page.locator('#searchInput')).toBeVisible();
+  for (const [index, viewport] of viewports.entries()) {
+    await page.setViewportSize(viewport);
+    expect(await searchLayout()).toEqual(originalLayouts[index]);
+  }
   await expect.poll(() => extension.getStorage('local', 'echo_ntp_wallpaper_v2').then(r => r.echo_ntp_wallpaper_v2.showBrand)).toBe(false);
   await expect.poll(() => page.evaluate(() => localStorage.getItem('echo_ntp_show_brand'))).toBe('false');
   await page.addInitScript(() => {
@@ -101,10 +118,9 @@ test('the NTP-only branding preference persists, applies before async settings, 
   expect(await page.evaluate(() => document.documentElement.classList.contains('brand-hidden'))).toBe(true);
   await page.evaluate(() => window.releaseSettings());
   await expect(brand).not.toBeChecked();
-  for (const viewport of [{ width: 1920, height: 1080 }, { width: 1440, height: 900 }, { width: 1280, height: 720 }]) {
+  for (const [index, viewport] of viewports.entries()) {
     await page.setViewportSize(viewport);
-    const middle = await page.locator('.search-form').evaluate(el => { const r = el.getBoundingClientRect(); return (r.top + r.height / 2) / innerHeight; });
-    expect(middle).toBeCloseTo(0.5, 2);
+    expect(await searchLayout()).toEqual(originalLayouts[index]);
   }
   await page.screenshot({ path: testInfo.outputPath('brand-hidden.png') });
   await page.locator('#wpSettingsBtn').click();
@@ -119,16 +135,26 @@ test('the NTP-only branding preference persists, applies before async settings, 
   const trending = page.locator('#trendingSwitch');
   await page.locator('label').filter({ has: trending }).click();
   await expect(page.locator('#trendingSection')).toBeVisible();
+  await expect(page.locator('body')).not.toHaveClass(/trending-transitioning/);
   await expect.poll(async () => {
     const searchRect = await page.locator('.search-box').boundingBox();
     const trendingRect = await page.locator('#trendingSection').boundingBox();
     return trendingRect.y - searchRect.y - searchRect.height;
   }).toBeGreaterThan(0);
+  const trendingLayouts = [];
+  for (const viewport of viewports) {
+    await page.setViewportSize(viewport);
+    trendingLayouts.push(await searchLayout());
+  }
   await page.screenshot({ path: testInfo.outputPath('brand-hidden-trending.png') });
   await page.locator('label').filter({ has: brand }).click();
   await expect(page.locator('.brand')).toBeVisible();
   await expect(brand).toBeChecked();
   await expect(page.locator('#searchInput')).toBeVisible();
+  for (const [index, viewport] of viewports.entries()) {
+    await page.setViewportSize(viewport);
+    expect(await searchLayout()).toEqual(trendingLayouts[index]);
+  }
 });
 
 test('production collection playback buttons retain their complete pin and unlock chain', async ({ extension }) => {

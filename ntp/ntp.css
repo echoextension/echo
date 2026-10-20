@@ -3148,27 +3148,10 @@ body.wallpaper-mode .ntp-footer .footer-text {
   }
 }
 
-/* Brand visibility is independent of wallpaper and action-button preferences.
-   Keep these rules after the viewport overrides; blank mode still hides content. */
+/* Hiding the brand does not change the existing search and trending layout. */
 html.brand-hidden .brand,
 body.brand-hidden .brand {
   display: none !important;
-}
-
-html.brand-hidden .search-form,
-body.brand-hidden .search-form {
-  top: 42%;
-}
-
-html.brand-hidden .trending-section,
-body.brand-hidden .trending-section {
-  top: 42%;
-  transform: translate(-50%, 80px);
-}
-
-html.brand-hidden.trending-hidden .search-form,
-body.brand-hidden.trending-hidden .search-form {
-  top: 50%;
 }
 
 /* ============================================
