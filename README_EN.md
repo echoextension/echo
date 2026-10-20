@@ -68,7 +68,7 @@ This project was built entirely by a **non-technical PM** through AI-assisted pr
   - Collection shuffle: random pick from favorites (stable within same day)
   - Locked: pin a specific wallpaper
 - **Wallpaper Gallery**: Browse wallpaper history, one-click favorite/unfavorite
-- **3-tier caching**: Memory preload → IndexedDB offline cache → Network fetch. Cached content and the latest daily image take priority; historical images preload later during idle time.
+- **3-tier caching**: Memory preload → IndexedDB offline cache → Network fetch. The initial daily update takes priority; historical images refill in parallel immediately afterward.
 - **Optional product branding**: Hide the central logo and brand name in NTP settings while keeping search and other features.
 - **Trending lists**: Multiple categories (trending, novels, movies, etc.)
 - **Wallpaper info card**: Auto-reveals on mouse proximity, draggable

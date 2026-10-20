@@ -9,23 +9,19 @@
     const ImageConstructor = options.Image;
     const urlApi = options.URL;
     const fetchImpl = options.fetch;
-    const idle = options.requestIdleCallback || root.requestIdleCallback?.bind(root)
-      || (callback => root.setTimeout(callback, 0));
-    const cancelIdle = options.cancelIdleCallback || root.cancelIdleCallback?.bind(root)
-      || root.clearTimeout.bind(root);
+    const randomValue = options.random || Math.random;
     let renderRequestId = 0;
     let interactionVersion = 0;
     let commitVersion = 0;
     let cacheVersion = 0;
     let refreshPending = false;
-    let idleTask = null;
     const preloading = new Map();
     let preloadTarget = 5;
+    let dailyPriorityActive = false;
     const today = options.today || (() => {
       const date = new Date();
       return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
     });
-    const failedPreloads = new Set();
     const jobs = new Set();
     const dailyRequests = new Map();
 
@@ -38,8 +34,6 @@
     }
 
     function stopPreload() {
-      if (idleTask !== null) cancelIdle(idleTask);
-      idleTask = null;
       for (const [url, image] of preloading) {
         image.onload = null;
         image.onerror = null;
@@ -63,8 +57,11 @@
 
     function updateLoading() {
       state.isWallpaperLoading = [...jobs].some(job => job.isCurrent());
-      if (hasPriorityWork() || state.settings.mode === 'off' || state.settings.blankMode) stopPreload();
-      else schedulePreload();
+      const priority = hasPriorityWork();
+      const resumeDaily = dailyPriorityActive && !priority;
+      dailyPriorityActive = priority;
+      if (priority || state.settings.mode === 'off' || state.settings.blankMode) stopPreload();
+      else if (resumeDaily) preload(preloadTarget);
     }
 
     function cancel() {
@@ -94,7 +91,7 @@
         options.updateInfo(wallpaper);
         options.infoController.onWallpaperChange();
       }
-      failedPreloads.clear();
+      if (!custom) preload(preloadTarget);
     }
 
     function renderBlob(wallpaper, blob, container, isCurrent, custom = false) {
@@ -120,60 +117,40 @@
       });
     }
 
-    function schedulePreload() {
-      if (hasPriorityWork() || idleTask !== null
-          || !state.current || state.settings.mode === 'off' || state.settings.blankMode
-          || state.preloadedImages.size >= preloadTarget) return;
-      idleTask = idle(() => {
-        idleTask = null;
-        if (hasPriorityWork() || state.settings.mode === 'off'
-            || state.settings.blankMode) return;
-        const currentUrl = options.domain.isCustomWallpaper(state.current)
-          ? null : options.domain.buildBingUrl(state.current.id, state.settings.quality);
-        const candidates = state.history.filter(wallpaper => {
-          if (options.domain.isCustomWallpaper(wallpaper)) return false;
-          const url = options.domain.buildBingUrl(wallpaper.id, state.settings.quality);
-          return url !== currentUrl && !state.preloadedImages.has(url) && !failedPreloads.has(url);
-        });
-        // Bound the pool, not its throughput: a slow historical image must not
-        // prevent the remaining candidates from becoming ready.
-        while (candidates.length && state.preloadedImages.size < preloadTarget) {
-          const [wallpaper] = candidates.splice(Math.floor(Math.random() * candidates.length), 1);
-          const url = options.domain.buildBingUrl(wallpaper.id, state.settings.quality);
-          if (state.preloadedImages.has(url)) continue;
-          const image = new ImageConstructor();
-          preloading.set(url, image);
-          image.wpData = wallpaper;
-          state.preloadedImages.set(url, image);
-          image.onload = () => {
-            if (preloading.get(url) !== image) return;
-            preloading.delete(url);
-            schedulePreload();
-          };
-          image.onerror = () => {
-            if (preloading.get(url) !== image) return;
-            image.error = true;
-            state.preloadedImages.delete(url);
-            failedPreloads.add(url);
-            preloading.delete(url);
-            schedulePreload();
-          };
-          image.src = url;
-        }
-      }, { timeout: 200 });
-    }
-
     function preload(count = 5) {
       preloadTarget = count;
-      for (const [url, image] of state.preloadedImages) {
-        if (image.error) state.preloadedImages.delete(url);
+      if (hasPriorityWork() || !state.current || state.settings.mode === 'off'
+          || state.settings.blankMode || !state.history.length) return;
+      const { history, preloadedImages, settings } = state;
+      for (const [url, image] of preloadedImages) {
+        if (image.error) preloadedImages.delete(url);
       }
-      if (state.preloadedImages.size > 8) {
-        [...state.preloadedImages.keys()].slice(0, state.preloadedImages.size - 8)
-          .forEach(url => state.preloadedImages.delete(url));
+      if (preloadedImages.size > 8) {
+        [...preloadedImages.keys()].slice(0, preloadedImages.size - 8)
+          .forEach(url => preloadedImages.delete(url));
       }
-      failedPreloads.clear();
-      schedulePreload();
+      const currentUrl = options.domain.isCustomWallpaper(state.current)
+        ? null : options.domain.buildBingUrl(state.current.id, settings.quality);
+      let attempts = 0;
+      // Keep the 1.4.6 immediate, five-image parallel fill. Only a pending
+      // daily update may hold it back; ordinary image changes refill at commit.
+      while (preloadedImages.size < count && attempts < count * 3) {
+        attempts += 1;
+        const wallpaper = history[Math.floor(randomValue() * history.length)];
+        if (options.domain.isCustomWallpaper(wallpaper)) continue;
+        const imageUrl = options.domain.buildBingUrl(wallpaper.id, settings.quality);
+        if (imageUrl === currentUrl || preloadedImages.has(imageUrl)) continue;
+        const image = new ImageConstructor();
+        image.wpData = wallpaper;
+        image.onload = () => preloading.delete(imageUrl);
+        image.onerror = () => {
+          image.error = true;
+          preloading.delete(imageUrl);
+        };
+        preloading.set(imageUrl, image);
+        preloadedImages.set(imageUrl, image);
+        image.src = imageUrl;
+      }
     }
 
     async function displayCached(wallpapers, canCommit = null) {

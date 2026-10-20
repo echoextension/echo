@@ -122,42 +122,32 @@ describe('wallpaper renderer', () => {
   });
 
   it('restores the warm five-image batch after the primary update, without a slow image blocking its peers', async () => {
-    const tasks = new Map();
-    let nextTask = 0;
+    let nextCandidate = 0;
     const { images, renderer, state } = await setup({
-      requestIdleCallback: callback => { tasks.set(++nextTask, callback); return nextTask; },
-      cancelIdleCallback: id => tasks.delete(id)
+      random: () => (nextCandidate++ % 6) / 6
     });
-    const runIdle = () => {
-      const [id, callback] = tasks.entries().next().value;
-      tasks.delete(id);
-      callback();
-    };
     state.current = { id: 'current' };
     state.history = ['one', 'two', 'three', 'four', 'five', 'six'].map(id => ({ id }));
     renderer.setRefreshPending(true);
     renderer.preload();
-    expect(tasks.size).toBe(0);
     expect(images).toHaveLength(0);
     renderer.setRefreshPending(false);
-    runIdle();
     expect(images).toHaveLength(5);
-    expect(tasks.size).toBe(0);
     for (const image of images.slice(1)) image.dispatchEvent(new dom.window.Event('load'));
     expect(state.preloadedImages.size).toBe(5);
-    expect(tasks.size).toBe(0);
     renderer.setRefreshPending(true);
     expect(state.preloadedImages.size).toBe(4);
     expect(images[0].hasAttribute('src')).toBe(false);
   });
 
   it('does not cancel warm preloads when the user displays a wallpaper', async () => {
-    const idleTasks = [];
-    const { images, renderer, state, options } = await setup({ requestIdleCallback: callback => idleTasks.push(callback) });
+    let nextCandidate = 0;
+    const { images, renderer, state, options } = await setup({
+      random: () => (nextCandidate++ % 6) / 6
+    });
     state.current = { id: 'today', date: '2099-01-01' };
     state.history = [state.current, ...['one', 'two', 'three', 'four', 'five'].map(id => ({ id }))];
     renderer.preload();
-    idleTasks.shift()();
     expect(images).toHaveLength(5);
     const urls = images.map(image => image.src);
     options.cache.get.mockResolvedValue(new Blob(['chosen']));
@@ -169,21 +159,47 @@ describe('wallpaper renderer', () => {
     await display;
   });
 
+  it('refills the warm pool immediately after consuming a ready random image', async () => {
+    let nextCandidate = 0;
+    const { images, renderer, state, options } = await setup({
+      random: () => (nextCandidate++ % 7) / 7
+    });
+    await executeWindowScript(dom, 'ntp/modules/wallpaper-command-controller.js');
+    state.current = { id: 'today', date: '2099-01-01' };
+    state.history = [state.current, ...['one', 'two', 'three', 'four', 'five', 'six']
+      .map(id => ({ id, date: `2026-10-${id}` }))];
+    renderer.preload();
+    expect(images).toHaveLength(5);
+    const pending = images.slice(1).map(image => image.src);
+    Object.defineProperty(images[0], 'complete', { value: true });
+    Object.defineProperty(images[0], 'naturalWidth', { value: 100 });
+    const commands = dom.window.EchoNtpWallpaperCommandController.create({
+      state, domain: options.domain, display: renderer.display, refresh() {}
+    });
+    const selected = commands.randomPreview();
+    expect(state.current).toBe(selected);
+    expect(dom.window.document.getElementById('wallpaperBg').firstElementChild).toBe(images[0]);
+    expect(images).toHaveLength(6);
+    expect(state.preloadedImages.size).toBe(5);
+    expect(images.slice(1, 5).map(image => image.src)).toEqual(pending);
+    expect(options.cache.get).not.toHaveBeenCalled();
+    expect(options.fetch).not.toHaveBeenCalled();
+  });
+
   it('continues warm preloads while revalidating metadata for an already current daily image', async () => {
-    const idleTasks = [];
+    let nextCandidate = 0;
     const { images, renderer, state } = await setup({
-      requestIdleCallback: callback => idleTasks.push(callback), today: () => '2026-10-20'
+      random: () => (nextCandidate++ % 6) / 6, today: () => '2026-10-20'
     });
     state.current = { id: 'today', date: '2026-10-20' };
     state.history = [state.current, ...['one', 'two', 'three', 'four', 'five'].map(id => ({ id }))];
     renderer.setRefreshPending(true);
-    expect(idleTasks).toHaveLength(1);
-    idleTasks.shift()();
+    renderer.preload();
     expect(images).toHaveLength(5);
   });
 
   it('consumes an already loaded random candidate directly without IndexedDB, fetch or another Image', async () => {
-    const { images, renderer, state, options } = await setup({ requestIdleCallback: () => 1 });
+    const { images, renderer, state, options } = await setup({ random: () => 0 });
     await executeWindowScript(dom, 'ntp/modules/wallpaper-command-controller.js');
     state.current = { id: 'today', date: '2099-01-01' };
     const next = { id: 'ready', date: '2026-10-19' };
@@ -197,24 +213,22 @@ describe('wallpaper renderer', () => {
       state, domain: options.domain, display: renderer.display, refresh() {}
     });
     expect(commands.randomPreview()).toBe(next);
-    // Commit is synchronous on the ready path, before promise/idle work.
+    // Commit is synchronous on the ready path, before promise work.
     expect(state.current).toBe(next);
     expect(dom.window.document.getElementById('wallpaperBg').firstElementChild).toBe(ready);
-    expect(state.preloadedImages.size).toBe(0);
-    expect(images).toHaveLength(0);
+    expect(state.preloadedImages.has(options.domain.buildBingUrl(next.id))).toBe(false);
+    expect(images.filter(image => image.src === options.domain.buildBingUrl(next.id))).toHaveLength(0);
     expect(options.cache.get).not.toHaveBeenCalled();
     expect(options.fetch).not.toHaveBeenCalled();
     await flushAsyncWork();
   });
 
   it('transfers preload ownership before a queued load event so later pauses cannot clear the displayed image', async () => {
-    const tasks = [];
-    const { images, renderer, state, options } = await setup({ requestIdleCallback: callback => tasks.push(callback) });
+    const { images, renderer, state, options } = await setup({ random: () => 0.75 });
     state.current = { id: 'today', date: '2099-01-01' };
     const ready = { id: 'ready', date: '2026-10-19' };
     state.history = [state.current, ready];
     renderer.preload();
-    tasks.shift()();
     const image = images[0];
     const source = image.src;
     // The resource is available but its load event has not run yet.
