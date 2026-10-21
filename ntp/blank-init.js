@@ -3,6 +3,19 @@
 
   const BLANK_MODE_KEY = 'echo_ntp_blank_mode';
 
+  function getNativeNewTabTitle() {
+    try {
+      const localized = window.chrome?.i18n?.getMessage?.('ntpNativeTitle');
+      if (localized) return localized;
+      const language = window.chrome?.i18n?.getUILanguage?.() || window.navigator.language || '';
+      return /^zh(?:[-_]|$)/i.test(language) ? '新建标签页' : 'New tab';
+    } catch {
+      return 'New tab';
+    }
+  }
+
+  document.title = getNativeNewTabTitle();
+
   window.LowPolyConfig = { autoInit: false };
 
   try {
