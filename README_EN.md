@@ -69,7 +69,7 @@ This project was built entirely by a **non-technical PM** through AI-assisted pr
   - Locked: pin a specific wallpaper
 - **Wallpaper Gallery**: Browse wallpaper history, one-click favorite/unfavorite
 - **3-tier caching**: Memory preload → IndexedDB offline cache → Network fetch. The initial daily update takes priority; historical images refill in parallel immediately afterward.
-- **Optional product branding**: Hide the central logo and brand name in NTP settings while keeping search and other features.
+- **Optional product branding**: Hide the central logo and brand name in NTP settings while keeping search and other features. Tab and taskbar titles always retain Edge's native new-tab wording.
 - **Trending lists**: Multiple categories (trending, novels, movies, etc.)
 - **Wallpaper info card**: Auto-reveals on mouse proximity, draggable
 - **Low Poly dynamic background**: Triangulated mesh with mouse parallax effect

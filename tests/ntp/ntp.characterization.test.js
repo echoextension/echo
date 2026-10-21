@@ -102,9 +102,10 @@ afterEach(() => {
 describe('NTP first paint and wallpaper selection', () => {
   it('applies blank and trending first-paint classes from localStorage', async () => {
     const chrome = createFakeChrome();
+    chrome.i18n = { getMessage: key => key === 'ntpNativeTitle' ? '新建标签页' : '' };
     dom = await createScriptDom({
       chrome,
-      html: '<!doctype html><html><body></body></html>',
+      html: '<!doctype html><html><head><title>ECHO 易可 - 新标签页</title></head><body></body></html>',
       url: 'https://extension.test/ntp/ntp.html'
     });
     dom.window.localStorage.setItem('echo_ntp_blank_mode', 'true');
@@ -115,6 +116,22 @@ describe('NTP first paint and wallpaper selection', () => {
     expect(dom.window.__ECHO_NTP_BLANK_MODE__).toBe(true);
     expect(dom.window.document.documentElement.classList.contains('blank-mode')).toBe(true);
     expect(dom.window.document.documentElement.classList.contains('trending-hidden')).toBe(true);
+    expect(dom.window.document.title).toBe('新建标签页');
+  });
+
+  it('uses the native Edge title when page branding remains visible', async () => {
+    const chrome = createFakeChrome();
+    chrome.i18n = { getMessage: key => key === 'ntpNativeTitle' ? 'New tab' : '' };
+    dom = await createScriptDom({
+      chrome,
+      html: '<!doctype html><html><head><title>ECHO 易可 - 新标签页</title></head><body></body></html>',
+      url: 'https://extension.test/ntp/ntp.html'
+    });
+
+    await executeWindowScript(dom, 'ntp/blank-init.js');
+
+    expect(dom.window.document.documentElement.classList.contains('brand-hidden')).toBe(false);
+    expect(dom.window.document.title).toBe('New tab');
   });
 
   it('gives a valid pinned wallpaper precedence over collection and daily modes', async () => {

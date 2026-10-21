@@ -4,5 +4,8 @@
   },
   "extDescription": {
     "message": "优化 Edge 浏览器体验，提供B站视频旋转优化、精细缩放、鼠标手势强化、快捷键强化、快速存图、全新 NTP、悬浮搜索框等功能。"
+  },
+  "ntpNativeTitle": {
+    "message": "新建标签页"
   }
 }
