@@ -813,7 +813,7 @@ body:not(.wallpaper-mode) .wp-action-btn:hover {
 }
 
 .settings-body {
-  padding: 20px;
+  padding: 16px 20px;
   min-height: 0;
   overflow-x: hidden;
   overflow-y: auto;
@@ -856,6 +856,14 @@ body:not(.wallpaper-mode) .wp-action-btn:hover {
 
 .settings-section:last-child {
   margin-bottom: 0;
+}
+
+.settings-content > .settings-quick-option {
+  margin-bottom: 8px;
+}
+
+.settings-content > .settings-quick-option-last {
+  margin-bottom: 16px;
 }
 
 .settings-row {
@@ -901,7 +909,7 @@ body:not(.wallpaper-mode) .wp-action-btn:hover {
 .source-selector {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
 }
 
 .source-card {
@@ -914,7 +922,7 @@ body:not(.wallpaper-mode) .wp-action-btn:hover {
 }
 
 .source-card-content {
-  padding: 16px 18px;
+  padding: 12px 18px;
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 12px;
@@ -1056,30 +1064,10 @@ body:not(.wallpaper-mode) .wp-action-btn:hover {
   opacity: 1;
 }
 
-.wallpaper-sub-settings.is-locked #sourceCollectionCard {
-  opacity: 0.45;
-  pointer-events: none;
-  filter: grayscale(0.3);
-}
-
 .wallpaper-sub-settings.is-locked #sourceDailyCard {
   opacity: 1;
   pointer-events: auto;
   filter: none;
-}
-
-.wallpaper-sub-settings.is-locked #sourceCollectionCard .source-card-content {
-  border-color: rgba(255, 255, 255, 0.06) !important;
-  background: rgba(255, 255, 255, 0.02) !important;
-}
-
-.wallpaper-sub-settings.is-locked #sourceCollectionCard input:checked + .source-card-content {
-  border-color: rgba(255, 255, 255, 0.08) !important;
-  background: rgba(255, 255, 255, 0.03) !important;
-}
-
-.wallpaper-sub-settings.is-locked .play-mode-selector {
-  opacity: 0.5;
 }
 
 /* ============================================
@@ -1088,9 +1076,9 @@ body:not(.wallpaper-mode) .wp-action-btn:hover {
 .locked-status-card {
   display: none;
   flex-direction: column;
-  gap: 12px;
-  margin-top: 12px;
-  padding: 16px;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 12px;
   background: linear-gradient(135deg, rgba(245, 158, 11, 0.12) 0%, rgba(245, 158, 11, 0.06) 100%);
   border: 1px solid rgba(245, 158, 11, 0.25);
   border-radius: 10px;
@@ -1251,7 +1239,11 @@ body:not(.wallpaper-mode) .wp-action-btn:hover {
 
 /* ECHO 插件设置入口按钮 - 统一风格 */
 .settings-section-footer {
-  margin-top: 10px;
+  margin: 0;
+  padding: 10px 20px 12px;
+  flex-shrink: 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(28, 28, 32, 0.96);
 }
 
 .echo-settings-btn {
@@ -1704,7 +1696,6 @@ body:not(.wallpaper-mode) .wp-action-btn:hover {
 }
 
 .play-mode-selector {
-  display: flex;
   gap: 8px;
 }
 
@@ -3020,7 +3011,7 @@ body.wallpaper-mode .ntp-footer .footer-text {
   }
 
   .settings-body {
-    padding: 16px;
+    padding: 14px 16px;
   }
 
   .settings-section {
@@ -3035,7 +3026,7 @@ body.wallpaper-mode .ntp-footer .footer-text {
   }
 
   .source-card-content {
-    padding: 13px 15px;
+    padding: 11px 15px;
   }
 
   .brand {
@@ -3081,7 +3072,7 @@ body.wallpaper-mode .ntp-footer .footer-text {
   }
 
   .settings-body {
-    padding: 14px;
+    padding: 12px 14px;
   }
 
   .settings-section {
@@ -3100,7 +3091,7 @@ body.wallpaper-mode .ntp-footer .footer-text {
   }
 
   .source-card-content {
-    padding: 11px 13px;
+    padding: 10px 13px;
   }
 
   .play-mode-selector {
@@ -3416,7 +3407,6 @@ body.brand-hidden .brand {
 }
 
 .play-mode-selector {
-  display: flex;
   gap: 6px;
 }
 

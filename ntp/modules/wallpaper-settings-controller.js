@@ -96,10 +96,14 @@
     }
 
     function initPlaybackButtons() {
-      documentApi.getElementById('playModeRandomBtn')?.addEventListener('click', () => {
+      documentApi.getElementById('playModeRandomBtn')?.addEventListener('click', event => {
+        event.preventDefault();
+        event.stopPropagation();
         void options.commands.setCollectionPlayback('random');
       });
-      documentApi.getElementById('playModeFixedBtn')?.addEventListener('click', () => {
+      documentApi.getElementById('playModeFixedBtn')?.addEventListener('click', event => {
+        event.preventDefault();
+        event.stopPropagation();
         void options.commands.setCollectionPlayback('fixed');
       });
       options.view.updatePlayModeButtons();

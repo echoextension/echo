@@ -102,7 +102,7 @@
           : '';
         dailyCurrent.classList.toggle('visible', mode === 'daily' && !!state.current && !pinned);
       }
-      playModeSelector?.classList.toggle('visible', mode === 'collection' && !pinned);
+      playModeSelector?.classList.toggle('visible', mode === 'collection');
       if (lockedCard) {
         lockedCard.classList.toggle('visible', pinned);
         if (pinned && lockedTitle) {
