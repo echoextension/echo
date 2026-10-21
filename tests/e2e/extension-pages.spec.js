@@ -17,7 +17,8 @@ test('loads the unpacked extension worker and primary extension pages', async ({
   expect(extensionId).toMatch(/^[a-p]{32}$/);
 
   await anchorPage.goto(extensionUrl('ntp/ntp.html'));
-  await expect(anchorPage).toHaveTitle('ECHO 易可 - 新标签页');
+  const nativeTitle = await anchorPage.evaluate(() => chrome.i18n.getMessage('ntpNativeTitle'));
+  await expect(anchorPage).toHaveTitle(nativeTitle);
   await expect(anchorPage.locator('#searchInput')).toBeVisible();
 
   const optionsPage = await extension.openExtensionPage('options/options.html');
@@ -103,6 +104,7 @@ test('keeps the NTP settings panel inside a short viewport', async ({ extension 
   expect(layout.pageOverflowY).toBe('hidden');
   expect(layout.panelBottom).toBeLessThanOrEqual(layout.viewportHeight - 8);
   expect(layout.bodyScrollHeight).toBeGreaterThan(layout.bodyClientHeight);
+  await expect(anchorPage.locator('#echoSettingsBtn')).toBeInViewport();
   await body.evaluate(element => { element.scrollTop = element.scrollHeight; });
   await expect(anchorPage.locator('#echoSettingsBtn')).toBeInViewport();
 });

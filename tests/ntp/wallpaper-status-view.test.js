@@ -76,6 +76,20 @@ describe('wallpaper status view', () => {
     expect(dom.window.document.getElementById('wpSetWallpaper').classList.contains('active')).toBe(true);
   });
 
+  it('keeps collection playback controls available when a favorite is fixed', async () => {
+    const { state, view } = await setup();
+    state.settings.mode = 'collection';
+    state.settings.pinnedDate = state.current.date;
+
+    view.refresh();
+    expect(dom.window.document.getElementById('playModeSelector').classList.contains('visible')).toBe(true);
+    expect(dom.window.document.getElementById('playModeFixedBtn').classList.contains('active')).toBe(true);
+
+    state.settings.mode = 'daily';
+    view.refresh();
+    expect(dom.window.document.getElementById('playModeSelector').classList.contains('visible')).toBe(false);
+  });
+
   it('does not count unavailable remote custom placeholders', async () => {
     const { state, view } = await setup();
     state.favorites = ['custom:remote'];

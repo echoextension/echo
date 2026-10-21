@@ -167,6 +167,23 @@ describe('wallpaper command controller', () => {
     expect(dependencies.display).not.toHaveBeenCalled();
   });
 
+  it('switches directly from a pinned daily wallpaper to collection random mode', async () => {
+    const { controller, dependencies, state } = await setup();
+    const daily = { id: 'daily', date: '2026-01-02' };
+    const favorite = { id: 'favorite', date: '2026-01-01' };
+    state.history = [daily, favorite];
+    state.current = daily;
+    state.favorites = [favorite.date];
+    state.settings.pinnedDate = daily.date;
+
+    expect(await controller.switchToCollection()).toBe(true);
+    expect(state.settings.mode).toBe('collection');
+    expect(state.settings.pinnedDate).toBeNull();
+    expect(state.settings.collectionPlayMode).toBe('random');
+    expect(dependencies.display).toHaveBeenCalledWith(favorite);
+    expect(dependencies.saveSettings).toHaveBeenCalledOnce();
+  });
+
   it('treats remote custom placeholders without local blobs as unavailable', async () => {
     const { controller, dependencies, state } = await setup();
     state.favorites = ['custom:remote'];

@@ -260,6 +260,8 @@
     async function switchToCollection() {
       if (!availableFavorites().length) return false;
       return runTransaction(async () => {
+        state.settings.pinnedDate = null;
+        state.settings.collectionPlayMode = 'random';
         state.settings.mode = 'collection';
         state.settings.lastActiveMode = 'collection';
         state.isPreview = false;

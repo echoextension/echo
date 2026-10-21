@@ -157,7 +157,7 @@ test('the NTP-only branding preference persists, applies before async settings, 
   }
 });
 
-test('production collection playback buttons retain their complete pin and unlock chain', async ({ extension }) => {
+test('production collection playback buttons retain their complete pin and unlock chain', async ({ extension }, testInfo) => {
   await extension.context.route('https://**/*', route => route.abort('internetdisconnected'));
   await extension.context.route('https://cn.bing.com/th?**', route => route.fulfill({ contentType: 'image/png', body: PIXEL_PNG }));
   await extension.setStorage('local', { echo_ntp_trending: false,
@@ -172,8 +172,32 @@ test('production collection playback buttons retain their complete pin and unloc
   await expect(page.locator('#lockedStatusCard')).toHaveClass(/visible/);
   await expect(page.locator('#playModeFixedBtn')).toHaveClass(/active/);
   await expect.poll(() => page.evaluate(() => wallpaperState.settings.pinnedDate)).toBe('2026-09-23');
+  await expect(page.locator('#sourceCollection')).not.toBeChecked();
+  await page.setViewportSize({ width: 1600, height: 1000 });
+  await expect(page.locator('#echoSettingsBtn')).toBeInViewport();
+  expect(await page.locator('.settings-body').evaluate(element => element.scrollHeight <= element.clientHeight + 1))
+    .toBe(true);
+  await page.screenshot({ path: testInfo.outputPath('settings-locked.png') });
+  await expect(page.locator('#playModeRandomBtn')).toBeVisible();
+  await page.locator('#playModeRandomBtn').click();
+  await expect.poll(() => page.evaluate(() => wallpaperState.settings.pinnedDate)).toBeNull();
+  await expect(page.locator('#playModeRandomBtn')).toHaveClass(/active/);
+  await expect(page.locator('#sourceCollection')).toBeChecked();
+  await page.locator('#playModeFixedBtn').click();
+  await expect.poll(() => page.evaluate(() => wallpaperState.settings.pinnedDate)).toBe('2026-09-23');
   await page.locator('#lockedStatusUnlock').click();
   await expect(page.locator('#playModeRandomBtn')).toHaveClass(/active/);
   await expect(page.locator('#playModeSelector')).toHaveClass(/visible/);
   await expect.poll(() => page.evaluate(() => wallpaperState.settings.pinnedDate)).toBeNull();
+
+  await page.locator('#sourceDailyCard').click();
+  await expect.poll(() => page.evaluate(() => wallpaperState.settings.mode)).toBe('daily');
+  await expect(page.locator('#playModeSelector')).toBeHidden();
+  await page.locator('#wpSetWallpaper').click();
+  await expect.poll(() => page.evaluate(() => wallpaperState.settings.pinnedDate)).not.toBeNull();
+  await page.locator('#wpSettingsBtn').click();
+  await page.locator('#sourceCollectionCard').click();
+  await expect.poll(() => page.evaluate(() => wallpaperState.settings.mode)).toBe('collection');
+  await expect.poll(() => page.evaluate(() => wallpaperState.settings.pinnedDate)).toBeNull();
+  await expect(page.locator('#playModeRandomBtn')).toHaveClass(/active/);
 });
