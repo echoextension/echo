@@ -120,7 +120,7 @@ export async function createReleaseArchive(options = {}) {
   }
 
   const manifest = JSON.parse(await readFile(path.join(rootDir, 'manifest.json'), 'utf8'));
-  const archiveName = options.archiveName || `echo-edge-extension-v${manifest.version}.zip`;
+  const archiveName = options.archiveName || `ECHO-v${manifest.version}.zip`;
   if (archiveName !== path.basename(archiveName) || !archiveName.toLowerCase().endsWith('.zip')) {
     throw new Error(`发布包文件名无效：${archiveName}`);
   }
