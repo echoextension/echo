@@ -55,7 +55,7 @@ export function validateReleaseManifest(metadata, expected) {
 export async function verifyRelease(options = {}) {
   const manifest = JSON.parse(await readFile(path.join(ROOT, 'manifest.json'), 'utf8'));
   const archivePath = path.resolve(options.archivePath
-    || path.join(ROOT, 'dist', `echo-edge-extension-v${manifest.version}.zip`));
+    || path.join(ROOT, 'dist', `ECHO-v${manifest.version}.zip`));
   const archive = await readFile(archivePath);
   const digest = sha256(archive);
   const sidecar = await readFile(`${archivePath}.sha256`, 'utf8');

@@ -80,9 +80,11 @@ Edge 扩展商店可能因审核周期落后于仓库版本。官网结构化数
 
 默认产物：
 
-- `dist/echo-edge-extension-v<version>.zip`；
+- `dist/ECHO-v<version>.zip`；
 - 同名 `.sha256`；
 - 同名 `.manifest.json`。
+
+ZIP 文件名沿用 GitHub Release 的 `ECHO-v<version>.zip` 惯例（例如 `ECHO-v1.4.7.zip`），商店上传使用同一个 ZIP，无需另行改名。打包和验证脚本默认使用此命名。
 
 发布包明确排除 `.git`、`.github`、`.vscode`、`tests`、`scripts`、`crawler`、覆盖率、Playwright 报告和依赖目录。
 

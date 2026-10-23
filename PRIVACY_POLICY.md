@@ -2,6 +2,8 @@
 
 **Effective Date**: February 1, 2026
 
+**Last Updated**: October 23, 2026
+
 Thank you for using **ECHO 易可 - 让 Edge 更懂中国用户 (Edge Chinese Helper & Optimizer)**. We value your privacy and are committed to protecting your personal data. This policy explains how we handle your information.
 
 **ECHO is a fully open-source project.** The complete source code is publicly available on [GitHub](https://github.com/echoextension/echo) under the [GPL-3.0](https://github.com/echoextension/echo/blob/main/LICENSE) license. Every claim in this privacy policy can be verified by inspecting the code.
@@ -12,7 +14,7 @@ ECHO adheres to a **"Local First"** development philosophy.
 
 - **Local Execution**: Core features such as Mouse Gestures, Super Drag, Boss Key, and Tab Management run entirely within your local browser environment.
 
-- **No Data Collection**: We **do NOT** upload your browsing history, bookmarks, passwords, or form inputs to any servers.
+- **No Developer Collection**: ECHO does not send your browsing history, bookmarks, passwords, or form inputs to the extension developer. Search features send the selected or entered search terms to the search provider. New Tab search suggestions send the current query to Bing before submission, without credentials, as described in Section 4.
 
 - **Settings Storage**: Your extension preferences are stored locally or synced via your encrypted Microsoft Edge Sync account. The developer has no access to this data.
 
@@ -89,16 +91,18 @@ If you have any questions regarding this privacy policy, please contact the deve
 
 **生效日期 (Effective Date)**：2026年2月1日
 
+**最后更新日期 (Last Updated)**：2026年10月23日
+
 感谢您使用 ECHO 易可 - 让 Edge 更懂中国用户 (Edge Chinese Helper & Optimizer)。我们深知个人隐私的重要性，并承诺严格保护您的数据安全。本指引将详细说明我们如何处理您的数据。
 
 **ECHO 是一个完全开源的项目。**全部源代码以 [GPL-3.0](https://github.com/echoextension/echo/blob/main/LICENSE) 许可证公开托管于 [GitHub](https://github.com/echoextension/echo)。本隐私指引中的每一项承诺，均可通过审查源码加以验证。
 
-### 1. 核心原则：数据不上传
+### 1. 核心原则：本地优先
 
 ECHO 遵循 **"Local First"（本地优先）** 的开发原则。
 
 - **本地运行**：ECHO 的核心功能（包括鼠标手势、超级拖拽、老板键、标签页管理等）均完全运行在您的浏览器本地。
-- **不收集数据**：我们**不会**将您的浏览历史、书签内容、密码或任何表单输入数据上传至任何服务器。
+- **开发者不收集数据**：ECHO 不会将您的浏览历史、书签内容、密码或表单输入发送给扩展开发者。搜索功能会将您选中或输入的搜索词发送给搜索服务提供方。新标签页搜索联想会在提交搜索前将当前查询词发送给 Bing，且不携带凭据，具体见第 4 节。
 - **配置保存**：您的插件设置选项仅保存在您浏览器的本地存储 (Local Storage) 或通过您的 Edge 账号进行加密同步 (Sync Storage)，开发者无法访问这些数据。
 
 - **知乎黑名单过滤**：仅当您主动开启功能并手动同步时，ECHO 才会通过您现有的知乎登录态读取知乎账号 ID 和官方黑名单。账号 ID、被屏蔽用户 ID、URL Token、同步时间及页面作者标识只在 `chrome.storage.local` 中处理和保存，不会由 ECHO 上传，不进入同步存储，也不包含在 ECHO 备份导出中。关闭功能后停止页面处理；卸载扩展会清除扩展本地存储。
