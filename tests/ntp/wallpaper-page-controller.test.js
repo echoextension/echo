@@ -77,6 +77,57 @@ afterEach(() => {
 });
 
 describe('wallpaper page controller', () => {
+  it('paints the direct cache while gallery loading is blocked and refills after it completes', async () => {
+    const history = deferred();
+    const { controller, options, state, wallpaper } = await setup();
+    options.repository.readFirstPaint = vi.fn(() => ({ wallpaper, cacheKey: 'cached' }));
+    options.renderer.displayFirstPaint = vi.fn(async () => {
+      state.current = wallpaper;
+      dom.window.document.getElementById('wallpaperBg').appendChild(dom.window.document.createElement('img'));
+      return true;
+    });
+    options.renderer.preload = vi.fn();
+    options.dataSource.mergeHistory.mockReturnValue(history.promise);
+    const initialization = controller.init();
+    await flushAsyncWork();
+    expect(dom.window.document.getElementById('wallpaperBg').querySelector('img')).not.toBeNull();
+    expect(options.custom.restoreMetadata).not.toHaveBeenCalled();
+    expect(options.lowPoly.show).not.toHaveBeenCalled();
+    history.resolve([wallpaper]);
+    await initialization;
+    expect(options.renderer.displayCached).not.toHaveBeenCalled();
+    expect(options.renderer.display).not.toHaveBeenCalled();
+    expect(options.renderer.preload).toHaveBeenCalledOnce();
+  });
+
+  it('falls back to the existing cache search when the direct pointer has no image', async () => {
+    const { controller, options, wallpaper } = await setup();
+    options.repository.readFirstPaint = vi.fn(() => ({ wallpaper, cacheKey: 'missing' }));
+    options.renderer.displayFirstPaint = vi.fn(async () => false);
+    await controller.init();
+    expect(options.renderer.displayCached).toHaveBeenCalledOnce();
+    expect(options.renderer.display).toHaveBeenCalledWith(wallpaper);
+  });
+
+  it('reconciles an early pinned image with the gallery description and browse position', async () => {
+    const { controller, options, state, wallpaper } = await setup();
+    state.settings.pinnedDate = wallpaper.date;
+    const early = { ...wallpaper, desc: 'Old cached description' };
+    options.repository.readFirstPaint = vi.fn(() => ({ wallpaper: early, cacheKey: 'cached' }));
+    options.renderer.displayFirstPaint = vi.fn(async () => {
+      state.current = early;
+      dom.window.document.getElementById('wallpaperBg').appendChild(dom.window.document.createElement('img'));
+      return true;
+    });
+    options.info.update = vi.fn();
+    options.dataSource.mergeHistory.mockResolvedValue([{ id: 'newer', date: '2026-01-02' }, wallpaper]);
+    await controller.init();
+    expect(state.current).toBe(wallpaper);
+    expect(state.browseIndex).toBe(1);
+    expect(options.info.update).toHaveBeenCalledWith(wallpaper);
+    expect(options.renderer.display).not.toHaveBeenCalled();
+  });
+
   it('starts background metadata refresh while the local cache is still decoding', async () => {
     const cachedDisplay = deferred();
     const { controller, options, state, wallpaper } = await setup();

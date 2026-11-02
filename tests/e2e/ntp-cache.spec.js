@@ -4,6 +4,92 @@ import { expect, test } from './fixtures/extension.js';
 const BING_API_PATTERN = /^https:\/\/cn\.bing\.com\/HPImageArchive\.aspx(?:\?|$)/;
 const BING_IMAGE_PATTERN = /^https:\/\/cn\.bing\.com\/th\?/;
 
+test('reuses the first-paint cache across new tabs before the gallery loads', async ({ extension }) => {
+  const { anchorPage, controlPage, context, extensionUrl } = extension;
+  const date = new Date().toISOString().split('T')[0];
+  const cached = { id: 'EchoFirstPaint', date, desc: 'First-paint fixture' };
+  await extension.setStorage('local', {
+    echo_ntp_trending: false,
+    echo_ntp_wallpaper_v2: { mode: 'daily', blankMode: false, quality: '4k' }
+  });
+  await context.route('https://**/*', route => route.abort('internetdisconnected'));
+  await controlPage.evaluate(async ({ cached, bytes }) => {
+    localStorage.setItem('echo_bing_api_cache', JSON.stringify({ timestamp: Date.now(), data: [cached] }));
+    await new Promise((resolve, reject) => {
+      const request = indexedDB.open('echo_wallpaper_cache', 1);
+      request.onerror = () => reject(request.error);
+      request.onupgradeneeded = () => request.result.createObjectStore('images', { keyPath: 'url' });
+      request.onsuccess = () => {
+        const database = request.result;
+        const transaction = database.transaction('images', 'readwrite');
+        transaction.objectStore('images').put({
+          url: `https://cn.bing.com/th?id=OHR.${cached.id}_UHD.jpg&rf=LaDigue_UHD.jpg&pid=hp&w=3840&h=2160&rs=1&c=4`,
+          blob: new Blob([new Uint8Array(bytes)], { type: 'image/png' }), timestamp: Date.now()
+        });
+        transaction.oncomplete = () => { database.close(); resolve(); };
+        transaction.onerror = () => reject(transaction.error);
+      };
+    });
+  }, { cached, bytes: [...PIXEL_PNG] });
+  await anchorPage.goto(extensionUrl('ntp/ntp.html'));
+  await expect(anchorPage.locator('#wallpaperBg img')).toHaveAttribute('alt', cached.desc);
+  await expect.poll(() => anchorPage.evaluate(() => JSON.parse(localStorage.getItem('echo_ntp_first_paint_v1'))?.wallpaper.id))
+    .toBe(cached.id);
+
+  await context.addInitScript(() => {
+    if (!location.pathname.endsWith('/ntp/ntp.html')) return;
+    const fetchOriginal = window.fetch.bind(window);
+    const gate = new Promise(resolve => { window.releaseGallery = resolve; });
+    window.fetch = async (...args) => {
+      if (String(args[0]).includes('website/wallpaper-data.json')) {
+        window.galleryHeld = true;
+        await gate;
+      }
+      return fetchOriginal(...args);
+    };
+  });
+  const newPages = [];
+  try {
+    for (let index = 0; index < 3; index += 1) {
+      const page = await context.newPage();
+      newPages.push(page);
+      await page.goto(extensionUrl('ntp/ntp.html'));
+      await expect(page.locator('#wallpaperBg img')).toBeVisible();
+      await expect(page.locator('#wallpaperBg img')).toHaveAttribute('alt', cached.desc);
+      expect(await page.evaluate(() => ({
+        held: window.galleryHeld, history: wallpaperState.history.length,
+        lowPoly: window.LowPolyBg.isInitialized
+      }))).toEqual({ held: true, history: 0, lowPoly: false });
+      if (index === 2) {
+        await page.locator('#wpSetWallpaper').click();
+        await expect.poll(() => page.evaluate(() => wallpaperState.settings.pinnedDate)).toBe(cached.date);
+      }
+      await page.evaluate(() => window.releaseGallery());
+      await expect.poll(() => page.evaluate(() => wallpaperState.history.length)).toBeGreaterThan(0);
+      await expect(page.locator('#wallpaperBg img')).toHaveAttribute('alt', cached.desc);
+    }
+
+    // An old pointer must not flash a wallpaper after the authoritative mode changes.
+    await extension.setStorage('local', {
+      echo_ntp_wallpaper_v2: { mode: 'off', blankMode: false, quality: '4k' }
+    });
+    const offPage = await context.newPage();
+    newPages.push(offPage);
+    await offPage.goto(extensionUrl('ntp/ntp.html'));
+    await expect.poll(() => offPage.evaluate(() => window.galleryHeld)).toBe(true);
+    await expect(offPage.locator('#wallpaperBg img')).toHaveCount(0);
+    expect(await offPage.evaluate(() => window.LowPolyBg.isInitialized)).toBe(true);
+    await offPage.evaluate(() => window.releaseGallery());
+  } finally {
+    for (const page of newPages) {
+      if (!page.isClosed()) {
+        await page.evaluate(() => window.releaseGallery?.()).catch(() => {});
+        await page.close();
+      }
+    }
+  }
+});
+
 for (const pinDuringDownload of [false, true]) {
   test(`shows the cached wallpaper first and ${pinDuringDownload ? 'preserves a new pin' : 'replaces it only after the new image loads'}`, async ({ extension }, testInfo) => {
     const { anchorPage, controlPage, context, extensionUrl } = extension;

@@ -29,8 +29,12 @@
       image.style.transition = 'none';
       image.style.opacity = '1';
       container.replaceChildren(image);
-      options.theme.applyTextTheme(image);
-      options.theme.applyInfoTheme(image);
+      // Leave a rendering opportunity for the image before canvas sampling.
+      root.requestAnimationFrame(() => root.requestAnimationFrame(() => {
+        if (container.firstElementChild !== image) return;
+        options.theme.applyTextTheme(image);
+        options.theme.applyInfoTheme(image);
+      }));
     }
 
     function stopPreload() {
@@ -85,6 +89,7 @@
       if (index !== -1) state.browseIndex = index;
       options.addToHistory(wallpaper.date);
       showImage(image, container);
+      options.rememberFirstPaint?.(wallpaper);
       options.updateStatus();
       options.updateStatusText();
       if (!custom) {
@@ -153,7 +158,7 @@
       }
     }
 
-    async function displayCached(wallpapers, canCommit = null) {
+    async function displayCached(wallpapers, canCommit = null, exact = false) {
       // A new daily download must not cancel the local first paint. A successful
       // replacement, explicit user action or newer cache pass invalidates it.
       const interaction = interactionVersion;
@@ -166,17 +171,22 @@
       updateLoading();
       try {
         const container = documentApi.getElementById('wallpaperBg');
-        const candidates = new Map(wallpapers.filter(w => !options.domain.isCustomWallpaper(w))
-          .map(w => [options.domain.buildBingUrl(w.id, state.settings.quality), w]));
+        const candidates = new Map(wallpapers.filter(w => exact || !options.domain.isCustomWallpaper(w))
+          .map(w => [options.domain.isCustomWallpaper(w) ? w.date
+            : options.domain.buildBingUrl(w.id, state.settings.quality), w]));
         while (container && candidates.size && isCurrent()) {
-          const cached = await options.cache.getFirst([...candidates.keys()]);
+          const key = candidates.keys().next().value;
+          const blob = exact ? await options.cache.get(key) : null;
+          const cached = exact ? (blob ? { url: key, blob } : null)
+            : await options.cache.getFirst([...candidates.keys()]);
           if (!cached || !isCurrent()) break;
           const wallpaper = candidates.get(cached.url);
           candidates.delete(cached.url);
-          const result = await renderBlob(wallpaper, cached.blob, container, isCurrent);
+          const result = await renderBlob(wallpaper, cached.blob, container, isCurrent,
+            options.domain.isCustomWallpaper(wallpaper));
           if (result.status === 'success') return true;
           if (result.status === 'stale') return false;
-          await options.cache.remove(cached.url);
+          if (!options.domain.isCustomWallpaper(wallpaper)) await options.cache.remove(cached.url);
         }
         return false;
       } finally {
@@ -266,7 +276,11 @@
       await display(state.history[state.browseIndex], fallbackAttempts + 1, canCommit);
     }
 
-    return Object.freeze({ cancel, display, displayCached, preload, setRefreshPending, showImage });
+    function displayFirstPaint(wallpaper, canCommit) {
+      return displayCached([wallpaper], canCommit, true);
+    }
+
+    return Object.freeze({ cancel, display, displayCached, displayFirstPaint, preload, setRefreshPending, showImage });
   }
 
   root.EchoNtpWallpaperRenderer = Object.freeze({ create });

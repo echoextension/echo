@@ -223,7 +223,16 @@
       options.info.init();
       toggle.addEventListener('change', onToggle);
       documentApi.addEventListener('keydown', handleKeyboard);
+      // Establish the actual mode before blank-mode layout can start Low Poly.
+      const wallpaperEnabled = state.settings.mode !== 'off';
+      documentApi.body.classList.toggle('wallpaper-mode', wallpaperEnabled);
+      documentApi.body.classList.toggle('no-wallpaper', !wallpaperEnabled);
       await options.blankMode.apply();
+      const firstPaint = options.repository.readFirstPaint?.(state);
+      const firstDisplay = firstPaint ? options.renderer.displayFirstPaint(firstPaint.wallpaper,
+        () => !options.blankMode.isEnabled() && !state.isPreview
+          && options.repository.readFirstPaint(state)?.cacheKey === firstPaint.cacheKey) : null;
+      // This work may finish after the direct cache read has already painted.
       state.history = await options.dataSource.mergeHistory();
       await options.custom.restoreMetadata();
       if (!state.history.length) {
@@ -239,11 +248,15 @@
         documentApi.body.classList.remove('no-wallpaper');
         options.lowPoly.hide();
         select();
-        if (canRefreshDaily()) await options.renderer.displayCached(state.history, canRefreshDaily);
+        const painted = firstDisplay ? await firstDisplay : false;
+        if (!painted && canRefreshDaily()) await options.renderer.displayCached(state.history, canRefreshDaily);
         if (state.settings.mode !== 'off' && !options.blankMode.isEnabled()
             && !state.isPreview && !state.isWallpaperLoading) {
           if (canRefreshDaily()) refreshDaily(select());
-          else display(select());
+          else {
+            const selected = select();
+            if (!painted || state.current?.id !== selected?.id) display(selected);
+          }
         }
       } else {
         toggle.checked = false;
@@ -252,6 +265,17 @@
       }
 
       await ensureRendered();
+      if (firstDisplay && state.current) {
+        const index = state.history.findIndex(wallpaper => wallpaper.id === state.current.id
+          && wallpaper.date === state.current.date);
+        if (index !== -1) {
+          state.current = state.history[index];
+          state.browseIndex = index;
+          if (!options.domain.isCustomWallpaper(state.current)) options.info.update?.(state.current);
+        }
+      }
+      if (state.current) options.statusView.refresh?.();
+      options.renderer.preload?.();
       persistedToggleState = captureToggleState(background);
     }
 

@@ -22,7 +22,8 @@
       documentApi.addEventListener('DOMContentLoaded', () => {
         if (isBlankModeEnabled()) return;
         documentApi.body.style.setProperty('--gradient-angle', `${Math.floor(Math.random() * 360)}deg`);
-        windowApi.requestAnimationFrame(() => setTimeout(init, 100));
+        // The page controller calls show() only after the actual wallpaper
+        // mode is known. Do not initialize a hidden canvas on every new tab.
       });
     }
 

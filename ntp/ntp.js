@@ -186,6 +186,7 @@ wallpaperRenderer = EchoNtpWallpaperRenderer.create({
   theme: wallpaperTheme,
   infoController: autoHideController,
   addToHistory: date => wallpaperRepository.addViewHistory(wallpaperState, date),
+  rememberFirstPaint: wallpaper => wallpaperRepository.saveFirstPaint(wallpaperState, wallpaper),
   updateInfo: wallpaper => autoHideController.update(wallpaper),
   updateStatus: () => wallpaperStatusView.updateActions(),
   updateStatusText: () => {

@@ -30,6 +30,42 @@ afterEach(() => {
 });
 
 describe('wallpaper settings repository', () => {
+  it('reuses a daily cache pointer only when the authoritative mode and quality match', async () => {
+    const repository = await loadRepository(createFakeChrome());
+    await executeWindowScript(dom, 'ntp/modules/wallpaper-domain.js');
+    const state = { settings: { mode: 'daily', quality: '4k', blankMode: false }, isPreview: false };
+    const wallpaper = { id: 'cached', date: '2026-11-01', desc: 'Cached' };
+    repository.saveFirstPaint(state, wallpaper);
+    expect(repository.readFirstPaint(state)?.wallpaper.id).toBe('cached');
+    for (const change of [{ mode: 'off' }, { blankMode: true }, { quality: '1080p' }, { pinnedDate: 'other' }]) {
+      expect(repository.readFirstPaint({ ...state, settings: { ...state.settings, ...change } })).toBeNull();
+    }
+    expect(repository.readFirstPaint({ ...state, isPreview: true })).toBeNull();
+  });
+
+  it('validates the collection daily selection again when the day or favorites change', async () => {
+    let clock = Date.parse('2026-11-02T12:00:00Z');
+    const repository = await loadRepository(createFakeChrome(), { now: () => clock });
+    await executeWindowScript(dom, 'ntp/modules/wallpaper-domain.js');
+    const state = { settings: { mode: 'collection', quality: '4k' }, favorites: ['a', 'b'] };
+    repository.saveFirstPaint(state, { id: 'a', date: 'a' });
+    expect(repository.readFirstPaint(state)?.wallpaper.id).toBe('a');
+    clock = Date.parse('2026-11-03T12:00:00Z');
+    expect(repository.readFirstPaint(state)).toBeNull();
+    clock = Date.parse('2026-11-02T12:00:00Z');
+    expect(repository.readFirstPaint({ ...state, favorites: ['b', 'a'] })).toBeNull();
+    expect(repository.readFirstPaint({ ...state, favorites: ['custom:1', 'a'] })).toBeNull();
+  });
+
+  it('does not replace the normal first-paint record with a random preview', async () => {
+    const repository = await loadRepository(createFakeChrome());
+    await executeWindowScript(dom, 'ntp/modules/wallpaper-domain.js');
+    const state = { settings: { mode: 'daily', quality: '4k' }, isPreview: false };
+    repository.saveFirstPaint(state, { id: 'daily', date: '2026-11-02' });
+    repository.saveFirstPaint({ ...state, isPreview: true }, { id: 'random', date: '2026-10-01' });
+    expect(repository.readFirstPaint(state)?.wallpaper.id).toBe('daily');
+  });
+
   it.each([false, true, undefined, 'false'])('normalizes showBrand=%s and corrects its first-paint mirror', async value => {
     const chrome = createFakeChrome({ storage: { local: { settings: { showBrand: value } } } });
     const repository = await loadRepository(chrome);

@@ -2,6 +2,7 @@
   'use strict';
 
   const FALLBACK_SCHEMA_VERSION = 1;
+  const FIRST_PAINT_KEY = 'echo_ntp_first_paint_v1';
 
   function normalizeFavorites(value) {
     return Array.isArray(value)
@@ -26,6 +27,63 @@
   function create(chromeApi, localStorageApi, keys, options = {}) {
     const favoritesMetaKey = keys.favoritesMeta || `${keys.favorites}_meta`;
     const now = options.now || Date.now;
+
+    function firstPaintSelection(state) {
+      const { mode, quality, pinnedDate, blankMode } = state.settings;
+      if (blankMode || mode === 'off' || state.isPreview) return null;
+      let selectedDate = pinnedDate || null;
+      if (!selectedDate && mode === 'collection') {
+        const favorites = state.availableFavorites || state.favorites;
+        // Missing custom images can change the collection selection. Resolve
+        // those through the existing metadata path before using a first paint.
+        if (!favorites.length || favorites.some(date => date.startsWith('custom:'))) return null;
+        const day = new Date(now()).toISOString().split('T')[0].replaceAll('-', '');
+        selectedDate = favorites[Number.parseInt(day, 10) % favorites.length];
+      }
+      if (!['daily', 'collection'].includes(mode)) return null;
+      return { mode, quality: quality || '4k', pinnedDate: pinnedDate || null, selectedDate };
+    }
+
+    function readFirstPaint(state) {
+      try {
+        const selection = firstPaintSelection(state);
+        if (!selection) return null;
+        const record = JSON.parse(localStorageApi.getItem(FIRST_PAINT_KEY) || 'null');
+        const wallpaper = record?.wallpaper;
+        const domain = options.domain || root.EchoNtpWallpaperDomain;
+        if (record?.schemaVersion !== 1 || !wallpaper || typeof wallpaper.id !== 'string'
+            || !wallpaper.id || typeof wallpaper.date !== 'string'
+            || JSON.stringify(record.selection) !== JSON.stringify(selection)
+            || (selection.selectedDate && wallpaper.date !== selection.selectedDate)
+            || (!selection.selectedDate && domain.isCustomWallpaper(wallpaper))) return null;
+        const cacheKey = domain.isCustomWallpaper(wallpaper) ? wallpaper.date
+          : domain.buildBingUrl(wallpaper.id, selection.quality);
+        return record.cacheKey === cacheKey ? record : null;
+      } catch {
+        return null;
+      }
+    }
+
+    function saveFirstPaint(state, wallpaper) {
+      try {
+        const selection = firstPaintSelection(state);
+        const domain = options.domain || root.EchoNtpWallpaperDomain;
+        if (!selection || !wallpaper
+            || (selection.selectedDate && wallpaper.date !== selection.selectedDate)
+            || (!selection.selectedDate && domain.isCustomWallpaper(wallpaper))) return;
+        const cacheKey = domain.isCustomWallpaper(wallpaper) ? wallpaper.date
+          : domain.buildBingUrl(wallpaper.id, selection.quality);
+        // Store only a small pointer and description, never image bytes or the gallery.
+        const metadata = {
+          id: wallpaper.id, date: wallpaper.date, desc: wallpaper.desc || '',
+          copyright: wallpaper.copyright || ''
+        };
+        if (domain.isCustomWallpaper(wallpaper)) metadata.type = 'custom';
+        localStorageApi.setItem(FIRST_PAINT_KEY, JSON.stringify({
+          schemaVersion: 1, selection, cacheKey, wallpaper: metadata
+        }));
+      } catch {}
+    }
 
     function validTimestamp(value) {
       return Number.isFinite(value) && value >= 0 ? value : 0;
@@ -95,8 +153,10 @@
 
     async function load(state) {
       const cachedBlankMode = localStorageApi.getItem(keys.blankMode);
-      const localStored = await chromeApi.storage.local.get([keys.settings, keys.favorites]);
-      const syncStored = await chromeApi.storage.sync.get([keys.favorites, favoritesMetaKey]);
+      const [localStored, syncStored] = await Promise.all([
+        chromeApi.storage.local.get([keys.settings, keys.favorites]),
+        chromeApi.storage.sync.get([keys.favorites, favoritesMetaKey])
+      ]);
 
       const storedSettings = localStored[keys.settings];
       if (storedSettings && typeof storedSettings === 'object' && !Array.isArray(storedSettings)) {
@@ -225,6 +285,8 @@
     return Object.freeze({
       addViewHistory,
       load,
+      readFirstPaint,
+      saveFirstPaint,
       loadBrandPreference,
       loadViewHistory,
       normalizeFavorites,

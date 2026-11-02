@@ -70,6 +70,39 @@ afterEach(() => {
 });
 
 describe('wallpaper renderer', () => {
+  it('reads the first-paint image directly without enumerating cached keys or downloading', async () => {
+    const { renderer, images, options, state } = await setup();
+    const wallpaper = { id: 'cached', date: '2026-11-02' };
+    options.cache.get.mockResolvedValue(new Blob(['cached']));
+    const paint = renderer.displayFirstPaint(wallpaper, () => true);
+    await flushAsyncWork();
+    images[0].dispatchEvent(new dom.window.Event('load'));
+    expect(await paint).toBe(true);
+    expect(state.current).toBe(wallpaper);
+    expect(options.cache.get).toHaveBeenCalledWith('https://images.test/cached');
+    expect(options.cache.getFirst).not.toHaveBeenCalled();
+    expect(options.fetch).not.toHaveBeenCalled();
+  });
+
+  it('defers sampling until after a frame and skips an image that has been replaced', async () => {
+    const frames = [];
+    const { renderer, options } = await setup();
+    dom.window.requestAnimationFrame = callback => { frames.push(callback); };
+    const container = dom.window.document.getElementById('wallpaperBg');
+    const old = dom.window.document.createElement('img');
+    const latest = dom.window.document.createElement('img');
+    renderer.showImage(old, container);
+    expect(options.theme.applyTextTheme).not.toHaveBeenCalled();
+    frames.shift()();
+    renderer.showImage(latest, container);
+    frames.shift()();
+    expect(options.theme.applyTextTheme).not.toHaveBeenCalled();
+    frames.shift()();
+    frames.shift()();
+    expect(options.theme.applyTextTheme).toHaveBeenCalledExactlyOnceWith(latest);
+    expect(options.theme.applyInfoTheme).toHaveBeenCalledExactlyOnceWith(latest);
+  });
+
   it.each([false, true])('allows cache decoding alongside a daily target (new image first: %s)', async newFirst => {
     const { images, renderer, state, options } = await setup();
     renderer.setRefreshPending(true);
