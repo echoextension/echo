@@ -136,6 +136,9 @@
           state.settings.pinnedDate = wallpaper.date;
         }
         await options.saveSettings();
+        if (pinned && state.settings.pinnedDate === wallpaper.date) {
+          options.rememberPinnedWallpaper?.(wallpaper);
+        }
         if (!pinned) display(selected);
         options.refresh();
         return { pinned, wallpaper: selected };

@@ -93,6 +93,10 @@ const wallpaperCommandController = EchoNtpWallpaperCommandController.create({
   domain: EchoNtpWallpaperDomain,
   display: displayWallpaper,
   saveSettings: saveWallpaperSettings,
+  // A saved pin can be reused next tab while this tab keeps its preview state.
+  rememberPinnedWallpaper: wallpaper => wallpaperRepository.saveFirstPaint(
+    { ...wallpaperState, isPreview: false }, wallpaper
+  ),
   saveFavorites,
   removeCustomWallpaper: date => customWallpaperController.remove(date),
   refresh: () => wallpaperStatusView.refresh()
