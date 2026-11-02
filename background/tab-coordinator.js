@@ -410,7 +410,10 @@
       const extensionId = chromeApi.runtime.id;
       if (pendingUrl?.startsWith(`chrome-extension://${extensionId}/`)
           || pendingUrl?.startsWith(`extension://${extensionId}/`)) return true;
-      if (!url) return false;
+      // Navigation need not have committed a document before the tab can be
+      // activated. Keep pending browser/internal pages outside this allowance.
+      if (isInjectablePage(pendingUrl)) return true;
+      if (!url || url === 'about:blank') return !pendingUrl || pendingUrl === 'about:blank';
       if (url.startsWith('http://') || url.startsWith('https://')) return true;
       if (url.startsWith(`chrome-extension://${extensionId}/`)
           || url.startsWith(`extension://${extensionId}/`)) return true;
@@ -439,7 +442,7 @@
         const target = tabs[targetIndex];
         await chromeApi.tabs.update(target.id, { active: true });
         if (source === 'mouseGesture' && isRightMouseDown
-            && isInjectablePage(target.url || target.pendingUrl || '')) {
+            && isInjectablePage(getEffectiveTabUrl(target))) {
           setTimeout(() => {
             chromeApi.tabs.sendMessage(target.id, {
               action: messages.ACTIONS.SYNC_MOUSE_GESTURE_STATE,

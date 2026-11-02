@@ -8,6 +8,71 @@ async function tabForUrl(extension, url) {
   return (await extension.queryTabs()).find(tab => tab.url === url);
 }
 
+for (const kind of ['loading', 'blank']) {
+  test(`right-button wheel activates the adjacent ${kind} tab`, async ({ extension, fixtureServer }, testInfo) => {
+    const { anchorPage, context, serviceWorker } = extension;
+    const firstUrl = fixtureServer.url('/fixture/gesture-first', testInfo.testId);
+    const slowUrl = fixtureServer.url('/fixture/gesture-slow', testInfo.testId);
+    let release;
+    let requested = false;
+    const gate = new Promise(resolve => { release = resolve; });
+    await context.route(slowUrl, async route => {
+      requested = true;
+      await gate;
+      await route.fulfill({ contentType: 'text/html', body: '<!doctype html><title>Loaded</title><p>Loaded</p>' });
+    });
+    try {
+      await anchorPage.goto(firstUrl);
+      const firstTab = await tabForUrl(extension, firstUrl);
+      await expect.poll(async () => {
+        try {
+          return await serviceWorker.evaluate(async id => (await chrome.tabs.sendMessage(id, {
+            action: 'syncMouseGestureState', isRightMouseDown: false
+          }))?.ok, firstTab.id);
+        } catch { return false; }
+      }).toBe(true);
+      const existingIds = (await extension.queryTabs()).map(tab => tab.id);
+      const targetPage = await context.newPage();
+      const target = await serviceWorker.evaluate(async existing => {
+        return (await chrome.tabs.query({})).find(tab => !existing.includes(tab.id));
+      }, existingIds);
+      await serviceWorker.evaluate(async ({ firstId, targetId }) => {
+        const first = await chrome.tabs.get(firstId);
+        await chrome.tabs.move(targetId, { windowId: first.windowId, index: first.index + 1 });
+      }, { firstId: firstTab.id, targetId: target.id });
+      if (kind === 'loading') {
+        void targetPage.goto(slowUrl, { waitUntil: 'commit' }).catch(() => {});
+        await expect.poll(() => requested).toBe(true);
+        const pending = await serviceWorker.evaluate(id => chrome.tabs.get(id), target.id);
+        expect(pending.status).toBe('loading');
+        expect(pending.pendingUrl).toBe(slowUrl);
+      }
+      await anchorPage.bringToFront();
+      await expect.poll(async () => (await extension.queryTabs()).find(tab => tab.active)?.id).toBe(firstTab.id);
+      await anchorPage.evaluate(() => {
+        document.addEventListener('wheel', event => { window.observedWheelButtons = event.buttons; }, { capture: true });
+      });
+      await anchorPage.mouse.move(600, 300);
+      await anchorPage.mouse.down({ button: 'right' });
+      // Playwright's wheel helper omits pressed buttons. Send the actual
+      // chord through Chromium's input interface instead of altering the gesture.
+      const input = await context.newCDPSession(anchorPage);
+      await input.send('Input.dispatchMouseEvent', {
+        type: 'mouseWheel', x: 600, y: 300, deltaX: 0, deltaY: 120, buttons: 2
+      });
+      await input.detach();
+      await expect.poll(() => anchorPage.evaluate(() => window.observedWheelButtons)).toBe(2);
+      await expect.poll(async () => (await extension.queryTabs()).find(tab => tab.active)?.id).toBe(target.id);
+      if (kind === 'loading') {
+        expect((await serviceWorker.evaluate(id => chrome.tabs.get(id), target.id)).status).toBe('loading');
+      }
+    } finally {
+      release();
+      await anchorPage.mouse.up({ button: 'right' }).catch(() => {});
+    }
+  });
+}
+
 test('injects the content script and carries an F3 command to the background worker', async ({
   extension,
   fixtureServer

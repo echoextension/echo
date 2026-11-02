@@ -231,6 +231,38 @@ describe('background command persistence', () => {
 });
 
 describe('background tab behavior', () => {
+  it.each(['mouseGesture', 'keyboard'])('includes loading and blank adjacent tabs for %s', async source => {
+    for (const target of [
+      { url: '', pendingUrl: 'https://slow.example/', status: 'loading' },
+      { url: 'about:blank', pendingUrl: 'https://slow.example/', status: 'loading' },
+      { url: 'https://slow.example/', status: 'loading' },
+      { url: 'about:blank' },
+      { url: '' }
+    ]) {
+      const chrome = await loadBackground({ tabs: [
+        activeTab,
+        { id: 2, windowId: 1, index: 1, active: false, ...target },
+        { id: 3, windowId: 1, index: 2, active: false, url: 'https://three.example/' }
+      ] });
+      await chrome.runtime.sendMessage({ action: 'switchTab', direction: 'right', source });
+      expect(chrome.__testing.snapshotTabs().find(tab => tab.active)?.id, JSON.stringify(target)).toBe(2);
+      await chrome.runtime.sendMessage({ action: 'switchTab', direction: 'left', source });
+      expect(chrome.__testing.snapshotTabs().find(tab => tab.active)?.id).toBe(1);
+      await chrome.runtime.sendMessage({ action: 'switchTab', direction: 'left', source });
+      expect(chrome.__testing.snapshotTabs().find(tab => tab.active)?.id).toBe(3);
+    }
+  });
+
+  it.each(['mouseGesture', 'keyboard'])('continues to skip pending internal pages for %s', async source => {
+    const chrome = await loadBackground({ tabs: [
+      activeTab,
+      { id: 2, windowId: 1, index: 1, active: false, url: 'about:blank', pendingUrl: 'edge://settings/' },
+      { id: 3, windowId: 1, index: 2, active: false, url: 'https://three.example/' }
+    ] });
+    await chrome.runtime.sendMessage({ action: 'switchTab', direction: 'right', source });
+    expect(chrome.__testing.snapshotTabs().find(tab => tab.active)?.id).toBe(3);
+  });
+
   it('skips browser pages when switching tabs by keyboard', async () => {
     const chrome = await loadBackground({
       tabs: [
